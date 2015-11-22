@@ -1,0 +1,42 @@
+#
+#    composite-metrics - Agent that computes new metrics from bunch of other metrics
+#
+#    Copyright (c) the Authors
+#
+
+Source:         composite-metrics
+Section:        net
+Priority:       optional
+Maintainer:     John Doe <John.Doe@example.com>
+Uploaders:      John Doe <John.Doe@example.com>
+Standards-Version: 3.9.5
+Build-Depends: bison, debhelper (>= 8),
+    pkg-config,
+    automake,
+    autoconf,
+    libtool,
+    libzmq4-dev,
+    libczmq-dev,
+    libmlm-dev,
+    lua-dev,
+    cxxtools-dev,
+    biosproto-dev,
+    dh-autoreconf
+
+
+Package: composite-metrics
+Architecture: any
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: agent that computes new metrics from bunch of other metrics
+ Main package for composite-metrics: agent that computes new metrics from bunch of other metrics
+
+Package: composite-metrics-dbg
+Architecture: any
+Section: debug
+Priority: extra
+Depends:
+    composite-metrics (= ${binary:Version}),
+    ${misc:Depends}
+Description: debugging symbols for composite-metrics
+ This package contains the debugging symbols for composite-metrics : agent that computes new metrics from bunch of other metrics.
+

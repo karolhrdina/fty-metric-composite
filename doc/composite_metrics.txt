@@ -1,0 +1,25 @@
+Name(7)
+=======
+
+
+NAME
+----
+composite_metrics - Agent that computes new metrics from bunch of other metrics
+
+
+SYNOPSIS
+--------
+----
+#include <composite_metrics.h>
+
+cc ['flags'] 'files' -lcomposite_metrics ['libraries']
+----
+
+
+DESCRIPTION
+-----------
+
+Classes
+~~~~~~~
+
+Something.
