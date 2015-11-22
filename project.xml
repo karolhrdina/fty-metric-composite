@@ -1,0 +1,16 @@
+<project
+    name = "composite-metrics"
+    description = "Agent that computes new metrics from bunch of other metrics"
+    script = "zproject.gsl"
+    email = "bios@eaton.com"
+    >
+    <include filename = "license.xml" />
+    <version major = "0" minor = "1" patch = "0" />
+    <use project = "czmq" />
+    <use project = "malamute" />
+    <use project = "lua" test="luaL_openlibs"/>
+    <use project = "cxxtools" test="cxxtools::Utf8Codec::Utf8Codec"/>
+    <use project = "biosproto" test="bios_proto_destroy"/>
+
+    <main  name = "composite_metrics">Metrics calculator</main>
+</project>
