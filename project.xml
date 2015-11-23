@@ -8,9 +8,9 @@
     <version major = "0" minor = "1" patch = "0" />
     <use project = "czmq" />
     <use project = "malamute" />
-    <use project = "lua" test="luaL_openlibs"/>
+    <use project = "lua" test="luaL_openlibs" debian_name="liblua5.1-0-dev"/>
     <use project = "cxxtools" test="cxxtools::Utf8Codec::Utf8Codec"/>
-    <use project = "biosproto" test="bios_proto_destroy"/>
+    <use project = "biosproto" test="bios_proto_destroy" spec_name="libbiosproto-devel"/>
 
     <main  name = "composite_metrics">Metrics calculator</main>
 </project>
