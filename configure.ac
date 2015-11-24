@@ -206,7 +206,7 @@ PKG_CHECK_MODULES([lua], [lua >= 0.0.0],
             fi
         fi
 
-        AC_CHECK_LIB([lua], [lual_openlibs],
+        AC_CHECK_LIB([lua], [luaL_openlibs],
             [
                 CFLAGS="${lua_synthetic_cflags} ${CFLAGS}"
                 LDFLAGS="${lua_synthetic_libs} ${LDFLAGS}"
