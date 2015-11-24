@@ -4,7 +4,7 @@
 ################################################################################
 MAN1 = composite_metrics.1
 MAN3 =
-MAN7 = composite_metrics.7
+MAN7 =
 MAN_DOC = $(MAN1) $(MAN3) $(MAN7)
 
 MAN_TXT = $(MAN1:%.1=%.txt)

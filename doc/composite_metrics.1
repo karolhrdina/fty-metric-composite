@@ -1,0 +1,48 @@
+composite_metrics(1)
+====================
+
+
+NAME
+----
+composite_metrics - Agent that computes new metrics from bunch of other metrics
+
+
+SYNOPSIS
+--------
+----
+composite_metrics configuration.json
+----
+
+
+DESCRIPTION
+-----------
+
+Takes a configuration file, listens for metrics specified inside, evaluates
+lua code provided and when everything succeeds, publishes new metric.
+
+Configuration file contain json with only two values
+
+* +in+ - array of regexps matching topics you want to use
+* +evaluation+ - lua code that interprets metrics in _mt_ table (contains
+                 topic/value pairs) and if something is worth publishing it
+                 returns topic, value and units.
+
+EXAMPLE
+-------
+
+Here is example configuration file averaging all temperatures from TH sensors
+and publishing the resulting value as world temperature.
+
+----
+{
+  "in": [ ".*temperature.*TH.*" ],
+  "evaluation": " sum = 0;
+                  num = 0; 
+                  for key,value in pairs(mt) do
+                       sum = sum + value;
+                       num = num + 1;
+                  end;
+                  tmp = sum / num;
+                  return 'temperature@world', tmp, 'C', 0;"
+}
+----
