@@ -1,0 +1,11 @@
+{
+  "in": [ ".*temperature.*TH.*" ],
+  "evaluation": " sum = 0;
+                  num = 0; 
+                  for key,value in pairs(mt) do
+                       sum = sum + value;
+                       num = num + 1;
+                  end;
+                  tmp = sum / num;
+                  return 'temperature@world', tmp, 'C', 0;"
+}

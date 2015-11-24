@@ -251,7 +251,7 @@ PKG_CHECK_MODULES([cxxtools], [cxxtools >= 0.0.0],
             fi
         fi
 
-        AC_CHECK_LIB([cxxtools], [cxxtools::utf8codec::utf8codec],
+        AC_CHECK_LIB([cxxtools], [cxxtools::Utf8Codec::Utf8Codec],
             [
                 CFLAGS="${cxxtools_synthetic_cflags} ${CFLAGS}"
                 LDFLAGS="${cxxtools_synthetic_libs} ${LDFLAGS}"
@@ -478,7 +478,9 @@ AC_SUBST([pkgconfigdir])
 
 
 # Specify output files
-AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([Makefile
+                 src/composite_metrics@.service
+                 ])
 AC_OUTPUT
 
 ################################################################################

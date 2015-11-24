@@ -12,5 +12,5 @@
     <use project = "cxxtools" test="cxxtools::Utf8Codec::Utf8Codec"/>
     <use project = "biosproto" test="bios_proto_destroy" spec_name="libbiosproto-devel"/>
 
-    <main  name = "composite_metrics">Metrics calculator</main>
+    <main  name = "composite_metrics" services = "1">Metrics calculator</main>
 </project>
