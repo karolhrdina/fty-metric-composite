@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=@prefix@/bin/composite_metrics @sysconfdir@/@PACKAGE@/%i.cfg
+ExecStart=@prefix@/bin/composite_metrics @prefix@/etc/@PACKAGE@/%i.cfg
 
 [Install]
 WantedBy=multi-user.target
