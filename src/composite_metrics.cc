@@ -71,7 +71,11 @@ int main (int argc, char** argv) {
     bios_proto_destroy(&yn);
 
     // Prepare data for computation
+#if LUA_VERSION_MAJOR * 10 + LUA_VERSION_MINOR > 51
+    lua_State *L = luaL_newstate();
+#else
     lua_State *L = lua_open();
+#endif
     luaL_openlibs(L);
     lua_newtable(L);
     time_t tme = time(NULL);
