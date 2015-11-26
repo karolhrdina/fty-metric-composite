@@ -25,6 +25,10 @@ composite-metricsdir = @bindir@
 composite-metrics_SCRIPTS = \
     dc_th_enable
 
+composite-metrics_servicesdir = @prefix@/lib/systemd/system
+composite-metrics_services_DATA = \
+    src/dc_th.service
+
 
 check-local: src/composite_metrics_selftest
 	$(LIBTOOL) --mode=execute $(srcdir)/src/composite_metrics_selftest

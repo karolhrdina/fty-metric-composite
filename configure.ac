@@ -480,6 +480,7 @@ AC_SUBST([pkgconfigdir])
 # Specify output files
 AC_CONFIG_FILES([Makefile
                  src/composite_metrics@.service
+                 src/dc_th.service
                  ])
 AC_OUTPUT
 
