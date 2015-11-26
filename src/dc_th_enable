@@ -1,0 +1,59 @@
+#!/bin/bash
+
+die() {
+  echo "$@"
+  exit 1
+}
+
+do_mysql() {                                                                   
+  mysql -N -B -u root box_utf8 -e "$@"
+}
+
+rc_id="`do_mysql "select id_asset_element from t_bios_asset_ext_attributes where keytag='hostname.1' and value='\`hostname -f\`';"`"
+
+[ -n "${rc_id}" ] || die "Can't get RC from DB"
+
+while [ -n "${rc_id}" ]; do
+  tmp="`do_mysql "select id_parent,name,id_type from t_bios_asset_element where id_asset_element=${rc_id};" | tr \\\\t \\;`"
+  id_type="`echo "$tmp" | cut -f 3 -d ';'`"
+  if [ "${id_type}" = 2 ]; then
+    DC="`echo "$tmp" | cut -f 2 -d ';'`"
+    rc_id=""
+  else
+    rc_id="`echo "$tmp" | cut -f 1 -d ';'`"
+  fi
+done
+
+[ -n "${DC}" ] || die "Can't get DC from DB"
+
+mkdir -p /etc/composite-metrics
+cat > /etc/composite-metrics/dc-temperature.cfg << EOF
+{
+  "in": [ "temperature.TH[0-9]@`hostname -f`" ],
+  "evaluation": " sum = 0;
+                  num = 0; 
+                  for key,value in pairs(mt) do
+                       sum = sum + value;
+                       num = num + 1;
+                  end;
+                  tmp = sum / num;
+                  return 'average.temperature@$DC', tmp, 'C', 0;"
+}
+EOF
+systemctl start composite-metrics@dc-temperature
+systemctl enable composite-metrics@dc-temperature
+cat > /etc/composite-metrics/dc-humidity.cfg << EOF
+{
+  "in": [ "humidity.TH[0-9]@`hostname -f`" ],
+  "evaluation": " sum = 0;
+                  num = 0; 
+                  for key,value in pairs(mt) do
+                       sum = sum + value;
+                       num = num + 1;
+                  end;
+                  tmp = sum / num;
+                  return 'average.humidity@$DC', tmp, '%', 0;"
+}
+EOF
+systemctl start composite-metrics@dc-humidity
+systemctl enable composite-metrics@dc-humidity
