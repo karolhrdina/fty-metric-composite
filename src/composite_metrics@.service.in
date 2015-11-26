@@ -1,6 +1,6 @@
 [Unit]
 Description=composite_metrics service for %I
-After=network.target
+After=malamute.service
 
 [Service]
 Type=simple
