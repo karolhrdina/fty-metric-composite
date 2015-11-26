@@ -21,12 +21,12 @@ src_composite_metrics_service_DATA = src/composite_metrics@.service
 endif
 
 # Install data into /usr/local/bin
-composite-metricsdir = @bindir@
-composite-metrics_SCRIPTS = \
+composite_metricsdir = @bindir@
+composite_metrics_SCRIPTS = \
     dc_th_enable
 
-composite-metrics_servicesdir = @prefix@/lib/systemd/system
-composite-metrics_services_DATA = \
+composite_metrics_servicesdir = @prefix@/lib/systemd/system
+composite_metrics_services_DATA = \
     src/dc_th.service
 
 
