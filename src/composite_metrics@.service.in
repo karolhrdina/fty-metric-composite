@@ -4,7 +4,8 @@ After=malamute.service
 
 [Service]
 Type=simple
-ExecStart=@prefix@/bin/composite_metrics @prefix@/etc/@PACKAGE@/%i.cfg
+Environment="prefix=@prefix@"
+ExecStart=@prefix@/bin/composite_metrics @sysconfdir@/@PACKAGE@/%i.cfg
 
 [Install]
 WantedBy=multi-user.target
