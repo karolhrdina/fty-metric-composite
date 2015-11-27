@@ -5,8 +5,11 @@ die() {
   exit 1
 }
 
+test -f /etc/default/bios-db-ro || die "Can't get db password"
+. /etc/default/bios-db-ro
+
 do_mysql() {                                                                   
-  mysql -N -B -u root box_utf8 -e "$@"
+  mysql -N -B -u "${DB_USER}" -p"${DB_PASSWD}" box_utf8 -e "$@"
 }
 
 rc_id="`do_mysql "select id_asset_element from t_bios_asset_ext_attributes where keytag='hostname.1' and value='\`hostname -f\`';"`"
