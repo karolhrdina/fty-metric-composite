@@ -40,7 +40,7 @@ cat > /etc/composite-metrics/dc-temperature.cfg << EOF
                   return 'average.temperature@$DC', tmp, 'C', 0;"
 }
 EOF
-systemctl start composite-metrics@dc-temperature
+systemctl restart composite-metrics@dc-temperature
 systemctl enable composite-metrics@dc-temperature
 cat > /etc/composite-metrics/dc-humidity.cfg << EOF
 {
@@ -55,5 +55,5 @@ cat > /etc/composite-metrics/dc-humidity.cfg << EOF
                   return 'average.humidity@$DC', tmp, '%', 0;"
 }
 EOF
-systemctl start composite-metrics@dc-humidity
+systemctl restart composite-metrics@dc-humidity
 systemctl enable composite-metrics@dc-humidity
