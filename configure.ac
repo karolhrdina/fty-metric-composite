@@ -181,42 +181,11 @@ fi
 
 
 was_lua_check_lib_detected=no
-
-PKG_CHECK_MODULES([lua], [lua >= 0.0.0],
+PKG_CHECK_MODULES([lua], [lua >= 5.1.0],
     [
     ],
     [
-        AC_ARG_WITH([lua],
-            [
-                AS_HELP_STRING([--with-lua],
-                [Specify lua prefix])
-            ],
-            [search_lua="yes"],
-            [])
-
-        lua_synthetic_cflags=""
-        lua_synthetic_libs="-llua"
-
-        if test "x$search_lua" = "xyes"; then
-            if test -r "${with_lua}/include/lua.h"; then
-                lua_synthetic_cflags="-I${with_lua}/include"
-                lua_synthetic_libs="-L${with_lua}/lib -llua"
-            else
-                AC_MSG_ERROR([${with_lua}/include/lua.h not found. Please check lua prefix])
-            fi
-        fi
-
-        AC_CHECK_LIB([lua], [luaL_openlibs],
-            [
-                CFLAGS="${lua_synthetic_cflags} ${CFLAGS}"
-                LDFLAGS="${lua_synthetic_libs} ${LDFLAGS}"
-                LIBS="${lua_synthetic_libs} ${LIBS}"
-
-                AC_SUBST([lua_CFLAGS],[${lua_synthetic_cflags}])
-                AC_SUBST([lua_LIBS],[${lua_synthetic_libs}])
-                was_lua_check_lib_detected=yes
-            ],
-            [AC_MSG_ERROR([cannot link with -llua, install lua.])])
+        AC_MSG_ERROR([Cannot find required package for lua. Note, pkg-config is required due to specified version >= 5.1.0])
     ])
 
 if test "x$was_lua_check_lib_detected" = "xno"; then
