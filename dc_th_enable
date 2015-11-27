@@ -32,7 +32,7 @@ done
 mkdir -p /etc/composite-metrics
 cat > /etc/composite-metrics/dc-temperature.cfg << EOF
 {
-  "in": [ "temperature.TH[0-9]@`hostname -f`" ],
+  "in": [ "temperature.TH.*@`hostname -f`" ],
   "evaluation": " sum = 0;
                   num = 0; 
                   for key,value in pairs(mt) do
@@ -47,7 +47,7 @@ systemctl restart composite-metrics@dc-temperature
 systemctl enable composite-metrics@dc-temperature
 cat > /etc/composite-metrics/dc-humidity.cfg << EOF
 {
-  "in": [ "humidity.TH[0-9]@`hostname -f`" ],
+  "in": [ "humidity.TH.*@`hostname -f`" ],
   "evaluation": " sum = 0;
                   num = 0; 
                   for key,value in pairs(mt) do
