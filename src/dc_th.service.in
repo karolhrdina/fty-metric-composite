@@ -3,7 +3,7 @@ Description=Enables computation of Temperature & Humidity in DC
 After=mysql.service
 
 [Service]
-Type=Oneshot
+Type=oneshot
 ExecStart=@prefix@/bin/dc_th_enable
 
 [Install]
