@@ -455,10 +455,10 @@ AM_CONDITIONAL(ON_ANDROID, test "x$composite_metrics_on_android" = "xyes")
 AM_CONDITIONAL(INSTALL_MAN, test "x$composite_metrics_install_man" = "xyes")
 AM_CONDITIONAL(BUILD_DOC, test "x$composite_metrics_build_doc" = "xyes")
 
-# Check for composite_metrics intent
-AC_ARG_WITH([composite_metrics],
-    AS_HELP_STRING([--with-composite_metrics],
-        [Compile and install the composite_metrics program [default=yes].]),
+# Check for composite-metrics intent
+AC_ARG_WITH([composite-metrics],
+    AS_HELP_STRING([--with-composite-metrics],
+        [Compile and install the composite-metrics program [default=yes].]),
     [with_composite_metrics=$withval],
     [with_composite_metrics=yes])
 
@@ -479,7 +479,7 @@ AC_SUBST([pkgconfigdir])
 
 # Specify output files
 AC_CONFIG_FILES([Makefile
-                 src/composite_metrics@.service
+                 src/composite-metrics@.service
                  src/dc_th.service
                  ])
 AC_OUTPUT

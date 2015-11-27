@@ -3,6 +3,7 @@
     description = "Agent that computes new metrics from bunch of other metrics"
     script = "zproject.gsl"
     email = "bios@eaton.com"
+    use_cxx = "1"
     >
     <include filename = "license.xml" />
     <version major = "0" minor = "1" patch = "0" />
@@ -15,5 +16,5 @@
     <service name="dc_th">Service that trigers dc_th_enable script</service>
 
     <bin name = "dc_th_enable">Enables computation of Temperature &amp; Humidity in DC</bin>
-    <main  name = "composite_metrics" services = "1">Metrics calculator</main>
+    <main  name = "composite-metrics" services = "1">Metrics calculator</main>
 </project>

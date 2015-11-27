@@ -61,6 +61,6 @@ find %{buildroot} -name '*.la' | xargs rm -f
 %files
 %defattr(-,root,root)
 %doc COPYING
-%{_bindir}/composite_metrics
+%{_bindir}/composite-metrics
 
 %changelog

@@ -10,14 +10,14 @@ program_libs += -lstdc++
 endif
 
 if WITH_COMPOSITE_METRICS
-bin_PROGRAMS += src/composite_metrics
+bin_PROGRAMS += src/composite-metrics
 src_composite_metrics_CPPFLAGS = ${AM_CPPFLAGS}
 src_composite_metrics_LDADD = ${program_libs}
-src_composite_metrics_SOURCES = src/composite_metrics.cc
+src_composite_metrics_SOURCES = src/composite-metrics.cc
 src_composite_metrics_servicedir = @prefix@/lib/systemd/system
 src_composite_metrics_configdir = $(sysconfdir)/composite-metrics
-src_composite_metrics_config_DATA = src/composite_metrics.cfg.example
-src_composite_metrics_service_DATA = src/composite_metrics@.service
+src_composite_metrics_config_DATA = src/composite-metrics.cfg.example
+src_composite_metrics_service_DATA = src/composite-metrics@.service
 endif
 
 # Install data into /usr/local/bin
