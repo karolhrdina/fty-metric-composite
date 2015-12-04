@@ -1,0 +1,234 @@
+/*
+Copyright (C) 2014 - 2015 Eaton
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along
+with this program; if not, write to the Free Software Foundation, Inc.,
+51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+
+extern "C" {
+#include <lua.h>
+#include <lauxlib.h>
+#include <lualib.h>
+}
+#include <string.h>
+#include <stdio.h>
+#include <vector>
+#include <string>
+#include <map>
+#include <iostream>
+#include <fstream>
+#include <cxxtools/jsondeserializer.h>
+#include <cxxtools/directory.h>
+#include <bios_proto.h>
+#include <malamute.h>
+
+struct value {
+  double value;
+  time_t valid_till;
+};
+
+void
+bios_composite_metrics_server (zsock_t *pipe, void* args) {
+
+    std::map<std::string, value> cache;
+    std::string lua_code;
+
+    char *name = (char*) args;
+
+    mlm_client_t *client = mlm_client_new ();
+
+    zpoller_t *poller = zpoller_new (pipe, mlm_client_msgpipe (client), NULL);
+
+    zsock_signal (pipe, 0);
+
+    while (!zsys_interrupted) {
+
+        void *which = zpoller_wait (poller, -1);
+        if (which == pipe) {
+            zmsg_t *msg = zmsg_recv (pipe);
+            char *cmd = zmsg_popstr (msg);
+
+            if (streq (cmd, "$TERM")) {
+                zstr_free (&cmd);
+                zmsg_destroy (&msg);
+                goto exit;
+            }
+            else
+            if (streq (cmd, "CONNECT")) {
+                char* endpoint = zmsg_popstr (msg);
+                mlm_client_connect (client, endpoint, 1000, name);
+                zstr_free (&endpoint);
+            }
+            else
+            if (streq (cmd, "PRODUCER")) {
+                char* stream = zmsg_popstr (msg);
+                mlm_client_set_producer (client, stream);
+                zstr_free (&stream);
+            }
+            else
+            if (streq (cmd, "CONSUMER")) {
+                char* stream = zmsg_popstr (msg);
+                char* pattern = zmsg_popstr (msg);
+                mlm_client_set_consumer (client, stream, pattern);
+                zstr_free (&pattern);
+                zstr_free (&stream);
+            }
+            if (streq (cmd, "CONFIG")) {
+                char* filename = zmsg_popstr (msg);
+                std::ifstream f(filename);
+                cxxtools::JsonDeserializer json(f);
+                json.deserialize();
+
+                const cxxtools::SerializationInfo *si = json.si();
+                si->getMember("evaluation") >>= lua_code;
+
+                // Subscribe to all streams
+                for(auto it : si->getMember("in")) {
+                    std::string buff;
+                    it >>= buff;
+                    mlm_client_set_consumer(client, "METRICS", buff.c_str());
+                    zsys_debug("Registered to receive '%s'", buff.c_str());
+                }
+                zstr_free (&filename);
+            }
+            zstr_free (&cmd);
+            zmsg_destroy (&msg);
+            continue;
+        }
+
+        // Get message
+        zmsg_t *msg = mlm_client_recv(client);
+        if(msg == NULL)
+            continue;
+        bios_proto_t *yn = bios_proto_decode(&msg);
+        if(yn == NULL)
+            continue;
+
+        // Update cache with updated values
+        std::string topic = mlm_client_subject(client);
+        value val;
+        val.value = atof(bios_proto_value(yn));
+        val.valid_till = time(NULL) + 600;
+        zsys_debug ("Got message '%s' with value %lf", topic.c_str(), val.value);
+        auto f = cache.find(topic);
+        if(f != cache.end()) {
+            f->second = val;
+        } else {
+            cache.insert(std::make_pair(topic, val));
+        }
+        bios_proto_destroy(&yn);
+
+        // Prepare data for computation
+#if LUA_VERSION_NUM > 501
+        lua_State *L = luaL_newstate();
+#else
+        lua_State *L = lua_open();
+#endif
+        luaL_openlibs(L);
+        lua_newtable(L);
+        time_t tme = time(NULL);
+        for(auto i : cache) {
+            if(tme > i.second.valid_till)
+                continue;
+            zsys_debug (" - %s, %f", i.first.c_str(), i.second.value);
+            lua_pushstring(L, i.first.c_str());
+            lua_pushnumber(L, i.second.value);
+            lua_settable(L, -3);
+        }
+        lua_setglobal(L, "mt");
+
+        // Do the real processing
+        auto error = luaL_loadbuffer(L, lua_code.c_str(), lua_code.length(), "line") ||
+            lua_pcall(L, 0, 3, 0);
+        if(error) {
+            zsys_error("%s", lua_tostring(L, -1));
+            goto next_iter;
+        }
+        zsys_debug ("Total: %d", lua_gettop(L));
+        if(lua_gettop(L) == 3) {
+            if(strrchr(lua_tostring(L, -3), '@') == NULL) {
+                zsys_error ("Invalid output topic");
+                goto next_iter;
+            }
+            bios_proto_t *n_met = bios_proto_new(BIOS_PROTO_METRIC);
+            char *buff = strdup(lua_tostring(L, -3));
+            bios_proto_set_element_src(n_met, "%s", strrchr(buff, '@') + 1);
+            (*strrchr(buff, '@')) = 0;
+            bios_proto_set_type(n_met, "%s", buff);
+            bios_proto_set_value(n_met, "%s", lua_tostring(L, -2));
+            bios_proto_set_unit(n_met,  "%s", lua_tostring(L, -1));
+            bios_proto_set_time(n_met,  -1);
+            zmsg_t* z_met = bios_proto_encode(&n_met);
+            mlm_client_send(client, lua_tostring(L, -3), &z_met);
+        } else {
+            zsys_error ("Not enough valid data...\n");
+        }
+next_iter:
+        lua_close(L);
+    }
+
+exit:
+    zpoller_destroy (&poller);
+    mlm_client_destroy (&client);
+}
+
+//  ---------------------------------------------------------------------------
+//  Selftest
+
+void
+bios_composite_metrics_server_test (bool verbose)
+{
+    static const char* endpoint = "inproc://bios-cm-server-test";
+
+    printf (" * bios_composite_metrics_server: ");
+    if (verbose)
+        printf ("\n");
+
+    //  @selftest
+    zactor_t *server = zactor_new (mlm_server, (void*) "Malamute");
+    zstr_sendx (server, "BIND", endpoint, NULL);
+    if (verbose)
+        zstr_send (server, "VERBOSE");
+
+    mlm_client_t *producer = mlm_client_new ();
+    mlm_client_connect (producer, endpoint, 1000, "producer");
+    mlm_client_set_producer (producer, "METRICS");
+
+    mlm_client_t *consumer = mlm_client_new ();
+    mlm_client_connect (consumer, endpoint, 1000, "consumer");
+    mlm_client_set_consumer (consumer, "METRICS", "temperature@world");
+
+    zactor_t *cm_server = zactor_new (bios_composite_metrics_server, (void*) "cm_server");
+    zstr_sendx (cm_server, "CONNECT", endpoint, NULL);
+    zstr_sendx (cm_server, "PRODUCER", "METRICS", NULL);
+    zstr_sendx (cm_server, "CONFIG", "src/composite-metrics.cfg.example", NULL);
+    zclock_sleep (500);   //THIS IS A HACK TO SETTLE DOWN THINGS
+
+    zmsg_t *msg1 = bios_proto_encode_metric(
+            NULL, "temperature", "TH1", "40", "C", -1);
+    assert (msg1);
+    mlm_client_send (producer, "temperature@TH1", &msg1);
+
+    zmsg_t *msg = mlm_client_recv (consumer);
+    bios_proto_t *m = bios_proto_decode (&msg);
+    assert (m);
+
+    assert (streq (bios_proto_value (m), "40"));
+    bios_proto_destroy (&m);
+
+    zactor_destroy (&cm_server);
+    mlm_client_destroy (&consumer);
+    mlm_client_destroy (&producer);
+    zactor_destroy (&server);
+}

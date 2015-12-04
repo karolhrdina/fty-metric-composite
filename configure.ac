@@ -7,11 +7,11 @@
 # Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.61)
 #
-# The version number is extracted from include/composite-metrics.h using
+# The version number is extracted from include/composite_metrics.h using
 # the version.sh script. Hence, it should be updated there.
 # The version in git should reflect the *next* version planned.
 #
-AC_INIT([composite-metrics],[m4_esyscmd([./version.sh composite-metrics])],[bios@eaton.com])
+AC_INIT([composite-metrics],[m4_esyscmd([./version.sh composite_metrics.h])],[bios@eaton.com])
 
 AC_CONFIG_AUX_DIR(config)
 AC_CONFIG_MACRO_DIR(config)
@@ -181,6 +181,7 @@ fi
 
 
 was_lua_check_lib_detected=no
+
 PKG_CHECK_MODULES([lua], [lua >= 5.1.0],
     [
     ],
@@ -305,7 +306,7 @@ AC_CHECK_PROG(composite_metrics_have_xmlto, xmlto, yes, no)
 if test "x$composite_metrics_have_asciidoc" = "xno" -o "x$composite_metrics_have_xmlto" = "xno"; then
     composite_metrics_build_doc="no"
     # Tarballs built with 'make dist' ship with prebuilt documentation.
-    if ! test -f doc/composite-metrics.7; then
+    if ! test -f doc/composite_metrics.7; then
         composite_metrics_install_man="no"
         AC_MSG_WARN([You are building an unreleased version of COMPOSITE-METRICS and asciidoc or xmlto are not installed.])
         AC_MSG_WARN([Documentation will not be built and manual pages will not be installed.])
@@ -448,6 +449,8 @@ AC_SUBST([pkgconfigdir])
 
 # Specify output files
 AC_CONFIG_FILES([Makefile
+                 doc/Makefile
+                 src/libcomposite_metrics.pc
                  src/composite-metrics@.service
                  src/dc_th.service
                  ])

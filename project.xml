@@ -19,6 +19,7 @@
 
     <service name="dc_th">Service that trigers dc_th_enable script</service>
 
+    <class name = "bios_composite_metrics_server">Composite metrics server</class>
     <bin name = "dc_th_enable">Enables computation of Temperature &amp; Humidity in DC</bin>
     <main  name = "composite-metrics" services = "1">Metrics calculator</main>
 </project>
