@@ -23,8 +23,8 @@ AM_CPPFLAGS = \
 
 project_libs = ${libzmq_LIBS} ${czmq_LIBS} ${malamute_LIBS} ${lua_LIBS} ${cxxtools_LIBS} ${biosproto_LIBS}
 
-SUBDIRS = 
-DIST_SUBDIRS = 
+SUBDIRS = doc
+DIST_SUBDIRS = doc
 lib_LTLIBRARIES =
 bin_PROGRAMS =
 noinst_PROGRAMS =
