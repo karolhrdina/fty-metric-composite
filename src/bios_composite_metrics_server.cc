@@ -215,16 +215,43 @@ bios_composite_metrics_server_test (bool verbose)
     zstr_sendx (cm_server, "CONFIG", "src/composite-metrics.cfg.example", NULL);
     zclock_sleep (500);   //THIS IS A HACK TO SETTLE DOWN THINGS
 
-    zmsg_t *msg1 = bios_proto_encode_metric(
+    // send one value
+    zmsg_t *msg_in;
+    msg_in = bios_proto_encode_metric(
             NULL, "temperature", "TH1", "40", "C", -1);
-    assert (msg1);
-    mlm_client_send (producer, "temperature@TH1", &msg1);
+    assert (msg_in);
+    mlm_client_send (producer, "temperature@TH1", &msg_in);
 
-    zmsg_t *msg = mlm_client_recv (consumer);
-    bios_proto_t *m = bios_proto_decode (&msg);
+    zmsg_t *msg_out;
+    bios_proto_t *m;
+    msg_out = mlm_client_recv (consumer);
+    m = bios_proto_decode (&msg_out);
     assert (m);
+    assert (streq (bios_proto_value (m), "40"));    // <<< 40 / 1
+    bios_proto_destroy (&m);
 
-    assert (streq (bios_proto_value (m), "40"));
+    // send another value
+    msg_in = bios_proto_encode_metric(
+            NULL, "temperature", "TH2", "100", "C", -1);
+    assert (msg_in);
+    mlm_client_send (producer, "temperature@TH2", &msg_in);
+
+    msg_out = mlm_client_recv (consumer);
+    m = bios_proto_decode (&msg_out);
+    assert (m);
+    assert (streq (bios_proto_value (m), "70"));    // <<< (100 + 40) / 2
+    bios_proto_destroy (&m);
+
+    // send value for TH1 again
+    msg_in = bios_proto_encode_metric(
+            NULL, "temperature", "TH1", "70", "C", -1);
+    assert (msg_in);
+    mlm_client_send (producer, "temperature@TH1", &msg_in);
+
+    msg_out = mlm_client_recv (consumer);
+    m = bios_proto_decode (&msg_out);
+    assert (m);
+    assert (streq (bios_proto_value (m), "85"));     // <<< (100 + 70) / 2
     bios_proto_destroy (&m);
 
     zactor_destroy (&cm_server);
