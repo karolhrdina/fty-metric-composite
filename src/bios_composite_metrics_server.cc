@@ -43,6 +43,7 @@ bios_composite_metrics_server (zsock_t *pipe, void* args) {
 
     std::map<std::string, value> cache;
     std::string lua_code;
+    bool verbose = false;
 
     char *name = (char*) args;
 
@@ -63,6 +64,12 @@ bios_composite_metrics_server (zsock_t *pipe, void* args) {
                 zstr_free (&cmd);
                 zmsg_destroy (&msg);
                 goto exit;
+            }
+            else
+            if (streq (cmd, "VERBOSE")) {
+                verbose = true;
+                zsys_error ("VERBOSE VERBOSE VERBOSE");
+                zmsg_destroy (&msg);
             }
             else
             if (streq (cmd, "CONNECT")) {
@@ -87,6 +94,8 @@ bios_composite_metrics_server (zsock_t *pipe, void* args) {
             if (streq (cmd, "CONFIG")) {
                 char* filename = zmsg_popstr (msg);
                 std::ifstream f(filename);
+                if (verbose)
+                    zsys_debug ("%s: Opening '%s'", name, filename);
                 cxxtools::JsonDeserializer json(f);
                 json.deserialize();
 
@@ -98,7 +107,8 @@ bios_composite_metrics_server (zsock_t *pipe, void* args) {
                     std::string buff;
                     it >>= buff;
                     mlm_client_set_consumer(client, "METRICS", buff.c_str());
-                    zsys_debug("Registered to receive '%s'", buff.c_str());
+                    if (verbose)
+                        zsys_debug("%s: Registered to receive '%s'", name, buff.c_str());
                 }
                 zstr_free (&filename);
             }
@@ -120,7 +130,8 @@ bios_composite_metrics_server (zsock_t *pipe, void* args) {
         value val;
         val.value = atof(bios_proto_value(yn));
         val.valid_till = time(NULL) + 600;
-        zsys_debug ("Got message '%s' with value %lf", topic.c_str(), val.value);
+        if (verbose)
+            zsys_debug ("%s: Got message '%s' with value %lf", name, topic.c_str(), val.value);
         auto f = cache.find(topic);
         if(f != cache.end()) {
             f->second = val;
@@ -141,7 +152,8 @@ bios_composite_metrics_server (zsock_t *pipe, void* args) {
         for(auto i : cache) {
             if(tme > i.second.valid_till)
                 continue;
-            zsys_debug (" - %s, %f", i.first.c_str(), i.second.value);
+            if (verbose)
+                zsys_debug ("%s - %s, %f", name, i.first.c_str(), i.second.value);
             lua_pushstring(L, i.first.c_str());
             lua_pushnumber(L, i.second.value);
             lua_settable(L, -3);
@@ -155,7 +167,8 @@ bios_composite_metrics_server (zsock_t *pipe, void* args) {
             zsys_error("%s", lua_tostring(L, -1));
             goto next_iter;
         }
-        zsys_debug ("Total: %d", lua_gettop(L));
+        if (verbose)
+            zsys_debug ("%s: Total: %d", name, lua_gettop(L));
         if(lua_gettop(L) == 3) {
             if(strrchr(lua_tostring(L, -3), '@') == NULL) {
                 zsys_error ("Invalid output topic");
@@ -210,6 +223,8 @@ bios_composite_metrics_server_test (bool verbose)
     mlm_client_set_consumer (consumer, "METRICS", "temperature@world");
 
     zactor_t *cm_server = zactor_new (bios_composite_metrics_server, (void*) "cm_server");
+    if (verbose)
+        zstr_send (cm_server, "VERBOSE");
     zstr_sendx (cm_server, "CONNECT", endpoint, NULL);
     zstr_sendx (cm_server, "PRODUCER", "METRICS", NULL);
     zstr_sendx (cm_server, "CONFIG", "src/composite-metrics.cfg.example", NULL);
