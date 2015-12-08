@@ -1,7 +1,7 @@
 Format:         1.0
 Source:         composite-metrics
 Version:        0.1.0-1
-Binary:         composite-metrics
+Binary:         libcomposite-metrics0, composite-metrics-dev
 Architecture:   any all
 Maintainer:     John Doe <John.Doe@example.com>
 Standards-Version: 3.9.5
@@ -19,5 +19,6 @@ Build-Depends: bison, debhelper (>= 8),
     dh-autoreconf
 
 Package-List:
- composite-metrics dev net optional arch-any
+ libcomposite-metrics0 deb net optional arch=any
+ composite-metrics-dev deb libdevel optional arch=any
 

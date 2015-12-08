@@ -16,7 +16,7 @@
 #    You should have received a copy of the GNU General Public License along
 #    with this program; if not, write to the Free Software Foundation, Inc.,
 #    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.            
-#
+
 
 Source:         composite-metrics
 Section:        net
@@ -37,6 +37,25 @@ Build-Depends: bison, debhelper (>= 8),
     libbiosproto-dev,
     dh-autoreconf
 
+Package: libcomposite-metrics0
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: composite-metrics
+ This package contains shared library for composite-metrics: agent that computes new metrics from bunch of other metrics
+
+Package: composite-metrics-dev
+Architecture: all
+Section: libdevel
+Depends:
+    libzmq4-dev,
+    libczmq-dev,
+    libmlm-dev,
+    liblua5.1-0-dev,
+    libcxxtools-dev,
+    libbiosproto-dev,
+    libcomposite-metrics0 (= ${binary:Version})
+Description: development files for composite-metrics
+ This package contains development files for composite-metrics: agent that computes new metrics from bunch of other metrics
 
 Package: composite-metrics
 Architecture: any
