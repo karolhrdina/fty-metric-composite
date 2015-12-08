@@ -42,6 +42,42 @@ BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 %description
 composite-metrics agent that computes new metrics from bunch of other metrics.
 
+%package -n libcomposite_metrics0
+Group:          System/Libraries
+Summary:        agent that computes new metrics from bunch of other metrics
+
+%description -n libcomposite_metrics0
+composite-metrics agent that computes new metrics from bunch of other metrics.
+This package contains shared library.
+
+%post -n libcomposite_metrics0 -p /sbin/ldconfig
+%postun -n libcomposite_metrics0 -p /sbin/ldconfig
+
+%files -n libcomposite_metrics0
+%defattr(-,root,root)
+%doc COPYING
+%{_libdir}/libcomposite_metrics.so.*
+
+%package devel
+Summary:        agent that computes new metrics from bunch of other metrics
+Group:          System/Libraries
+Requires:       libcomposite_metrics0 = %{version}
+Requires:       zeromq-devel
+Requires:       czmq-devel
+Requires:       malamute-devel
+Requires:       lua-devel
+Requires:       cxxtools-devel
+Requires:       libbiosproto-devel
+
+%description devel
+composite-metrics agent that computes new metrics from bunch of other metrics.
+This package contains development files.
+
+%files devel
+%defattr(-,root,root)
+%{_includedir}/*
+%{_libdir}/libcomposite_metrics.so
+%{_libdir}/pkgconfig/libcomposite_metrics.pc
 
 %prep
 %setup -q
@@ -62,5 +98,9 @@ find %{buildroot} -name '*.la' | xargs rm -f
 %defattr(-,root,root)
 %doc COPYING
 %{_bindir}/composite-metrics
+%{_sysconfdir}/composite-metrics/composite-metrics.cfg.example
+%{_bindir}/dc_th_enable
+%{_prefix}/lib/systemd/system/composite-metrics*.service
+%{_prefix}/lib/systemd/system/dc_th*.service
 
 %changelog
