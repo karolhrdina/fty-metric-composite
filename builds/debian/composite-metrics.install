@@ -1,0 +1,4 @@
+debian/tmp/etc/*
+debian/tmp/usr/bin/*
+debian/tmp/usr/lib/systemd/*
+debian/tmp/usr/share/man/man1/composite_metrics.1
