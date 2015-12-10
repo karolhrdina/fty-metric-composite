@@ -16,6 +16,13 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
+/*
+@header
+    Provides actor server implementing METRIC protocol.
+@discuss
+@end
+*/
+
 extern "C" {
 #include <lua.h>
 #include <lauxlib.h>
@@ -273,4 +280,6 @@ bios_composite_metrics_server_test (bool verbose)
     mlm_client_destroy (&consumer);
     mlm_client_destroy (&producer);
     zactor_destroy (&server);
+
+    // @end
 }
