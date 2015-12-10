@@ -21,10 +21,14 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #ifndef _BIOS_LM_SERVER_H_
 #define _BIOS_LM_SERVER_H_
 
+// @interface
+
+// composite metric server
 void
 bios_composite_metrics_server (zsock_t *pipe, void* args);
 
 void
 bios_composite_metrics_server_test (bool verbose);
+// @end
 
 #endif
