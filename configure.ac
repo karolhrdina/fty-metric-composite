@@ -182,12 +182,9 @@ fi
 
 was_lua_check_lib_detected=no
 
-PKG_CHECK_MODULES([lua], [lua >= 5.1.0],
-    [
-    ],
-    [
-        AC_MSG_ERROR([Cannot find required package for lua. Note, pkg-config is required due to specified version >= 5.1.0])
-    ])
+PKG_CHECK_MODULES([lua], [lua >= 5.1.0],, [
+   PKG_CHECK_MODULES([lua], [lua51])
+])
 
 if test "x$was_lua_check_lib_detected" = "xno"; then
     CFLAGS="${lua_CFLAGS} ${CFLAGS}"

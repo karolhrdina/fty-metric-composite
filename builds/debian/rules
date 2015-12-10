@@ -2,7 +2,6 @@
 # -*- makefile -*-
 
 override_dh_autoreconf:
-	sed -i -e 's/lua >= 5.1.0/lua51/' configure.ac
 	sed -i 's|<\(l[ua][ua][^.h>]*\)>|<lua5.1/\1>|' src/composite-metrics.cc
 	dh_autoreconf
 
