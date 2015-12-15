@@ -100,7 +100,7 @@ find %{buildroot} -name '*.la' | xargs rm -f
 %{_bindir}/composite-metrics
 %{_sysconfdir}/composite-metrics/composite-metrics.cfg.example
 %{_bindir}/dc_th_enable
-%{_prefix}/lib/systemd/system/composite-metrics*.service
+%{_prefix}/lib/systemd/system/composite-metrics*.*
 %{_prefix}/lib/systemd/system/dc_th*.service
 
 %changelog
