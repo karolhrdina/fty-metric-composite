@@ -26,6 +26,8 @@ int main (int argc, char** argv) {
 
     zactor_t *cm_server = zactor_new (bios_composite_metrics_server, (void*) "composite-metrics");
     zstr_sendx (cm_server, "CONNECT", "ipc://@/malamute", NULL);
+    if(strcmp(getenv("BIOS_LOG_LEVEL"), "LOG_DEBUG") == 0)
+        zstr_sendx (cm_server, "VERBOSE", NULL);
     zstr_sendx (cm_server, "PRODUCER", "METRICS", NULL);
     zstr_sendx (cm_server, "CONFIG", argv[1], NULL);
     zclock_sleep (500);  // to settle down the things

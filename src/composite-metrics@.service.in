@@ -5,6 +5,7 @@ After=malamute.service
 [Service]
 Type=simple
 Environment="prefix=@prefix@"
+Conflicts=composite-metrics@%i.path
 ExecStart=@prefix@/bin/composite-metrics @sysconfdir@/@PACKAGE@/%i.cfg
 
 [Install]
