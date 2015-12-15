@@ -1,10 +1,13 @@
 [Unit]
 Description=Enables computation of Temperature & Humidity in DC
-After=mysql.service
+After=mysql.service bios-db-init
 
 [Service]
 Type=oneshot
 ExecStart=@prefix@/bin/dc_th_enable
+StartLimitInterval=30
+StartLimitBurst=1
+Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target
