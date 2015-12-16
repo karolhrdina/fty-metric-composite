@@ -45,12 +45,12 @@ struct value {
   time_t valid_till;
 };
 
-void
-bios_composite_metrics_server (zsock_t *pipe, void* args) {
+void bios_composite_metrics_server (zsock_t *pipe, void* args) {
 
     std::map<std::string, value> cache;
     std::string lua_code;
     bool verbose = false;
+    int phase = 0;
 
     char *name = (char*) args;
 
@@ -81,24 +81,17 @@ bios_composite_metrics_server (zsock_t *pipe, void* args) {
             else
             if (streq (cmd, "CONNECT")) {
                 char* endpoint = zmsg_popstr (msg);
-                mlm_client_connect (client, endpoint, 1000, name);
-                zstr_free (&endpoint);
+                mlm_client_connect(client, endpoint, 1000, name);
+                mlm_client_set_producer(client, "METRICS");
+                zstr_free(&endpoint);
+                phase = 1;
             }
             else
-            if (streq (cmd, "PRODUCER")) {
-                char* stream = zmsg_popstr (msg);
-                mlm_client_set_producer (client, stream);
-                zstr_free (&stream);
-            }
-            else
-            if (streq (cmd, "CONSUMER")) {
-                char* stream = zmsg_popstr (msg);
-                char* pattern = zmsg_popstr (msg);
-                mlm_client_set_consumer (client, stream, pattern);
-                zstr_free (&pattern);
-                zstr_free (&stream);
-            }
             if (streq (cmd, "CONFIG")) {
+                if(phase < 1) {
+                    zsys_error("CONFIG before CONNECT");
+                    continue;
+                }
                 char* filename = zmsg_popstr (msg);
                 std::ifstream f(filename);
                 if (verbose)
@@ -118,9 +111,15 @@ bios_composite_metrics_server (zsock_t *pipe, void* args) {
                         zsys_debug("%s: Registered to receive '%s'", name, buff.c_str());
                 }
                 zstr_free (&filename);
+                phase = 2;
             }
             zstr_free (&cmd);
             zmsg_destroy (&msg);
+            continue;
+        }
+
+        if(phase < 2) {
+            zsys_error("DATA before CONFIG");
             continue;
         }
 
@@ -233,7 +232,6 @@ bios_composite_metrics_server_test (bool verbose)
     if (verbose)
         zstr_send (cm_server, "VERBOSE");
     zstr_sendx (cm_server, "CONNECT", endpoint, NULL);
-    zstr_sendx (cm_server, "PRODUCER", "METRICS", NULL);
     zstr_sendx (cm_server, "CONFIG", "src/composite-metrics.cfg.example", NULL);
     zclock_sleep (500);   //THIS IS A HACK TO SETTLE DOWN THINGS
 
