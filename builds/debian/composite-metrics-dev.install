@@ -5,4 +5,3 @@ debian/tmp/usr/lib/*/pkgconfig/libcomposite_metrics.pc
 debian/tmp/usr/include/bios_composite_metrics_server.h
 debian/tmp/usr/include/composite_metrics.h
 debian/tmp/usr/include/composite_metrics_library.h
-debian/tmp/usr/share/man/man3/bios_composite_metrics_server.3
