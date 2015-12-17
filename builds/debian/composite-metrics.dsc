@@ -16,7 +16,8 @@ Build-Depends: bison, debhelper (>= 8),
     liblua5.1-0-dev,
     libcxxtools-dev,
     libbiosproto-dev,
-    dh-autoreconf
+    dh-autoreconf,
+	asciidoc, docbook-xsl-ns, docbook-xsl, docbook-xml, libxml2-utils, xsltproc
 
 Package-List:
  libcomposite-metrics0 deb net optional arch=any
