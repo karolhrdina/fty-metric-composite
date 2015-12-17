@@ -22,11 +22,15 @@ int main (int argc, char** argv) {
     // Read configuration
     if(argc < 2) {
         printf("Syntax: %s config\n", argv[0]);
+        exit(0);
     }
 
     char *tmp_arg = strdup(argv[1]);
     char *name;
-    asprintf(&name, "composite-metrics-%s", basename(tmp_arg));
+    if(asprintf(&name, "composite-metrics-%s", basename(tmp_arg)) < 0) {
+        printf("Can't allocate name of agent\n");
+        exit(1);
+    }
     zactor_t *cm_server = zactor_new (bios_composite_metrics_server, (void*) name);
     free(name);
     free(tmp_arg);
