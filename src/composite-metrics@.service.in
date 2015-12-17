@@ -5,6 +5,10 @@ After=malamute.service
 [Service]
 Type=simple
 Environment="prefix=@prefix@"
+EnvironmentFile=-@sysconfdir@/default/bios
+EnvironmentFile=-@sysconfdir@/sysconfig/bios
+EnvironmentFile=-@sysconfdir@/default/bios__composite-metrics__%i.conf
+EnvironmentFile=-@sysconfdir@/sysconfig/bios__composite-metrics__%i.conf
 Conflicts=composite-metrics@%i.path
 ExecStart=@prefix@/bin/composite-metrics @sysconfdir@/@PACKAGE@/%i.cfg
 
