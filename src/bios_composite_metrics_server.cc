@@ -125,11 +125,17 @@ void bios_composite_metrics_server (zsock_t *pipe, void* args) {
 
         // Get message
         zmsg_t *msg = mlm_client_recv(client);
+        if(verbose)
+            zsys_debug("Got something not from the pipe");
         if(msg == NULL)
             continue;
+        if(verbose)
+            zsys_debug("It is not null");
         bios_proto_t *yn = bios_proto_decode(&msg);
         if(yn == NULL)
             continue;
+        if(verbose)
+            zsys_debug("And it is bios_proto_message");
 
         // Update cache with updated values
         std::string topic = mlm_client_subject(client);
