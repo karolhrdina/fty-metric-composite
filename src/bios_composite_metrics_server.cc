@@ -82,7 +82,6 @@ void bios_composite_metrics_server (zsock_t *pipe, void* args) {
             if (streq (cmd, "CONNECT")) {
                 char* endpoint = zmsg_popstr (msg);
                 mlm_client_connect(client, endpoint, 1000, name);
-                zclock_sleep(500); // Let things settle down a little
                 mlm_client_set_producer(client, "METRICS");
                 zstr_free(&endpoint);
                 phase = 1;
