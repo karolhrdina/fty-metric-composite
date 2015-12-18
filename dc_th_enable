@@ -8,6 +8,11 @@ die() {
 test -f /etc/default/bios-db-ro || die "Can't get db password"
 . /etc/default/bios-db-ro
 
+if [ -f /etc/composite-metrics/dc-temperature.cfg ] && [ -f /etc/composite-metrics/dc-humidity.cfg ]; then
+  echo "Nothing to do"
+  exit 0
+fi
+
 do_mysql() {                                                                   
   mysql -N -B -u "${DB_USER}" -p"${DB_PASSWD}" box_utf8 -e "$@"
 }
@@ -32,6 +37,7 @@ done
 mkdir -p /etc/composite-metrics
 systemctl enable composite-metrics@dc-temperature.path
 systemctl start composite-metrics@dc-temperature.path
+[ -f /etc/composite-metrics/dc-temperature.cfg ] || \
 cat > /etc/composite-metrics/dc-temperature.cfg << EOF
 {
   "in": [ "temperature.TH.*@`hostname -f`" ],
@@ -47,6 +53,7 @@ cat > /etc/composite-metrics/dc-temperature.cfg << EOF
 EOF
 systemctl enable composite-metrics@dc-humidity.path
 systemctl start composite-metrics@dc-humidity.path
+[ -f /etc/composite-metrics/dc-humidity.cfg ] || \
 cat > /etc/composite-metrics/dc-humidity.cfg << EOF
 {
   "in": [ "humidity.TH.*@`hostname -f`" ],
