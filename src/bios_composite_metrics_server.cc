@@ -196,6 +196,7 @@ void bios_composite_metrics_server (zsock_t *pipe, void* args) {
             bios_proto_set_time(n_met,  -1);
             zmsg_t* z_met = bios_proto_encode(&n_met);
             mlm_client_send(client, lua_tostring(L, -3), &z_met);
+            free (buff);
         } else {
             zsys_error ("Not enough valid data...\n");
         }
