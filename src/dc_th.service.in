@@ -1,10 +1,17 @@
 [Unit]
 Description=Enables computation of Temperature & Humidity in DC
+Requires=mysql.service bios-db-init.service
 After=mysql.service bios-db-init.service
+PartOf=bios.target
 
 [Service]
 Type=oneshot
+User=nobody
+EnvironmentFile=-/etc/default/bios
+EnvironmentFile=-/etc/sysconfig/bios
+EnvironmentFile=-/etc/default/bios__%n.conf
+EnvironmentFile=-/etc/sysconfig/bios__%n.conf
 ExecStart=@prefix@/bin/dc_th_enable
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=bios.target
