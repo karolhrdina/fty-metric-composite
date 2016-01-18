@@ -20,8 +20,9 @@ do_mysql() {
   mysql -N -B -u "${DB_USER}" -p"${DB_PASSWD}" box_utf8 -e "$@"
 }
 
-rc_id="`do_mysql "select id_asset_element from t_bios_asset_ext_attributes where keytag='hostname.1' and value='\`hostname -f\`';" | grep -v localhost`"
+rc_id="`do_mysql "select id_asset_element from t_bios_asset_ext_attributes where keytag='hostname.1' and value='\`uname -n\`';" | grep -v localhost`"
 [ -n "${rc_id}" ] || rc_id="`do_mysql "select id_asset_element from t_bios_asset_ext_attributes where keytag='hostname.1' and value='\`hostname\`';" | grep -v localhost`"
+[ -n "${rc_id}" ] || rc_id="`do_mysql "select id_asset_element from t_bios_asset_ext_attributes where keytag='hostname.1' and value='\`hostname -f\`';" | grep -v localhost`"
 [ -n "${rc_id}" ] || die "Can't get RC from DB"
 
 while [ -n "${rc_id}" ]; do
@@ -44,7 +45,7 @@ systemctl start composite-metrics@dc-temperature.path
 [ -f /etc/composite-metrics/dc-temperature.cfg ] || \
 cat > /etc/composite-metrics/dc-temperature.cfg << EOF
 {
-  "in": [ "temperature.TH.*@`hostname -f`" ],
+  "in": [ "temperature.TH.*@`uname -n`" ],
   "evaluation": " sum = 0;
                   num = 0; 
                   for key,value in pairs(mt) do
@@ -61,7 +62,7 @@ systemctl start composite-metrics@dc-humidity.path
 [ -f /etc/composite-metrics/dc-humidity.cfg ] || \
 cat > /etc/composite-metrics/dc-humidity.cfg << EOF
 {
-  "in": [ "humidity.TH.*@`hostname -f`" ],
+  "in": [ "humidity.TH.*@`uname -n`" ],
   "evaluation": " sum = 0;
                   num = 0; 
                   for key,value in pairs(mt) do
