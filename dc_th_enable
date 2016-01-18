@@ -1,5 +1,8 @@
 #!/bin/bash
 
+PATH=/usr/bin:/usr/sbin:/bin:/sbin
+export PATH
+
 die() {
   echo "$@"
   exit 1
@@ -13,7 +16,7 @@ if [ -f /etc/composite-metrics/dc-temperature.cfg ] && [ -f /etc/composite-metri
   exit 0
 fi
 
-do_mysql() {                                                                   
+do_mysql() {
   mysql -N -B -u "${DB_USER}" -p"${DB_PASSWD}" box_utf8 -e "$@"
 }
 
