@@ -68,7 +68,7 @@ composite_metrics_SCRIPTS = \
 
 composite_metrics_servicesdir = @prefix@/lib/systemd/system
 composite_metrics_services_DATA = \
-    src/dc_th.service src/dc_th.timer
+    src/dc_th.service
 
 
 # define custom target for all products of /src

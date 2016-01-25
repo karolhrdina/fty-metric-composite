@@ -11,11 +11,6 @@ die() {
 test -f /etc/default/bios-db-ro || die "Can't get db password"
 . /etc/default/bios-db-ro
 
-if [ -f /etc/composite-metrics/dc-temperature.cfg ] && [ -f /etc/composite-metrics/dc-humidity.cfg ]; then
-  echo "Nothing to do"
-  exit 0
-fi
-
 do_mysql() {
   mysql -N -B -u "${DB_USER}" -p"${DB_PASSWD}" box_utf8 -e "$@"
 }
