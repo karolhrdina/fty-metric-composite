@@ -34,9 +34,7 @@ done
 [ -n "${DC}" ] || die "Can't get DC from DB"
 
 mkdir -p /etc/composite-metrics
-systemctl enable composite-metrics@dc-temperature.path
 systemctl enable composite-metrics@dc-temperature.service
-systemctl start composite-metrics@dc-temperature.path
 [ -f /etc/composite-metrics/dc-temperature.cfg ] || \
 cat > /etc/composite-metrics/dc-temperature.cfg << EOF
 {
@@ -51,9 +49,7 @@ cat > /etc/composite-metrics/dc-temperature.cfg << EOF
                   return 'average.temperature@$DC', tmp, 'C', 0;"
 }
 EOF
-systemctl enable composite-metrics@dc-humidity.path
 systemctl enable composite-metrics@dc-humidity.service
-systemctl start composite-metrics@dc-humidity.path
 [ -f /etc/composite-metrics/dc-humidity.cfg ] || \
 cat > /etc/composite-metrics/dc-humidity.cfg << EOF
 {
