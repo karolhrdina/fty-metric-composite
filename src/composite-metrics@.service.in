@@ -8,12 +8,11 @@ PartOf=bios.target
 [Service]
 Type=simple
 User=nobody
-Environment="prefix=@prefix@"
-EnvironmentFile=-@sysconfdir@/default/bios
-EnvironmentFile=-@sysconfdir@/sysconfig/bios
-EnvironmentFile=-@sysconfdir@/default/bios__composite-metrics__%i.conf
-EnvironmentFile=-@sysconfdir@/sysconfig/bios__composite-metrics__%i.conf
-ExecStart=@prefix@/bin/composite-metrics @sysconfdir@/@PACKAGE@/%i.cfg
+EnvironmentFile=-/etc/default/bios
+EnvironmentFile=-/etc/sysconfig/bios
+EnvironmentFile=-/etc/default/bios__composite-metrics__%i.conf
+EnvironmentFile=-/etc/sysconfig/bios__composite-metrics__%i.conf
+ExecStart=@prefix@/bin/composite-metrics /etc/@PACKAGE@/%i.cfg
 
 [Install]
 WantedBy=bios.target
