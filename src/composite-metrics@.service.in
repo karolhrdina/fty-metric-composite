@@ -8,10 +8,10 @@ PartOf=bios.target
 [Service]
 Type=simple
 User=nobody
+EnvironmentFile=-/usr/share/bios/etc/default/bios
+EnvironmentFile=-/usr/share/bios/etc/default/bios__%n.conf
 EnvironmentFile=-/etc/default/bios
-EnvironmentFile=-/etc/sysconfig/bios
 EnvironmentFile=-/etc/default/bios__composite-metrics__%i.conf
-EnvironmentFile=-/etc/sysconfig/bios__composite-metrics__%i.conf
 ExecStart=@prefix@/bin/composite-metrics /etc/@PACKAGE@/%i.cfg
 
 [Install]
