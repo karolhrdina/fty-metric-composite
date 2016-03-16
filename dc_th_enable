@@ -15,7 +15,8 @@ do_mysql() {
   mysql -N -B -u "${DB_USER}" -p"${DB_PASSWD}" box_utf8 -e "$@"
 }
 
-rc_id="`do_mysql "select id_asset_element from t_bios_asset_ext_attributes where keytag='hostname.1' and value='\`uname -n\`';" | grep -v localhost`"
+rc_id="`do_mysql "select id_asset_element from t_bios_asset_element where id_type=(select id_asset_element_type from t_bios_asset_element_type where name = 'device' limit 1) AND id_subtype=(select id_asset_device_type from t_bios_asset_device_type where name = 'rack controller' limit 1) limit 1;"`"
+[ -n "${rc_id}" ] || rc_id="`do_mysql "select id_asset_element from t_bios_asset_ext_attributes where keytag='hostname.1' and value='\`uname -n\`';" | grep -v localhost`"
 [ -n "${rc_id}" ] || rc_id="`do_mysql "select id_asset_element from t_bios_asset_ext_attributes where keytag='hostname.1' and value='\`hostname\`';" | grep -v localhost`"
 [ -n "${rc_id}" ] || rc_id="`do_mysql "select id_asset_element from t_bios_asset_ext_attributes where keytag='hostname.1' and value='\`hostname -f\`';" | grep -v localhost`"
 [ -n "${rc_id}" ] || die "Can't get RC from DB"
