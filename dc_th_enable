@@ -1,5 +1,8 @@
 #!/bin/bash
 
+PATH=/usr/bin:/usr/sbin:/bin:/sbin
+export PATH
+
 die() {
   echo "$@"
   exit 1
@@ -8,17 +11,14 @@ die() {
 test -f /etc/default/bios-db-ro || die "Can't get db password"
 . /etc/default/bios-db-ro
 
-if [ -f /etc/composite-metrics/dc-temperature.cfg ] && [ -f /etc/composite-metrics/dc-humidity.cfg ]; then
-  echo "Nothing to do"
-  exit 0
-fi
-
-do_mysql() {                                                                   
+do_mysql() {
   mysql -N -B -u "${DB_USER}" -p"${DB_PASSWD}" box_utf8 -e "$@"
 }
 
-rc_id="`do_mysql "select id_asset_element from t_bios_asset_ext_attributes where keytag='hostname.1' and value='\`hostname -f\`';"`"
-
+rc_id="`do_mysql "select id_asset_element from t_bios_asset_element where id_type=(select id_asset_element_type from t_bios_asset_element_type where name = 'device' limit 1) AND id_subtype=(select id_asset_device_type from t_bios_asset_device_type where name = 'rack controller' limit 1) limit 1;"`"
+[ -n "${rc_id}" ] || rc_id="`do_mysql "select id_asset_element from t_bios_asset_ext_attributes where keytag='hostname.1' and value='\`uname -n\`';" | grep -v localhost`"
+[ -n "${rc_id}" ] || rc_id="`do_mysql "select id_asset_element from t_bios_asset_ext_attributes where keytag='hostname.1' and value='\`hostname\`';" | grep -v localhost`"
+[ -n "${rc_id}" ] || rc_id="`do_mysql "select id_asset_element from t_bios_asset_ext_attributes where keytag='hostname.1' and value='\`hostname -f\`';" | grep -v localhost`"
 [ -n "${rc_id}" ] || die "Can't get RC from DB"
 
 while [ -n "${rc_id}" ]; do
@@ -35,13 +35,10 @@ done
 [ -n "${DC}" ] || die "Can't get DC from DB"
 
 mkdir -p /etc/composite-metrics
-systemctl enable composite-metrics@dc-temperature.path
-systemctl enable composite-metrics@dc-temperature.service
-systemctl start composite-metrics@dc-temperature.path
 [ -f /etc/composite-metrics/dc-temperature.cfg ] || \
 cat > /etc/composite-metrics/dc-temperature.cfg << EOF
 {
-  "in": [ "temperature.TH.*@`hostname -f`" ],
+  "in": [ "temperature.TH.*@`uname -n`" ],
   "evaluation": " sum = 0;
                   num = 0; 
                   for key,value in pairs(mt) do
@@ -52,13 +49,13 @@ cat > /etc/composite-metrics/dc-temperature.cfg << EOF
                   return 'average.temperature@$DC', tmp, 'C', 0;"
 }
 EOF
-systemctl enable composite-metrics@dc-humidity.path
-systemctl enable composite-metrics@dc-humidity.service
-systemctl start composite-metrics@dc-humidity.path
+systemctl enable composite-metrics@dc-temperature.service
+systemctl start  composite-metrics@dc-temperature.service
+
 [ -f /etc/composite-metrics/dc-humidity.cfg ] || \
 cat > /etc/composite-metrics/dc-humidity.cfg << EOF
 {
-  "in": [ "humidity.TH.*@`hostname -f`" ],
+  "in": [ "humidity.TH.*@`uname -n`" ],
   "evaluation": " sum = 0;
                   num = 0; 
                   for key,value in pairs(mt) do
@@ -69,3 +66,5 @@ cat > /etc/composite-metrics/dc-humidity.cfg << EOF
                   return 'average.humidity@$DC', tmp, '%', 0;"
 }
 EOF
+systemctl enable composite-metrics@dc-humidity.service
+systemctl start  composite-metrics@dc-humidity.service

@@ -449,7 +449,6 @@ AC_CONFIG_FILES([Makefile
                  doc/Makefile
                  src/libcomposite_metrics.pc
                  src/composite-metrics@.service
-                 src/composite-metrics@.path
                  src/dc_th.service
                  ])
 AC_OUTPUT

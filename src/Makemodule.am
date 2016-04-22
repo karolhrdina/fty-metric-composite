@@ -57,8 +57,7 @@ src_composite_metrics_SOURCES = src/composite-metrics.cc
 src_composite_metrics_servicedir = @prefix@/lib/systemd/system
 src_composite_metrics_configdir = $(sysconfdir)/composite-metrics
 src_composite_metrics_config_DATA = src/composite-metrics.cfg.example
-src_composite_metrics_service_DATA = src/composite-metrics@.service src/composite-metrics@.path
-
+src_composite_metrics_service_DATA = src/composite-metrics@.service
 endif
 
 # Install data into /usr/local/bin
@@ -68,7 +67,7 @@ composite_metrics_SCRIPTS = \
 
 composite_metrics_servicesdir = @prefix@/lib/systemd/system
 composite_metrics_services_DATA = \
-    src/dc_th.service src/dc_th.timer
+    src/dc_th.service
 
 
 # define custom target for all products of /src

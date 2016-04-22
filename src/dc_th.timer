@@ -1,6 +1,0 @@
-[Unit]
-Description=DC TH averaging configuration trigger
-
-[Timer]
-OnBootSec=5min
-OnUnitActiveSec=15min
