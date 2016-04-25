@@ -195,7 +195,7 @@ void bios_composite_metrics_server (zsock_t *pipe, void* args) {
             bios_proto_set_type(n_met, "%s", buff);
             bios_proto_set_value(n_met, "%s", lua_tostring(L, -2));
             bios_proto_set_unit(n_met,  "%s", lua_tostring(L, -1));
-            bios_proto_set_time(n_met,  TTL);
+            bios_proto_set_ttl(n_met,  TTL);
             zmsg_t* z_met = bios_proto_encode(&n_met);
             mlm_client_send(client, lua_tostring(L, -3), &z_met);
             free (buff);
