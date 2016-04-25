@@ -141,8 +141,9 @@ void bios_composite_metrics_server (zsock_t *pipe, void* args) {
         std::string topic = mlm_client_subject(client);
         value val;
         val.value = atof(bios_proto_value(yn));
-        uint64_t ttl = bios_proto_time (yn);
-        val.valid_till = ::time(NULL) + ttl;
+        uint32_t ttl = bios_proto_ttl(yn);
+        uint64_t timestamp = bios_proto_aux_number (yn, "time", ::time(NULL));
+        val.valid_till = timestamp + ttl;
         if (verbose)
             zsys_debug ("%s: Got message '%s' with value %lf", name, topic.c_str(), val.value);
         auto f = cache.find(topic);
