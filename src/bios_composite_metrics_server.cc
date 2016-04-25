@@ -46,7 +46,7 @@ struct value {
 };
 
 void bios_composite_metrics_server (zsock_t *pipe, void* args) {
-
+    static const uint64_t TTL = 5*60;
     std::map<std::string, value> cache;
     std::string lua_code;
     bool verbose = false;
@@ -141,7 +141,8 @@ void bios_composite_metrics_server (zsock_t *pipe, void* args) {
         std::string topic = mlm_client_subject(client);
         value val;
         val.value = atof(bios_proto_value(yn));
-        val.valid_till = time(NULL) + 600;
+        uint64_t ttl = bios_proto_time (yn);
+        val.valid_till = ::time(NULL) + ttl;
         if (verbose)
             zsys_debug ("%s: Got message '%s' with value %lf", name, topic.c_str(), val.value);
         auto f = cache.find(topic);
@@ -193,7 +194,7 @@ void bios_composite_metrics_server (zsock_t *pipe, void* args) {
             bios_proto_set_type(n_met, "%s", buff);
             bios_proto_set_value(n_met, "%s", lua_tostring(L, -2));
             bios_proto_set_unit(n_met,  "%s", lua_tostring(L, -1));
-            bios_proto_set_time(n_met,  ::time (NULL));
+            bios_proto_set_time(n_met,  TTL);
             zmsg_t* z_met = bios_proto_encode(&n_met);
             mlm_client_send(client, lua_tostring(L, -3), &z_met);
             free (buff);
