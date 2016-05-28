@@ -52,7 +52,7 @@ void bios_composite_metrics_server (zsock_t *pipe, void* args) {
     bool verbose = false;
     int phase = 0;
 
-    char *name = (char*) args;
+    char *name = strdup ((char*) args);
 
     mlm_client_t *client = mlm_client_new ();
 
@@ -207,6 +207,7 @@ next_iter:
     }
 
 exit:
+    free (name);
     zpoller_destroy (&poller);
     mlm_client_destroy (&client);
 }
@@ -237,7 +238,14 @@ bios_composite_metrics_server_test (bool verbose)
     mlm_client_connect (consumer, endpoint, 1000, "consumer");
     mlm_client_set_consumer (consumer, "METRICS", "temperature@world");
 
-    zactor_t *cm_server = zactor_new (bios_composite_metrics_server, (void*) "cm_server");
+    char *name = NULL;
+    if(asprintf(&name, "composite-metrics-%s", "sd") < 0) {
+        printf("Can't allocate name of agent\n");
+        exit(1);
+    }
+
+    zactor_t *cm_server = zactor_new (bios_composite_metrics_server, (void*) name);
+    free(name);
     if (verbose)
         zstr_send (cm_server, "VERBOSE");
     zstr_sendx (cm_server, "CONNECT", endpoint, NULL);
@@ -255,6 +263,8 @@ bios_composite_metrics_server_test (bool verbose)
     bios_proto_t *m;
     msg_out = mlm_client_recv (consumer);
     m = bios_proto_decode (&msg_out);
+    bios_proto_print (m);
+    assert ( streq (mlm_client_sender (consumer), "composite-metrics-sd") );
     assert (m);
     assert (streq (bios_proto_value (m), "40"));    // <<< 40 / 1
     bios_proto_destroy (&m);
