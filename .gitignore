@@ -25,6 +25,7 @@ composite_metrics
 *.out
 *.app
 core
+generate.sh
 
 # Man pages
 doc/*.1
@@ -51,6 +52,10 @@ src/platform.h.in~
 src/stamp-h1
 src/test-suite.log
 src/.dirstamp
+
+# CMake
+CMakeLists.txt
+*.cmake
 
 # qt-android build results
 builds/qt-android/prefix

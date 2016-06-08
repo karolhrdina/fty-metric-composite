@@ -17,14 +17,12 @@
 #    with this program; if not, write to the Free Software Foundation, Inc.,
 #    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.            
 
-
 Source:         composite-metrics
 Section:        net
 Priority:       optional
-Maintainer:     John Doe <John.Doe@example.com>
-Uploaders:      John Doe <John.Doe@example.com>
-Standards-Version: 3.9.5
-Build-Depends: bison, debhelper (>= 8),
+Maintainer:     composite-metrics Developers <mailto:EatonIPCOpensource@Eaton.com>
+Standards-Version: 3.9.7
+Build-Depends: bison, debhelper (>= 9),
     pkg-config,
     automake,
     autoconf,
@@ -32,10 +30,12 @@ Build-Depends: bison, debhelper (>= 8),
     libzmq4-dev,
     libczmq-dev,
     libmlm-dev,
+    libbiosproto-dev,
     liblua5.1-0-dev,
     libcxxtools-dev,
-    libbiosproto-dev,
     dh-autoreconf,
+    systemd,
+    dh-systemd,
     asciidoc, docbook-xsl-ns, docbook-xsl, docbook-xml, libxml2-utils, xsltproc
 
 Package: libcomposite-metrics0
@@ -44,16 +44,16 @@ Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: composite-metrics
  This package contains shared library for composite-metrics: agent that computes new metrics from bunch of other metrics
 
-Package: composite-metrics-dev
-Architecture: all
+Package: libcomposite-metrics-dev
+Architecture: any
 Section: libdevel
 Depends:
     libzmq4-dev,
     libczmq-dev,
     libmlm-dev,
+    libbiosproto-dev,
     liblua5.1-0-dev,
     libcxxtools-dev,
-    libbiosproto-dev,
     libcomposite-metrics0 (= ${binary:Version})
 Description: development files for composite-metrics
  This package contains development files for composite-metrics: agent that computes new metrics from bunch of other metrics

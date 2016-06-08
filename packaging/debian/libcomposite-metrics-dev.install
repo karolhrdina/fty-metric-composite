@@ -1,0 +1,3 @@
+usr/include/*
+usr/lib/*/libcomposite_metrics.so
+usr/lib/*/pkgconfig/libcomposite_metrics.pc

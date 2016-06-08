@@ -1,0 +1,5 @@
+usr/bin/composite-metrics
+etc/composite-metrics/composite-metrics.cfg.example
+usr/bin/dc_th_enable
+usr/lib/systemd/system/composite-metrics*.service
+lib/systemd/system/dc_th*.service
