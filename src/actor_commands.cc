@@ -31,11 +31,12 @@
 int
 actor_commands (
         mlm_client_t *client,
-        zmsg_t **message_p) {
-/*
+        zmsg_t **message_p,
+        data_t *data)
+{
     assert (message_p && *message_p);
     assert (data);
-    assert (fullpath);
+
     zmsg_t *message = *message_p;
     
     char *cmd = zmsg_popstr (message);
@@ -142,8 +143,7 @@ actor_commands (
             zmsg_destroy (message_p);
             return 0;
         }
-        *fullpath = strdup (state_file);
-        rt_load (data, state_file);
+        data_set_statefile (data, state_file);
         zstr_free (&state_file); 
     }
     else {
@@ -153,8 +153,6 @@ actor_commands (
     zstr_free (&cmd);
     zmsg_destroy (message_p);
     return ret;
-*/
-    return 0;
 }
 
 
@@ -180,7 +178,7 @@ actor_commands (
 void
 actor_commands_test (bool verbose)
 {
-    printf (" * actor_commands: ");/*
+    printf (" * actor_commands: ");
     //  @selftest
     static const char* endpoint = "ipc://bios-smtp-server-test";
 
@@ -195,18 +193,17 @@ actor_commands_test (bool verbose)
     assert (client);
 
     zmsg_t *message = NULL;
-    char *fullpath = NULL;
-    rt_t *data = rt_new ();
+    data_t *data = data_new ();
 
     // --------------------------------------------------------------
     FILE *fp = freopen ("stderr.txt", "w+", stderr);
     // empty message - expected fail
     message = zmsg_new ();
     assert (message);
-    int rv = actor_commands (client, &message, data, &fullpath);
+    int rv = actor_commands (client, &message, data);
     assert (rv == 0);
     assert (message == NULL);
-    assert (fullpath == NULL);
+    assert (streq (data_statefile (data), ""));
 
     STDERR_NON_EMPTY
 
@@ -216,10 +213,10 @@ actor_commands_test (bool verbose)
     message = zmsg_new ();
     assert (message);
     zmsg_addstr (message, "");   
-    rv = actor_commands (client, &message, data, &fullpath);
+    rv = actor_commands (client, &message, data);
     assert (rv == 0);
     assert (message == NULL);  
-    assert (fullpath == NULL);
+    assert (streq (data_statefile (data), ""));
 
     STDERR_NON_EMPTY
 
@@ -229,10 +226,10 @@ actor_commands_test (bool verbose)
     message = zmsg_new ();
     assert (message);
     zmsg_addstr (message, "MAGIC!");   
-    rv = actor_commands (client, &message, data, &fullpath);
+    rv = actor_commands (client, &message, data);
     assert (rv == 0);
     assert (message == NULL);  
-    assert (fullpath == NULL);
+    assert (streq (data_statefile (data), ""));
 
     STDERR_NON_EMPTY
 
@@ -243,10 +240,10 @@ actor_commands_test (bool verbose)
     assert (message);
     zmsg_addstr (message, "CONFIGURE");
     // missing config_file here
-    rv = actor_commands (client, &message, data, &fullpath);
+    rv = actor_commands (client, &message, data);
     assert (rv == 0);
     assert (message == NULL);
-    assert (fullpath == NULL);
+    assert (streq (data_statefile (data), ""));
 
     STDERR_NON_EMPTY
 
@@ -258,10 +255,10 @@ actor_commands_test (bool verbose)
     zmsg_addstr (message, "CONNECT");   
     zmsg_addstr (message, endpoint);
     // missing name here
-    rv = actor_commands (client, &message, data, &fullpath);
+    rv = actor_commands (client, &message, data);
     assert (rv == 0);
     assert (message == NULL);
-    assert (fullpath == NULL);
+    assert (streq (data_statefile (data), ""));
 
     STDERR_NON_EMPTY
 
@@ -273,10 +270,10 @@ actor_commands_test (bool verbose)
     zmsg_addstr (message, "CONNECT");   
     // missing endpoint here
     // missing name here
-    rv = actor_commands (client, &message, data, &fullpath);
+    rv = actor_commands (client, &message, data);
     assert (rv == 0);
     assert (message == NULL);  
-    assert (fullpath == NULL);
+    assert (streq (data_statefile (data), ""));
 
     STDERR_NON_EMPTY
 
@@ -288,10 +285,10 @@ actor_commands_test (bool verbose)
     zmsg_addstr (message, "CONNECT");   
     zmsg_addstr (message, "ipc://bios-smtp-server-BAD");
     zmsg_addstr (message, "test-agent");
-    rv = actor_commands (client, &message, data, &fullpath);
+    rv = actor_commands (client, &message, data);
     assert (rv == 0);
     assert (message == NULL);  
-    assert (fullpath == NULL);
+    assert (streq (data_statefile (data), ""));
 
     STDERR_NON_EMPTY
 
@@ -303,10 +300,10 @@ actor_commands_test (bool verbose)
     zmsg_addstr (message, "CONSUMER");
     zmsg_addstr (message, "some-stream");   
     // missing pattern here
-    rv = actor_commands (client, &message, data, &fullpath);
+    rv = actor_commands (client, &message, data);
     assert (rv == 0);
     assert (message == NULL);
-    assert (fullpath == NULL);
+    assert (streq (data_statefile (data), ""));
 
     STDERR_NON_EMPTY
 
@@ -318,10 +315,10 @@ actor_commands_test (bool verbose)
     zmsg_addstr (message, "CONSUMER");
     // missing stream here
     // missing pattern here
-    rv = actor_commands (client, &message, data, &fullpath);
+    rv = actor_commands (client, &message, data);
     assert (rv == 0);
     assert (message == NULL);
-    assert (fullpath == NULL);
+    assert (streq (data_statefile (data), ""));
 
     STDERR_NON_EMPTY
 
@@ -332,10 +329,10 @@ actor_commands_test (bool verbose)
     assert (message);
     zmsg_addstr (message, "PRODUCER");
     // missing stream here
-    rv = actor_commands (client, &message, data, &fullpath);
+    rv = actor_commands (client, &message, data);
     assert (rv == 0);
     assert (message == NULL);
-    assert (fullpath == NULL);
+    assert (streq (data_statefile (data), ""));
 
     STDERR_NON_EMPTY
 
@@ -352,10 +349,10 @@ actor_commands_test (bool verbose)
     message = zmsg_new ();
     assert (message);
     zmsg_addstr (message, "$TERM");   
-    rv = actor_commands (client, &message, data, &fullpath);
+    rv = actor_commands (client, &message, data);
     assert (rv == 1);
     assert (message == NULL);
-    assert (fullpath == NULL);
+    assert (streq (data_statefile (data), ""));
 
     // CONNECT
     message = zmsg_new ();
@@ -363,10 +360,10 @@ actor_commands_test (bool verbose)
     zmsg_addstr (message, "CONNECT");   
     zmsg_addstr (message, endpoint);
     zmsg_addstr (message, "test-agent");   
-    rv = actor_commands (client, &message, data, &fullpath);
+    rv = actor_commands (client, &message, data);
     assert (rv == 0);
     assert (message == NULL);
-    assert (fullpath == NULL);
+    assert (streq (data_statefile (data), ""));
 
     // CONSUMER
     message = zmsg_new ();
@@ -374,40 +371,38 @@ actor_commands_test (bool verbose)
     zmsg_addstr (message, "CONSUMER");
     zmsg_addstr (message, "some-stream");   
     zmsg_addstr (message, ".+@.+");   
-    rv = actor_commands (client, &message, data, &fullpath);
+    rv = actor_commands (client, &message, data);
     assert (rv == 0);
     assert (message == NULL);
-    assert (fullpath == NULL);
+    assert (streq (data_statefile (data), ""));
 
     // PRODUCER
     message = zmsg_new ();
     assert (message);
     zmsg_addstr (message, "PRODUCER");
     zmsg_addstr (message, "some-stream");   
-    rv = actor_commands (client, &message, data, &fullpath);
+    rv = actor_commands (client, &message, data);
     assert (rv == 0);
     assert (message == NULL);
-    assert (fullpath == NULL);
+    assert (streq (data_statefile (data), ""));
 
     // CONFIGURE
     message = zmsg_new ();
     assert (message);
     zmsg_addstr (message, "CONFIGURE");
     zmsg_addstr (message, "./test_state_file");
-    rv = actor_commands (client, &message, data, &fullpath);
+    rv = actor_commands (client, &message, data);
     assert (rv == 0);
     assert (message == NULL);
-    assert (fullpath);
-    assert (streq (fullpath,"./test_state_file"));
-    zstr_free (&fullpath);
+    assert (streq (data_statefile (data), "./test_state_file"));
 
     STDERR_EMPTY
 
-    rt_destroy (&data);
+    data_destroy (&data);
     zmsg_destroy (&message);
     mlm_client_destroy (&client);
     zactor_destroy (&malamute);
 
-    //  @end*/
+    //  @end
     printf ("OK\n");
 }

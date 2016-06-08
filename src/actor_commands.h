@@ -22,6 +22,8 @@
 #ifndef ACTOR_COMMANDS_H_INCLUDED
 #define ACTOR_COMMANDS_H_INCLUDED
 
+#include "data.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -41,10 +43,10 @@ extern "C" {
 //  CONSUMER/stream/pattern
 //      consume messages from 'stream' with subjects matching 'pattern'
 //
-//!  CONFIGURE/state_file
-//!      configure actor, where
-//!
-//!      state_file - full pathname of state file
+//  CONFIGURE/state_file
+//      configure actor, where
+//
+//      state_file - full pathname of state file
 
 // Performs the actor commands logic
 // Destroys the message
@@ -52,7 +54,8 @@ extern "C" {
 COMPOSITE_METRICS_EXPORT int
     actor_commands (
             mlm_client_t *client,
-            zmsg_t **message_p);
+            zmsg_t **message_p,
+            data_t *data);
 
 //  Self test of this class
 COMPOSITE_METRICS_EXPORT void
