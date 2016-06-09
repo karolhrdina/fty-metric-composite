@@ -31,14 +31,14 @@
 
     <use project = "cxxtools" test="cxxtools::Utf8Codec::Utf8Codec"/>
 
-    <service name="dc_th">Service that trigers dc_th_enable script</service>
-
     <class name = "logger"          private = "1">logging api</class>
     <class name = "actor commands"  private = "1">actor commands</class>
     <class name = "data"            private = "1">composite metrics data structure</class>
 
     <class name = "bios_composite_metrics_server">Composite metrics server</class>
+    <class name = "bios_composite_metrics_configurator_server">Composite metrics server configurator</class>
 
-    <bin name = "dc_th_enable">Enables computation of Temperature &amp; Humidity in DC</bin>
-    <main  name = "composite-metrics" services = "1">Metrics calculator</main>
+    <main  name = "composite-metrics" service = "1">Metrics calculator</main>
+    <main  name = "composite-metrics-configurator" service = "1">Metrics calculator configurator</main>
+
 </project>

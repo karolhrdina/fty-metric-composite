@@ -18,7 +18,8 @@ include_HEADERS = \
 
 if ENABLE_DRAFTS
 include_HEADERS += \
-    include/bios_composite_metrics_server.h
+    include/bios_composite_metrics_server.h \
+    include/bios_composite_metrics_configurator_server.h
 
 endif
 src_libcomposite_metrics_la_SOURCES = \
@@ -29,7 +30,8 @@ src_libcomposite_metrics_la_SOURCES = \
 
 if ENABLE_DRAFTS
 src_libcomposite_metrics_la_SOURCES += \
-    src/bios_composite_metrics_server.cc
+    src/bios_composite_metrics_server.cc \
+    src/bios_composite_metrics_configurator_server.cc
 
 endif
 
@@ -59,7 +61,28 @@ bin_PROGRAMS += src/composite-metrics
 src_composite_metrics_CPPFLAGS = ${AM_CPPFLAGS}
 src_composite_metrics_LDADD = ${program_libs}
 src_composite_metrics_SOURCES = src/composite_metrics.cc
+src_composite_metrics_config_DATA = src/composite-metrics.cfg
+src_composite_metrics_configdir = $(sysconfdir)/composite-metrics
+if WITH_SYSTEMD_UNITS
+src_composite_metrics_servicedir = @prefix@/lib/systemd/system
+src_composite_metrics_service_DATA = src/composite-metrics.service
+endif #WITH_SYSTEMD_UNITS
 endif #ENABLE_COMPOSITE_METRICS
+
+if ENABLE_COMPOSITE_METRICS_CONFIGURATOR
+bin_PROGRAMS += src/composite-metrics-configurator
+src_composite_metrics_configurator_CPPFLAGS = ${AM_CPPFLAGS}
+src_composite_metrics_configurator_LDADD = ${program_libs}
+src_composite_metrics_configurator_SOURCES = src/composite_metrics_configurator.cc
+src_composite_metrics_configurator_config_DATA = src/composite-metrics-configurator.cfg
+src_composite_metrics_configurator_configdir = $(sysconfdir)/composite-metrics
+if WITH_SYSTEMD_UNITS
+src_composite_metrics_configurator_servicedir = @prefix@/lib/systemd/system
+src_composite_metrics_configurator_service_DATA = src/composite-metrics-configurator.service
+src_composite_metrics_configurator_tmpfilesdir = @prefix@/lib/tmpfiles.d/
+src_composite_metrics_configurator_tmpfiles_DATA = src/composite-metrics.conf
+endif #WITH_SYSTEMD_UNITS
+endif #ENABLE_COMPOSITE_METRICS_CONFIGURATOR
 
 if ENABLE_COMPOSITE_METRICS_SELFTEST
 check_PROGRAMS += src/composite_metrics_selftest
@@ -69,14 +92,10 @@ src_composite_metrics_selftest_LDADD = ${program_libs}
 src_composite_metrics_selftest_SOURCES = src/composite_metrics_selftest.cc
 endif #ENABLE_COMPOSITE_METRICS_SELFTEST
 
-# Install data into /usr/local/bin
-composite_metricsdir = @bindir@
-composite_metrics_SCRIPTS = \
-    dc_th_enable
-
 # define custom target for all products of /src
 src:
 	src/composite-metrics \
+	src/composite-metrics-configurator \
 	src/composite_metrics_selftest \
 	src/libcomposite_metrics.la
 

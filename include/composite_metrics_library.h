@@ -67,12 +67,15 @@
 #ifdef COMPOSITE_METRICS_BUILD_DRAFT_API
 typedef struct _bios_composite_metrics_server_t bios_composite_metrics_server_t;
 #define BIOS_COMPOSITE_METRICS_SERVER_T_DEFINED
+typedef struct _bios_composite_metrics_configurator_server_t bios_composite_metrics_configurator_server_t;
+#define BIOS_COMPOSITE_METRICS_CONFIGURATOR_SERVER_T_DEFINED
 #endif // COMPOSITE_METRICS_BUILD_DRAFT_API
 
 
 //  Public classes, each with its own header file
 #ifdef COMPOSITE_METRICS_BUILD_DRAFT_API
 #include "bios_composite_metrics_server.h"
+#include "bios_composite_metrics_configurator_server.h"
 #endif // COMPOSITE_METRICS_BUILD_DRAFT_API
 
 #endif

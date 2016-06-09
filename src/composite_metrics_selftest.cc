@@ -41,6 +41,7 @@ all_tests [] = {
     { "data", data_test },
 #ifdef COMPOSITE_METRICS_BUILD_DRAFT_API
     { "bios_composite_metrics_server", bios_composite_metrics_server_test },
+    { "bios_composite_metrics_configurator_server", bios_composite_metrics_configurator_server_test },
 #endif // COMPOSITE_METRICS_BUILD_DRAFT_API
     {0, 0}          //  Sentinel
 };
@@ -99,7 +100,7 @@ main (int argc, char **argv)
         else
         if (streq (argv [argn], "--number")
         ||  streq (argv [argn], "-n")) {
-            puts ("4");
+            puts ("5");
             return 0;
         }
         else
@@ -110,6 +111,7 @@ main (int argc, char **argv)
             puts ("    actor_commands");
             puts ("    data");
             puts ("    bios_composite_metrics_server");
+            puts ("    bios_composite_metrics_configurator_server");
             return 0;
         }
         else

@@ -16,19 +16,20 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#include <czmq.h>
 
-#ifndef _BIOS_LM_SERVER_H_
-#define _BIOS_LM_SERVER_H_
+#ifndef BIOS_COMPOSITE_METRICS_SERVER_H_INCLUDED
+#define BIOS_COMPOSITE_METRICS_SERVER_H_INCLUDED
 
 // @interface
 
-// composite metric server
+//  composite metrics server
 void
-bios_composite_metrics_server (zsock_t *pipe, void* args);
+    bios_composite_metrics_server (zsock_t *pipe, void* args);
 
+//  Self test of this class
 void
-bios_composite_metrics_server_test (bool verbose);
+    bios_composite_metrics_server_test (bool verbose);
+
 // @end
 
 #endif

@@ -488,6 +488,16 @@ AC_ARG_ENABLE([composite-metrics],
 AM_CONDITIONAL([ENABLE_COMPOSITE_METRICS], [test x$enable_composite_metrics != xno])
 AM_COND_IF([ENABLE_COMPOSITE_METRICS], [AC_MSG_NOTICE([ENABLE_COMPOSITE_METRICS defined])])
 
+# Check for composite-metrics-configurator intent
+AC_ARG_ENABLE([composite-metrics-configurator],
+    AS_HELP_STRING([--enable-composite-metrics-configurator],
+        [Compile and install 'composite-metrics-configurator' [default=yes]]),
+    [enable_composite_metrics_configurator=$enableval],
+    [enable_composite_metrics_configurator=yes])
+
+AM_CONDITIONAL([ENABLE_COMPOSITE_METRICS_CONFIGURATOR], [test x$enable_composite_metrics_configurator != xno])
+AM_COND_IF([ENABLE_COMPOSITE_METRICS_CONFIGURATOR], [AC_MSG_NOTICE([ENABLE_COMPOSITE_METRICS_CONFIGURATOR defined])])
+
 # Check for composite_metrics_selftest intent
 AC_ARG_ENABLE([composite_metrics_selftest],
     AS_HELP_STRING([--enable-composite_metrics_selftest],
@@ -540,12 +550,15 @@ fi
 AC_CONFIG_FILES([Makefile
                  doc/Makefile
                  src/libcomposite_metrics.pc
+                 src/composite-metrics.cfg
+                 src/composite-metrics-configurator.cfg
                  ])
 
 AM_COND_IF([WITH_SYSTEMD_UNITS],
     [AC_CONFIG_FILES([
-                src/composite-metrics@.service
-                src/dc_th.service
+                 src/composite-metrics@.service
+                 src/composite-metrics-configurator.service
+                 src/composite-metrics.conf
     ])],
     [])
 

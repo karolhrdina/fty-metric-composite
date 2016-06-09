@@ -20,13 +20,11 @@
 Source:         composite-metrics
 Section:        net
 Priority:       optional
-Maintainer:     composite-metrics Developers <mailto:EatonIPCOpensource@Eaton.com>
+Maintainer:     composite-metrics Developers <bios@eaton.com>
 Standards-Version: 3.9.7
 Build-Depends: bison, debhelper (>= 9),
     pkg-config,
-    automake,
-    autoconf,
-    libtool,
+    dh-autoreconf,
     libzmq4-dev,
     libczmq-dev,
     libmlm-dev,
