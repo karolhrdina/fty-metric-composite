@@ -43,10 +43,12 @@ extern "C" {
 //  CONSUMER/stream/pattern
 //      consume messages from 'stream' with subjects matching 'pattern'
 //
-//  CONFIGURE/state_file
-//      configure actor, where
+//  STATE_FILE/state_file
+//      set full pathname of state file to 'state file'
 //
-//      state_file - full pathname of state file
+//  CFG_DIRECTORY/cfg_directory
+//      set pathname of output config files to 'cfg_directory'
+//
 
 // Performs the actor commands logic
 // Destroys the message

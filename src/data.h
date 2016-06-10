@@ -45,13 +45,23 @@ COMPOSITE_METRICS_EXPORT zlistx_t *
 COMPOSITE_METRICS_EXPORT bios_proto_t *
     data_asset (data_t *self, const char *name);
 
-//  Get fullpath to state file or empty string if not set
+//  Get state file fullpath or empty string if not set
 COMPOSITE_METRICS_EXPORT const char *
     data_statefile (data_t *self);
 
-//  Set fullpath to state file
-COMPOSITE_METRICS_EXPORT void 
+//  Set state file fullpath
+//  0 - success, -1 - error
+COMPOSITE_METRICS_EXPORT int 
     data_set_statefile (data_t *self, const char *fullpath);
+
+//  Get path to configuration directory
+COMPOSITE_METRICS_EXPORT const char *
+    data_cfgdir (data_t *self);
+
+//  Set configuration directory path
+//  0 - success, -1 - error 
+COMPOSITE_METRICS_EXPORT int
+    data_set_cfgdir (data_t *self, const char *path);
 
 //  Save nut to disk
 //  0 - success, -1 - error

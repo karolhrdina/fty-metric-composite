@@ -32,7 +32,8 @@
 
 struct _data_t {
     zhashx_t *assets;
-    char *state_file; 
+    char *state_file;
+    char *output_dir; 
 };
 
 
@@ -50,6 +51,8 @@ data_new (void)
     zhashx_set_destructor (self->assets, (zhashx_destructor_fn *) bios_proto_destroy);
     //  state_file
     self->state_file = strdup (""); 
+    //  output_dir
+    self->output_dir = strdup (""); 
     return self;
 }
 
@@ -102,15 +105,64 @@ data_statefile (data_t *self)
 }
 
 //  --------------------------------------------------------------------------
-//  Set fullpath to state file
+//  Set state file
+//  0 - success, -1 - error
 
-void
+int
 data_set_statefile (data_t *self, const char *fullpath)
 {
     assert (self);
     assert (fullpath);
+    zfile_t *file = zfile_new (NULL, fullpath);
+    if (!file) {
+        log_error ("zfile_new (NULL, '%s') failed.", fullpath);
+        return -1;
+    }
+    bool is_dir = zfile_is_directory (file);
+    bool is_regular = zfile_is_regular (file);
+    bool is_writable = zfile_is_writeable (file);
+    zfile_destroy (&file);
+    if (is_dir) {
+        log_error ("Specified argument '%s' is a directory.", fullpath);
+        return -1;
+    }
+    if (is_regular && !is_writable) {
+        log_error ("Specified argument '%s' is not writable.", fullpath);
+        return -1;
+    }
     zstr_free (&self->state_file);
     self->state_file = strdup (fullpath);
+    return 0;
+}
+
+//  --------------------------------------------------------------------------
+//  Get path to configuration directory
+
+const char *
+data_cfgdir (data_t *self)
+{
+    assert (self);
+    return self->output_dir;
+}
+
+//  --------------------------------------------------------------------------
+//  Set path to configuration directory
+//  0 - success, -1 - error 
+
+int
+data_set_cfgdir (data_t *self, const char *path)
+{
+    assert (self);
+    assert (path);
+    zdir_t *dir = zdir_new (path, "-");
+    if (!dir) {
+        log_error ("zdir_new ('%s', \"-\") failed.", path);
+        return -1;
+    }
+    zdir_destroy (&dir);
+    zstr_free (&self->output_dir);
+    self->output_dir = strdup (path);
+    return 0;
 }
 
 //  --------------------------------------------------------------------------
@@ -146,6 +198,7 @@ data_destroy (data_t **self_p)
         //  Free class properties here
         zhashx_destroy (&self->assets);
         zstr_free (&self->state_file);
+        zstr_free (&self->output_dir);
         //  Free object itself
         free (self);
         *self_p = NULL;
