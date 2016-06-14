@@ -193,7 +193,7 @@ void bios_composite_metrics_server (zsock_t *pipe, void* args) {
             bios_proto_set_element_src(n_met, "%s", strrchr(buff, '@') + 1);
             (*strrchr(buff, '@')) = 0;
             bios_proto_set_type(n_met, "%s", buff);
-            bios_proto_set_value(n_met, "%s", lua_tostring(L, -2));
+            bios_proto_set_value(n_met, "%.2f", lua_tonumber(L, -2));
             bios_proto_set_unit(n_met,  "%s", lua_tostring(L, -1));
             bios_proto_set_ttl(n_met,  TTL);
             zmsg_t* z_met = bios_proto_encode(&n_met);
@@ -266,7 +266,7 @@ bios_composite_metrics_server_test (bool verbose)
     bios_proto_print (m);
     assert ( streq (mlm_client_sender (consumer), "composite-metrics-sd") );
     assert (m);
-    assert (streq (bios_proto_value (m), "40"));    // <<< 40 / 1
+    assert (streq (bios_proto_value (m), "40.00"));    // <<< 40 / 1
     bios_proto_destroy (&m);
 
     // send another value
@@ -278,19 +278,19 @@ bios_composite_metrics_server_test (bool verbose)
     msg_out = mlm_client_recv (consumer);
     m = bios_proto_decode (&msg_out);
     assert (m);
-    assert (streq (bios_proto_value (m), "70"));    // <<< (100 + 40) / 2
+    assert (streq (bios_proto_value (m), "70.00"));    // <<< (100 + 40) / 2
     bios_proto_destroy (&m);
 
     // send value for TH1 again
     msg_in = bios_proto_encode_metric(
-            NULL, "temperature", "TH1", "70", "C", ::time (NULL));
+            NULL, "temperature", "TH1", "70.00", "C", ::time (NULL));
     assert (msg_in);
     mlm_client_send (producer, "temperature@TH1", &msg_in);
 
     msg_out = mlm_client_recv (consumer);
     m = bios_proto_decode (&msg_out);
     assert (m);
-    assert (streq (bios_proto_value (m), "85"));     // <<< (100 + 70) / 2
+    assert (streq (bios_proto_value (m), "85.00"));     // <<< (100 + 70) / 2
     bios_proto_destroy (&m);
 
     zactor_destroy (&cm_server);
