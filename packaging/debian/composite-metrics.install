@@ -1,0 +1,6 @@
+usr/bin/composite-metrics
+etc/composite-metrics/composite-metrics.cfg.example
+usr/bin/composite-metrics-configurator
+usr/lib/systemd/system/composite-metrics*.service
+usr/lib/systemd/system/composite-metrics-configurator*.service
+usr/lib/tmpfiles.d/composite-metrics.conf

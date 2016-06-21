@@ -22,21 +22,22 @@ Name:           composite-metrics
 Version:        0.1.0
 Release:        1
 Summary:        agent that computes new metrics from bunch of other metrics
-License:        MIT
-URL:            http://example.com/
+License:        GPL-2.0+
+URL:            https://eaton.com/
 Source0:        %{name}-%{version}.tar.gz
 Group:          System/Libraries
 BuildRequires:  automake
 BuildRequires:  autoconf
 BuildRequires:  libtool
 BuildRequires:  pkg-config
+BuildRequires:  systemd-devel
 BuildRequires:  gcc-c++
 BuildRequires:  zeromq-devel
 BuildRequires:  czmq-devel
 BuildRequires:  malamute-devel
+BuildRequires:  biosproto-devel
 BuildRequires:  lua-devel
 BuildRequires:  cxxtools-devel
-BuildRequires:  libbiosproto-devel
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 
 %description
@@ -65,9 +66,9 @@ Requires:       libcomposite_metrics0 = %{version}
 Requires:       zeromq-devel
 Requires:       czmq-devel
 Requires:       malamute-devel
+Requires:       biosproto-devel
 Requires:       lua-devel
 Requires:       cxxtools-devel
-Requires:       libbiosproto-devel
 
 %description devel
 composite-metrics agent that computes new metrics from bunch of other metrics.
@@ -84,7 +85,7 @@ This package contains development files.
 
 %build
 sh autogen.sh
-%{configure}
+%{configure} --with-systemd-units
 make %{_smp_mflags}
 
 %install
@@ -99,8 +100,9 @@ find %{buildroot} -name '*.la' | xargs rm -f
 %doc COPYING
 %{_bindir}/composite-metrics
 %{_sysconfdir}/composite-metrics/composite-metrics.cfg.example
-%{_bindir}/dc_th_enable
-%{_prefix}/lib/systemd/system/composite-metrics*.*
-%{_prefix}/lib/systemd/system/dc_th*.service
+%{_bindir}/composite-metrics-configurator
+%{_prefix}/lib/systemd/system/composite-metrics*.service
+%{_prefix}/lib/systemd/system/composite-metrics-configurator*.service
+%{_prefix}/lib/tmpfiles.d/composite-metrics.conf
 
 %changelog

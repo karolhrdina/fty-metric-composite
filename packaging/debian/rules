@@ -2,7 +2,7 @@
 # -*- makefile -*-
 
 override_dh_autoreconf:
-	sed -i 's|<\(l[ua][ua][^.h>]*\)>|<lua5.1/\1>|' src/composite-metrics.cc
+	sed -i 's|<\(l[ua][ua][^.h>]*\)>|<lua5.1/\1>|' src/composite_metrics.cc
 	dh_autoreconf
 
 override_dh_strip:
@@ -10,7 +10,10 @@ override_dh_strip:
 
 override_dh_auto_test:
 	echo "Skipped for now"
-%:
-	dh $@ --with=autoreconf
 
-.PHONY: override_dh_strip override_dh_auto_test
+override_dh_auto_configure:
+	dh_auto_configure -- --with-systemd-units
+
+%:
+	dh $@ --with autoreconf,systemd
+

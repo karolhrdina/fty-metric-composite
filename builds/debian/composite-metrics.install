@@ -1,3 +1,0 @@
-debian/tmp/etc/*
-debian/tmp/usr/bin/*
-debian/tmp/usr/lib/systemd/*

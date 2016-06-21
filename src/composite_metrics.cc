@@ -33,9 +33,10 @@ extern "C" {
 #include <bios_proto.h>
 #include <malamute.h>
 
-#include "composite_metrics.h"
+#include "composite_metrics_classes.h"
 
-int main (int argc, char** argv) {
+int
+main (int argc, char** argv) {
 
     // Read configuration
     if(argc < 2) {
