@@ -42,6 +42,7 @@ EXTRA_DIST = \
     Findlua.cmake \
     Findcxxtools.cmake \
     src/logger.h \
+    src/subprocess.h \
     src/actor_commands.h \
     src/data.h \
     src/composite_metrics_classes.h

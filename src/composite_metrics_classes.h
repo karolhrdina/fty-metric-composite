@@ -34,6 +34,7 @@
 
 //  Internal API
 #include "logger.h"
+#include "subprocess.h"
 #include "actor_commands.h"
 #include "data.h"
 
@@ -44,6 +45,11 @@
 //  Self test of this class.
 COMPOSITE_METRICS_EXPORT void
     logger_test (bool verbose);
+
+//  *** Draft method, defined for internal use only ***
+//  Self test of this class.
+COMPOSITE_METRICS_EXPORT void
+    subprocess_test (bool verbose);
 
 //  *** Draft method, defined for internal use only ***
 //  Self test of this class.

@@ -24,6 +24,7 @@ include_HEADERS += \
 endif
 src_libcomposite_metrics_la_SOURCES = \
     src/logger.cc \
+    src/subprocess.cc \
     src/actor_commands.cc \
     src/data.cc \
     src/platform.h
