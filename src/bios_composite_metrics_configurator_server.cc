@@ -61,7 +61,6 @@ s_bios_proto_ext_int32 (bios_proto_t *self, const char *key, int32_t default_val
 static int
 s_bits_systemctl (const char *operation, const char *service)
 {
-    return 0;
     assert (operation);
     assert (service);
 
