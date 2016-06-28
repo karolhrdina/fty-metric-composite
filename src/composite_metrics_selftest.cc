@@ -37,6 +37,7 @@ typedef struct {
 static test_item_t
 all_tests [] = {
     { "logger", logger_test },
+    { "subprocess", subprocess_test },
     { "actor_commands", actor_commands_test },
     { "data", data_test },
 #ifdef COMPOSITE_METRICS_BUILD_DRAFT_API
@@ -100,7 +101,7 @@ main (int argc, char **argv)
         else
         if (streq (argv [argn], "--number")
         ||  streq (argv [argn], "-n")) {
-            puts ("5");
+            puts ("6");
             return 0;
         }
         else
@@ -108,6 +109,7 @@ main (int argc, char **argv)
         ||  streq (argv [argn], "-l")) {
             puts ("Available tests:");
             puts ("    logger");
+            puts ("    subprocess");
             puts ("    actor_commands");
             puts ("    data");
             puts ("    bios_composite_metrics_server");

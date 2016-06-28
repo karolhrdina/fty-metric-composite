@@ -279,7 +279,52 @@ actor_commands_test (bool verbose)
     assert (streq (data_cfgdir (data), ""));
 
     STDERR_NON_EMPTY
-    
+ 
+    // --------------------------------------------------------------
+    fp = freopen ("stderr.txt", "w+", stderr);
+    // STATE_FILE - expected fail
+    message = zmsg_new ();
+    assert (message);
+    zmsg_addstr (message, "STATE_FILE");
+    zmsg_addstr (message, "/fsdfewf/fewsdsfe/wefwfsd/fwed"); // not writable
+    rv = actor_commands (client, &message, data);
+    assert (rv == 0);
+    assert (message == NULL);
+    assert (streq (data_statefile (data), ""));
+    assert (streq (data_cfgdir (data), ""));
+
+    STDERR_NON_EMPTY   
+ 
+    // --------------------------------------------------------------
+    fp = freopen ("stderr.txt", "w+", stderr);
+    // STATE_FILE - expected fail
+    message = zmsg_new ();
+    assert (message);
+    zmsg_addstr (message, "STATE_FILE");
+    zmsg_addstr (message, "/lib/state_file"); // not writable
+    rv = actor_commands (client, &message, data);
+    assert (rv == 0);
+    assert (message == NULL);
+    assert (streq (data_statefile (data), ""));
+    assert (streq (data_cfgdir (data), ""));
+
+    STDERR_NON_EMPTY  
+
+    // --------------------------------------------------------------
+    fp = freopen ("stderr.txt", "w+", stderr);
+    // STATE_FILE - expected fail
+    message = zmsg_new ();
+    assert (message);
+    zmsg_addstr (message, "STATE_FILE");
+    zmsg_addstr (message, "/root"); // not writable
+    rv = actor_commands (client, &message, data);
+    assert (rv == 0);
+    assert (message == NULL);
+    assert (streq (data_statefile (data), ""));
+    assert (streq (data_cfgdir (data), ""));
+
+    STDERR_NON_EMPTY
+
     // --------------------------------------------------------------
     fp = freopen ("stderr.txt", "w+", stderr);
     // CFG_DIRECTORY - expected fail
@@ -479,17 +524,6 @@ actor_commands_test (bool verbose)
     assert (streq (data_statefile (data), "./test_state_file"));
     assert (streq (data_cfgdir (data), ""));
 
-    // STATE_FILE
-    message = zmsg_new ();
-    assert (message);
-    zmsg_addstr (message, "STATE_FILE");
-    zmsg_addstr (message, "/fsdfewf/fewsdsfe/wefwfsd/fwed");
-    rv = actor_commands (client, &message, data);
-    assert (rv == 0);
-    assert (message == NULL);
-    assert (streq (data_statefile (data), "/fsdfewf/fewsdsfe/wefwfsd/fwed"));
-    assert (streq (data_cfgdir (data), ""));
-
     // CFG_DIRECTORY
     message = zmsg_new ();
     assert (message);
@@ -498,7 +532,7 @@ actor_commands_test (bool verbose)
     rv = actor_commands (client, &message, data);
     assert (rv == 0);
     assert (message == NULL);
-    assert (streq (data_statefile (data), "/fsdfewf/fewsdsfe/wefwfsd/fwed"));
+    assert (streq (data_statefile (data), "./test_state_file"));
     assert (streq (data_cfgdir (data), "./"));
 
     // CFG_DIRECTORY
@@ -509,7 +543,7 @@ actor_commands_test (bool verbose)
     rv = actor_commands (client, &message, data);
     assert (rv == 0);
     assert (message == NULL);
-    assert (streq (data_statefile (data), "/fsdfewf/fewsdsfe/wefwfsd/fwed"));
+    assert (streq (data_statefile (data), "./test_state_file"));
     assert (streq (data_cfgdir (data), "../"));
 
     STDERR_EMPTY

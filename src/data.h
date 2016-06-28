@@ -37,13 +37,30 @@ COMPOSITE_METRICS_EXPORT data_t *
 COMPOSITE_METRICS_EXPORT void
     data_asset_put (data_t *self, bios_proto_t **message_p);
 
+//  Last data_asset_put () call made changes to sensors data
+COMPOSITE_METRICS_EXPORT bool
+    data_asset_sensors_changed (data_t *self);
+
 //  Get asset names
+//  The caller is responsible for destroying the return value when finished with it
 COMPOSITE_METRICS_EXPORT zlistx_t *
     data_asset_names (data_t *self);
 
-//  Get asset of specified name or NULL. Ownership is NOT transferred
+//  Get information for any given asset name returned by `data_asset_names ()` or NULL
+//  Ownership is NOT transferred
 COMPOSITE_METRICS_EXPORT bios_proto_t *
     data_asset (data_t *self, const char *name);
+
+//  Get list of sensors for asset
+//  You can limit the list of sensors returned to a certain 'sensor_function',
+//  NULL returns all sensors.
+//  Returns NULL when 'asset_name' is not among values returned by `data_asset_names ()`
+//  The caller is responsible for destroying the return value when finished with it
+COMPOSITE_METRICS_EXPORT zlistx_t *
+    data_sensor (
+            data_t *self,
+            const char *asset_name,
+            const char *sensor_function);
 
 //  Get state file fullpath or empty string if not set
 COMPOSITE_METRICS_EXPORT const char *
