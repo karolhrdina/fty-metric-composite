@@ -517,10 +517,10 @@ data_test (bool verbose)
     state_file = data_statefile (self);
     assert (streq (state_file, "./state_file"));
     
-    rv = data_set_statefile (self, "/var/lib/bios/composite-metrics/state_file");
+    rv = data_set_statefile (self, "/tmp/composite-metrics/state_file");
     assert (rv == 0);
     state_file = data_statefile (self);
-    assert (streq (state_file, "/var/lib/bios/composite-metrics/state_file"));
+    assert (streq (state_file, "/tmp/composite-metrics/state_file"));
 
     rv = data_set_statefile (self, "./test_dir/state_file");
     assert (rv == 0);
@@ -546,16 +546,16 @@ data_test (bool verbose)
     const char *cfgdir = data_cfgdir (self);
     assert (streq (cfgdir, ""));
 
-    int rv = data_set_cfgdir (self, "./");
+    int rv = data_set_cfgdir (self, "/tmp");
     assert (rv == 0);
     cfgdir = data_cfgdir (self);
-    assert (streq (cfgdir, "./"));
+    assert (streq (cfgdir, "/tmp"));
 
     // non-writable directory
     rv = data_set_cfgdir (self, "/root");
     assert (rv == -1);
     cfgdir = data_cfgdir (self);
-    assert (streq (cfgdir, "./"));
+    assert (streq (cfgdir, "/tmp"));
     }
 
     // asset
