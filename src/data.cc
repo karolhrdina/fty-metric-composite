@@ -546,16 +546,16 @@ data_test (bool verbose)
     const char *cfgdir = data_cfgdir (self);
     assert (streq (cfgdir, ""));
 
-    int rv = data_set_cfgdir (self, "/var/lib/bios/composite-metrics");
+    int rv = data_set_cfgdir (self, "/tmp");
     assert (rv == 0);
     cfgdir = data_cfgdir (self);
-    assert (streq (cfgdir, "/var/lib/bios/composite-metrics"));
+    assert (streq (cfgdir, "/tmp"));
 
     // non-writable directory
     rv = data_set_cfgdir (self, "/root");
     assert (rv == -1);
     cfgdir = data_cfgdir (self);
-    assert (streq (cfgdir, "/var/lib/bios/composite-metrics"));
+    assert (streq (cfgdir, "/tmp"));
     }
 
     // asset
