@@ -45,12 +45,12 @@ s_bios_proto_ext_int32 (bios_proto_t *self, const char *key, int32_t default_val
         size_t pos = 0;
         u = std::stol (str, &pos);
         if (pos != strlen (str)) {
-            log_error ("string '%s' does not represent an integer number", str);
+            zsys_error ("string '%s' does not represent an integer number", str);
             return default_value;
         }
     }
     catch (const std::exception& e) {
-        log_error ("string '%s' does not represent an integer number", str);
+        zsys_error ("string '%s' does not represent an integer number", str);
         return default_value;
     }
     return static_cast<int32_t> (u);
@@ -70,11 +70,11 @@ s_bits_systemctl (const char *operation, const char *service)
     SubProcess systemd (_argv);
     if (systemd.run()) {
         int result = systemd.wait ();
-        log_info ("sudo systemctl %s %s result: %i (%s)",
+        zsys_info ("sudo systemctl %s %s result: %i (%s)",
                   operation, service, result, result == 0 ? "ok" : "failed");
         return result;
     }
-    log_error ("can't run sudo systemctl %s %s command", operation, service);
+    zsys_error ("can't run sudo systemctl %s %s command", operation, service);
     return -1;
 }
 
@@ -89,14 +89,14 @@ s_remove_and_stop (const char *path_to_dir)
 
     zdir_t *dir = zdir_new (path_to_dir, "-");
     if (!dir) {
-        log_error ("zdir_new (path = '%s', parent = '-') failed.", path_to_dir);
+        zsys_error ("zdir_new (path = '%s', parent = '-') failed.", path_to_dir);
         return 1;
     }
 
     zlist_t *files = zdir_list (dir);
     if (!files) {
         zdir_destroy (&dir);
-        log_error ("zdir_list () failed.");
+        zsys_error ("zdir_list () failed.");
         return 1;
     }
 
@@ -104,7 +104,7 @@ s_remove_and_stop (const char *path_to_dir)
     if (!file_rex) {
         zdir_destroy (&dir);
         zlist_destroy (&files);
-        log_error ("zrex_new ('%s') failed", "(.+)\\.cfg$");
+        zsys_error ("zrex_new ('%s') failed", "(.+)\\.cfg$");
         return 1;
     }
 
@@ -114,10 +114,10 @@ s_remove_and_stop (const char *path_to_dir)
             std::string filename = zrex_hit (file_rex, 1);
             std::string service = "composite-metrics@";
             service += filename.substr (filename.rfind ("/") + 1);
-            log_debug ("stopping/disabling service %s", service.c_str ());
+            zsys_debug ("stopping/disabling service %s", service.c_str ());
             s_bits_systemctl ("stop", service.c_str ());
             s_bits_systemctl ("disable", service.c_str ());
-            log_debug ("removing %s", zfile_filename (item, NULL));
+            zsys_debug ("removing %s", zfile_filename (item, NULL));
             zfile_remove (item);
         }
         item = (zfile_t *) zlist_next (files);
@@ -138,11 +138,11 @@ s_write_file (const char *fullpath, const char *contents)
 
     zfile_t *file = zfile_new (NULL, fullpath);
     if (!file) {
-        log_error ("zfile_new (path = NULL, file = '%s') failed.", fullpath);
+        zsys_error ("zfile_new (path = NULL, file = '%s') failed.", fullpath);
         return 1;
     }
     if (zfile_output (file) == -1) {
-        log_error ("zfile_output () failed; filename = '%s'", zfile_filename (file, NULL));
+        zsys_error ("zfile_output () failed; filename = '%s'", zfile_filename (file, NULL));
         zfile_close (file);
         zfile_destroy (&file);
         return 1;
@@ -151,19 +151,17 @@ s_write_file (const char *fullpath, const char *contents)
     if (!chunk) {
         zfile_close (file);
         zfile_destroy (&file);
-        log_error ("zchunk_new () failed");
+        zsys_error ("zchunk_new () failed");
         return 1;
     }
-    if (zfile_write (file, chunk , 0) == -1) {
-        zchunk_destroy (&chunk);
-        zfile_close (file);
-        zfile_destroy (&file);
-        log_error ("zfile_write () failed");
-        return 1;
-    }
+    int rv = zfile_write (file, chunk, 0);
     zchunk_destroy (&chunk);
     zfile_close (file);
     zfile_destroy (&file);
+    if (rv == -1) {
+        zsys_error ("zfile_write () failed");
+        return 1;
+    }
     return 0;
 }
 
@@ -179,12 +177,12 @@ s_generate_and_start (const char *path_to_dir, const char *sensor_function, cons
     zlistx_t *sensors = *sensors_p;
 
     if (!sensors) {
-        log_error ("parameter '*sensors_p' is NULL");
+        zsys_error ("parameter '*sensors_p' is NULL");
         return;
     }
 
     if (zlistx_size (sensors) == 0) {
-        log_debug ("sensors empty");
+        zsys_debug ("sensors empty");
         zlistx_destroy (sensors_p);
         *sensors_p = NULL;
         return;
@@ -276,7 +274,7 @@ s_generate_and_start (const char *path_to_dir, const char *sensor_function, cons
         s_bits_systemctl ("start", service.c_str ());
     }
     else {
-        log_error (
+        zsys_error (
                 "Creating config file '%s' failed. Service '%s' not started.",
                 fullpath.c_str (), filename.c_str ());
     }
@@ -314,7 +312,7 @@ s_generate_and_start (const char *path_to_dir, const char *sensor_function, cons
         s_bits_systemctl ("start", service.c_str ());
     }
     else {
-        log_error (
+        zsys_error (
                 "Creating config file '%s' failed. Service '%s' not started.",
                 fullpath.c_str (), filename.c_str ());
     }   
@@ -331,7 +329,7 @@ s_handle_stream_deliver (mlm_client_t *client, zmsg_t **message_p, data_t *data)
     bios_proto_t *proto = bios_proto_decode (message_p);
     *message_p = NULL;
     if (!proto) {
-        log_error (
+        zsys_error (
                 "bios_proto_decode () failed; sender = '%s', subject = '%s'",
                 mlm_client_sender (client), mlm_client_subject (client));
         return;
@@ -344,7 +342,7 @@ s_handle_stream_deliver (mlm_client_t *client, zmsg_t **message_p, data_t *data)
     // 1. Delete all files in output dir and stop/disable services
     int rv = s_remove_and_stop (data_cfgdir (data));
     if (rv != 0) {
-        log_error (
+        zsys_error (
                 "Error removing old config files from directory '%s'. New config "
                 "files were NOT generated and services were NOT started.", data_cfgdir (data));
         return;
@@ -353,7 +351,7 @@ s_handle_stream_deliver (mlm_client_t *client, zmsg_t **message_p, data_t *data)
     // 2. Generate new files and enable/start services
     zlistx_t *assets = data_asset_names (data);
     if (!assets) {
-        log_error ("data_asset_names () failed");
+        zsys_error ("data_asset_names () failed");
         return;
     }
 
@@ -388,17 +386,16 @@ void
 bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
 {
     assert (pipe);
-    log_set_level (LOG_DEBUG); // TODO: add actor command
 
     mlm_client_t *client = mlm_client_new ();
     if (!client) {
-        log_critical ("mlm_client_new () failed");
+        zsys_error ("mlm_client_new () failed");
         return;
     }
 
     zpoller_t *poller = zpoller_new (pipe, mlm_client_msgpipe (client), NULL);
     if (!poller) {
-        log_critical ("zpoller_new () failed");
+        zsys_error ("zpoller_new () failed");
         mlm_client_destroy (&client);
         return;
     }
@@ -410,7 +407,7 @@ bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
         void *which = zpoller_wait (poller, -1);
 
         if (which == NULL) {
-            log_warning (
+            zsys_warning (
                     "zpoller_terminated () == '%s' or zsys_interrupted == '%s'",
                     zpoller_terminated (poller) ? "true" : "false",
                     zsys_interrupted ? "true" : "false");
@@ -420,7 +417,7 @@ bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
         if (which == pipe) {
             zmsg_t *message = zmsg_recv (pipe);
             if (!message) {
-                log_error ("Given `which == pipe`, function `zmsg_recv (pipe)` returned NULL");
+                zsys_error ("Given `which == pipe`, function `zmsg_recv (pipe)` returned NULL");
                 continue;
             }
             if (actor_commands (client, &message, data) == 1) {
@@ -431,31 +428,31 @@ bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
 
         // paranoid non-destructive assertion of a twisted mind 
         if (which != mlm_client_msgpipe (client)) {
-            log_critical ("which was checked for NULL, pipe and now should have been `mlm_client_msgpipe (client)` but is not.");
+            zsys_error ("which was checked for NULL, pipe and now should have been `mlm_client_msgpipe (client)` but is not.");
             continue;
         }
 
         zmsg_t *message = mlm_client_recv (client);
         if (!message) {
-            log_error ("Given `which == mlm_client_msgpipe (client)`, function `mlm_client_recv ()` returned NULL");
+            zsys_error ("Given `which == mlm_client_msgpipe (client)`, function `mlm_client_recv ()` returned NULL");
             continue;
         }
 
         const char *command = mlm_client_command (client);
         if (streq (command, "STREAM DELIVER")) {
-            log_debug ("STREAM DELIVER");
+            zsys_debug ("STREAM DELIVER");
             s_handle_stream_deliver (client, &message, data);
         }
         else
         if (streq (command, "MAILBOX DELIVER") ||
             streq (command, "SERVICE DELIVER")) {
-            log_warning (
+            zsys_warning (
                     "Received a message from sender = '%s', command = '%s', subject = '%s'. Throwing away.",
                     mlm_client_sender (client), mlm_client_command (client), mlm_client_subject (client));
             continue;
         }
         else {
-            log_error ("Unrecognized mlm_client_command () = '%s'", command ? command : "(null)");
+            zsys_error ("Unrecognized mlm_client_command () = '%s'", command ? command : "(null)");
         }
         zmsg_destroy (&message);
     }
