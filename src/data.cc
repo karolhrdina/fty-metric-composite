@@ -546,16 +546,16 @@ data_test (bool verbose)
     const char *cfgdir = data_cfgdir (self);
     assert (streq (cfgdir, ""));
 
-    int rv = data_set_cfgdir (self, "/tmp");
+    int rv = data_set_cfgdir (self, "./");
     assert (rv == 0);
     cfgdir = data_cfgdir (self);
-    assert (streq (cfgdir, "/tmp"));
+    assert (streq (cfgdir, "./"));
 
     // non-writable directory
     rv = data_set_cfgdir (self, "/root");
     assert (rv == -1);
     cfgdir = data_cfgdir (self);
-    assert (streq (cfgdir, "/tmp"));
+    assert (streq (cfgdir, "./"));
     }
 
     // asset
