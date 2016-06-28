@@ -248,7 +248,15 @@ s_generate_and_start (const char *path_to_dir, const char *sensor_function, cons
     contents.replace (contents.find ("##IN##"), strlen ("##IN##"), temp_in);
     contents.replace (contents.find ("##CLB##"), strlen ("##CLB##"), std::to_string (clb));
     contents.replace (contents.find ("##LOGICAL_ASSET##"), strlen ("##LOGICAL_ASSET##"), asset_name);
-    contents.replace (contents.find ("##QNTY##"), strlen ("##QNTY##"), "temperature");
+    if (sensor_function) {
+        std::string qnty = "temperature";
+        qnty += "-";
+        qnty += sensor_function;
+        contents.replace (contents.find ("##QNTY##"), strlen ("##QNTY##"), qnty);
+    }
+    else {
+        contents.replace (contents.find ("##QNTY##"), strlen ("##QNTY##"), "temperature");
+    }
     contents.replace (contents.find ("##UNITS##"), strlen ("##UNITS##"), "C");
 
     // name of the file (service) without extension
@@ -286,7 +294,15 @@ s_generate_and_start (const char *path_to_dir, const char *sensor_function, cons
     contents.replace (contents.find ("##IN##"), strlen ("##IN##"), hum_in);
     contents.replace (contents.find ("##CLB##"), strlen ("##CLB##"), std::to_string (clb));
     contents.replace (contents.find ("##LOGICAL_ASSET##"), strlen ("##LOGICAL_ASSET##"), asset_name);
-    contents.replace (contents.find ("##QNTY##"), strlen ("##QNTY##"), "humidity");
+    if (sensor_function) {
+        std::string qnty = "humidity";
+        qnty += "-";
+        qnty += sensor_function;
+        contents.replace (contents.find ("##QNTY##"), strlen ("##QNTY##"), qnty);
+    }
+    else {
+        contents.replace (contents.find ("##QNTY##"), strlen ("##QNTY##"), "humidity");
+    }
     contents.replace (contents.find ("##UNITS##"), strlen ("##UNITS##"), "%");
 
     // name of the file (service) without extension
@@ -404,7 +420,6 @@ bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
 
     while (!zsys_interrupted) {
         void *which = zpoller_wait (poller, -1);
-
         if (which == NULL) {
             zsys_warning (
                     "zpoller_terminated () == '%s' or zsys_interrupted == '%s'",
@@ -486,30 +501,32 @@ void
 bios_composite_metrics_configurator_server_test (bool verbose)
 {
     /*
-    static const char* endpoint = "inproc://bios-cm-configurator-server-test";
+    static const char* endpoint = "inproc://bios-composite-configurator-server-test";
     printf (" * bios_composite_metrics_configurator_server: ");
     if (verbose)
         printf ("\n");
 
     //  @selftest
-// TODO: code copied from agent-nut (systemctl/Subprocess) makes selftest 
-//       fail under valgrind. Unless fixed, uncomment and test locally 
     
     zactor_t *server = zactor_new (mlm_server, (void*) "Malamute");
     zstr_sendx (server, "BIND", endpoint, NULL);
     if (verbose)
         zstr_send (server, "VERBOSE");
+    zclock_sleep (100);
 
     mlm_client_t *producer = mlm_client_new ();
     mlm_client_connect (producer, endpoint, 1000, "producer");
     mlm_client_set_producer (producer, "ASSETS");
+    zclock_sleep (100);
 
     zactor_t *configurator = zactor_new (bios_composite_metrics_configurator_server, NULL);
     assert (configurator);
-    
+    zclock_sleep (100);
+ 
+    zstr_sendx (configurator, "CFG_DIRECTORY", "./test_dir", NULL);
+    zstr_sendx (configurator, "STATE_FILE", "./test_state_file", NULL);   
     zstr_sendx (configurator, "CONNECT", endpoint, "configurator", NULL);
     zstr_sendx (configurator, "CONSUMER", "ASSETS", ".*", NULL);
-    zstr_sendx (configurator, "CFG_DIRECTORY", "./test_dir", NULL);
     zclock_sleep (500);
 
     bios_proto_t *asset = NULL;
@@ -523,7 +540,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     assert (zmessage);
     int rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (200);
+    zclock_sleep (500);
 
     asset = test_asset_new ("Lazer game", BIOS_PROTO_ASSET_OP_CREATE); // 2
     bios_proto_aux_insert (asset, "parent", "%s", "1");
@@ -534,7 +551,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     assert (zmessage);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (200);
+    zclock_sleep (500);
 
     asset = test_asset_new ("Curie", BIOS_PROTO_ASSET_OP_CREATE); // 3
     bios_proto_aux_insert (asset, "parent", "%s", "1");
@@ -545,7 +562,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     assert (zmessage);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (200);
+    zclock_sleep (500);
 
 
     asset = test_asset_new ("Lazer game.Row01", BIOS_PROTO_ASSET_OP_CREATE); // 4
@@ -557,8 +574,9 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     assert (zmessage);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (200);
+    zclock_sleep (500);
 
+    printf ("TRACE Sensor01\n");
     // testing situation when sensor asset message arrives before asset specified in logical_asset
     asset = test_asset_new ("Sensor01", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
@@ -576,8 +594,9 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     assert (zmessage);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (200);
+    zclock_sleep (2000);
 
+    printf ("TRACE Rack01\n");
     asset = test_asset_new ("Rack01", BIOS_PROTO_ASSET_OP_CREATE); // 5 
     bios_proto_aux_insert (asset, "parent", "%s", "4");
     bios_proto_aux_insert (asset, "status", "%s", "active");
@@ -589,8 +608,9 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     assert (zmessage);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (200);
+    zclock_sleep (500);
 
+    printf ("TRACE Rack02\n");
     asset = test_asset_new ("Rack02", BIOS_PROTO_ASSET_OP_CREATE); // 6
     bios_proto_aux_insert (asset, "parent", "%s", "4");
     bios_proto_aux_insert (asset, "status", "%s", "active");
@@ -601,8 +621,9 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     assert (zmessage);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (200);
+    zclock_sleep (500);
 
+    printf ("TRACE Curie.Row01\n");
     // Row + Racks for Curie
     asset = test_asset_new ("Curie.Row01", BIOS_PROTO_ASSET_OP_CREATE); // 7
     bios_proto_aux_insert (asset, "parent", "%s", "3");
@@ -615,6 +636,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     assert (rv == 0);
     zclock_sleep (200);
 
+    printf ("TRACE Curie.Row02\n");
     asset = test_asset_new ("Curie.Row02", BIOS_PROTO_ASSET_OP_CREATE); // 8
     bios_proto_aux_insert (asset, "parent", "%s", "3");
     bios_proto_aux_insert (asset, "status", "%s", "active");
@@ -624,8 +646,9 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     assert (zmessage);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (200);
+    zclock_sleep (500);
 
+    printf ("TRACE Rack03\n");
     asset = test_asset_new ("Rack03", BIOS_PROTO_ASSET_OP_CREATE); // 9 
     bios_proto_aux_insert (asset, "parent", "%s", "7");
     bios_proto_aux_insert (asset, "status", "%s", "active");
@@ -637,8 +660,9 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     assert (zmessage);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (200);
+    zclock_sleep (500);
 
+    printf ("TRACE Rack04\n");
     asset = test_asset_new ("Rack04", BIOS_PROTO_ASSET_OP_CREATE); // 10
     bios_proto_aux_insert (asset, "parent", "%s", "8");
     bios_proto_aux_insert (asset, "status", "%s", "active");
@@ -650,8 +674,9 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     assert (zmessage);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (200);
+    zclock_sleep (500);
 
+    printf ("TRACE 800\n");
     asset = test_asset_new ("Rack01.ups1", BIOS_PROTO_ASSET_OP_CREATE); // 11  
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "ups");
@@ -661,8 +686,9 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     assert (zmessage);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (200);
+    zclock_sleep (500);
 
+    printf ("TRACE 900\n");
     asset = test_asset_new ("Sensor02", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
@@ -679,8 +705,9 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     assert (zmessage);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (200);
+    zclock_sleep (500);
 
+    printf ("TRACE 1000\n");
     asset = test_asset_new ("Sensor03", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
@@ -697,13 +724,14 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     assert (zmessage);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (200);
+    zclock_sleep (5000);
 
-    zactor_destroy (&configurator);
+    printf ("TRACE 1001\n");
+
     mlm_client_destroy (&producer);
+    zactor_destroy (&configurator);
     zactor_destroy (&server);
-    */
     //  @end
-    
+    */    
     printf ("OK\n");
 }
