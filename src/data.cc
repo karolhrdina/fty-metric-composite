@@ -101,6 +101,10 @@ data_asset_put (data_t *self, bios_proto_t **message_p)
         if (streq (operation, BIOS_PROTO_ASSET_OP_DELETE) ||
             streq (operation, BIOS_PROTO_ASSET_OP_RETIRE))
         {
+            void *exists = zhashx_lookup (self->assets, bios_proto_name (message));
+            if (exists)
+                self->sensors_updated = true;
+
             zhashx_delete (self->sensors, bios_proto_name (message));
             zhashx_delete (self->assets, bios_proto_name (message));
             bios_proto_destroy (message_p);
@@ -113,6 +117,41 @@ data_asset_put (data_t *self, bios_proto_t **message_p)
     else
     if (streq (type, "device") && streq (subtype, "sensor"))
     {
+        self->sensors_updated = true;
+       
+        if (streq (operation, BIOS_PROTO_ASSET_OP_DELETE) ||
+            streq (operation, BIOS_PROTO_ASSET_OP_RETIRE)) {
+            log_error ("device/sensor OP_DELETE/OP_RETIRE");
+
+            void *handle = NULL;
+            zlistx_t *sensors_list = (zlistx_t *) zhashx_first (self->sensors);
+            while (sensors_list) {
+                log_error ("searching list for %s ", (const char *) zhashx_cursor (self->sensors));
+                bios_proto_t *proto = (bios_proto_t *) zlistx_first (sensors_list);
+                while (proto) {
+                    if (streq (bios_proto_name (message), bios_proto_name (proto))) {
+                        handle = zlistx_cursor (sensors_list);
+                        log_error ("found");
+                        break;
+                    }
+                    proto = (bios_proto_t *) zlistx_next (sensors_list);
+                }
+                if (handle) {
+                    break;
+                }
+                sensors_list = (zlistx_t *) zhashx_next (self->sensors);
+            }
+            if (handle) {
+                log_error ("pre-delete");
+                zlistx_delete (sensors_list, handle);
+                log_error ("post-delete");
+            }
+
+            bios_proto_destroy (message_p);
+            *message_p = NULL;
+            return;
+        }
+
         const char *logical_asset = bios_proto_ext_string (message, "logical_asset", NULL);
         const char *parent = bios_proto_aux_string (message, "parent", NULL);
         const char *port = bios_proto_ext_string (message, "port", NULL);
@@ -155,11 +194,10 @@ data_asset_put (data_t *self, bios_proto_t **message_p)
             return;           
         }
 
-        self->sensors_updated = true;
-
         zlistx_t *list = (zlistx_t *) zhashx_lookup (self->sensors, logical_asset);
 
         if (streq (operation, BIOS_PROTO_ASSET_OP_CREATE)) {
+            log_error ("device/sensor OP_CREATE");
             if (!list) {
                 list = zlistx_new ();
                 zlistx_set_destructor (list, (czmq_destructor *) bios_proto_destroy);
@@ -169,17 +207,20 @@ data_asset_put (data_t *self, bios_proto_t **message_p)
         }
         else
         if (streq (operation, BIOS_PROTO_ASSET_OP_UPDATE)) {
+            log_error ("device/sensor OP_UPDATE");
             // Note: When proper asset messages update is implemented, the messages
             //       will have to be merged instead of deleted and re-inserted
 
             // remove the old one
             void *handle = NULL;
-            zlistx_t *sensors_list = (zlistx_t *) zhashx_first (self->assets);
+            zlistx_t *sensors_list = (zlistx_t *) zhashx_first (self->sensors);
             while (sensors_list) {
+                log_error ("searching list for %s ", (const char *) zhashx_cursor (self->sensors));
                 bios_proto_t *proto = (bios_proto_t *) zlistx_first (sensors_list);
                 while (proto) {
                     if (streq (bios_proto_name (message), bios_proto_name (proto))) {
                         handle = zlistx_cursor (sensors_list);
+                        log_error ("found");
                         break;
                     }
                     proto = (bios_proto_t *) zlistx_next (sensors_list);
@@ -187,10 +228,12 @@ data_asset_put (data_t *self, bios_proto_t **message_p)
                 if (handle) {
                     break;
                 }
-                sensors_list = (zlistx_t *) zhashx_next (self->assets);
+                sensors_list = (zlistx_t *) zhashx_next (self->sensors);
             }
             if (handle) {
+                log_error ("pre-delete");
                 zlistx_delete (sensors_list, handle);
+                log_error ("post-delete");
             }
 
             // insert the new one
@@ -200,26 +243,6 @@ data_asset_put (data_t *self, bios_proto_t **message_p)
                 zhashx_insert (self->sensors, logical_asset, (void *) list);
             }
             zlistx_add_end (list, (void *) message);
-        }
-        else
-        if (streq (operation, BIOS_PROTO_ASSET_OP_DELETE) ||
-            streq (operation, BIOS_PROTO_ASSET_OP_RETIRE))
-        {
-            if (list) {
-                void *handle = NULL;
-                bios_proto_t *item = (bios_proto_t *) zlistx_first (list);
-                while (item) {
-                    if (streq (bios_proto_name (message), bios_proto_name (item))) {
-                        handle = zlistx_cursor (list);
-                        break;
-                    }
-                    item = (bios_proto_t *) zlistx_next (list);
-                }
-                if (handle) {
-                    zlistx_delete (list, handle);
-                }
-            }
-            bios_proto_destroy (message_p);
         }
         else
         {
@@ -565,6 +588,8 @@ data_test (bool verbose)
     zlistx_set_comparator (assets_expected, (czmq_comparator *) strcmp);
 
     bios_proto_t *asset = NULL;
+
+    printf ("TRACE CREATE DC-Rozskoky\n");
     asset = test_asset_new ("DC-Rozskoky", BIOS_PROTO_ASSET_OP_CREATE); // 1
     bios_proto_aux_insert (asset, "parent", "%s", "0");
     bios_proto_aux_insert (asset, "status", "%s", "active");
@@ -575,6 +600,7 @@ data_test (bool verbose)
     zlistx_add_end (assets_expected, (void *) "DC-Rozskoky");
     assert (data_asset_sensors_changed (self) == false);
 
+    printf ("TRACE CREATE Lazer game\n");
     asset = test_asset_new ("Lazer game", BIOS_PROTO_ASSET_OP_CREATE); // 2
     bios_proto_aux_insert (asset, "parent", "%s", "1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
@@ -584,6 +610,7 @@ data_test (bool verbose)
     zlistx_add_end (assets_expected, (void *) "Lazer game");
     assert (data_asset_sensors_changed (self) == false);
 
+    printf ("TRACE CREATE Curie\n");
     asset = test_asset_new ("Curie", BIOS_PROTO_ASSET_OP_CREATE); // 3
     bios_proto_aux_insert (asset, "parent", "%s", "1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
@@ -593,6 +620,7 @@ data_test (bool verbose)
     zlistx_add_end (assets_expected, (void *) "Curie");
     assert (data_asset_sensors_changed (self) == false);
 
+    printf ("TRACE CREATE Lazer game.Row01\n");
     asset = test_asset_new ("Lazer game.Row01", BIOS_PROTO_ASSET_OP_CREATE); // 4
     bios_proto_aux_insert (asset, "parent", "%s", "2");
     bios_proto_aux_insert (asset, "status", "%s", "active");
@@ -603,6 +631,7 @@ data_test (bool verbose)
     assert (data_asset_sensors_changed (self) == false);
 
     // testing situation when sensor asset message arrives before asset specified in logical_asset
+    printf ("TRACE CREATE Sensor01\n");
     asset = test_asset_new ("Sensor01", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
@@ -616,16 +645,17 @@ data_test (bool verbose)
     bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "Rack01");
     data_asset_put (self, &asset);
-    assert (data_asset_sensors_changed (self) == true);
+    assert (data_asset_sensors_changed (self) == true); // TODO: Make it so, that here is false
 
     {
         zlistx_t *received = data_asset_names (self);
         assert (received);
 
-        int rv = test_zlistx_compare (assets_expected, &received, 0);
+        int rv = test_zlistx_compare (assets_expected, &received, 1);
         assert (rv == 0);
     }
 
+    printf ("TRACE CREATE Rack01\n");
     asset = test_asset_new ("Rack01", BIOS_PROTO_ASSET_OP_CREATE); // 5 
     bios_proto_aux_insert (asset, "parent", "%s", "4");
     bios_proto_aux_insert (asset, "status", "%s", "active");
@@ -635,8 +665,9 @@ data_test (bool verbose)
     bios_proto_ext_insert (asset, "description" , "%s",  "Lorem ipsum asd asd asd asd asd asd asd");
     data_asset_put (self, &asset);
     zlistx_add_end (assets_expected, (void *) "Rack01");
-    assert (data_asset_sensors_changed (self) == false);
+    assert (data_asset_sensors_changed (self) == false); // TODO: Make it so, that here is true
 
+    printf ("TRACE CREATE Rack02\n");
     asset = test_asset_new ("Rack02", BIOS_PROTO_ASSET_OP_CREATE); // 6
     bios_proto_aux_insert (asset, "parent", "%s", "4");
     bios_proto_aux_insert (asset, "status", "%s", "active");
@@ -648,6 +679,7 @@ data_test (bool verbose)
     assert (data_asset_sensors_changed (self) == false);
 
     // Row + Racks for Curie
+    printf ("TRACE CREATE Curie.Row01\n");
     asset = test_asset_new ("Curie.Row01", BIOS_PROTO_ASSET_OP_CREATE); // 7
     bios_proto_aux_insert (asset, "parent", "%s", "3");
     bios_proto_aux_insert (asset, "status", "%s", "active");
@@ -657,6 +689,7 @@ data_test (bool verbose)
     zlistx_add_end (assets_expected, (void *) "Curie.Row01");
     assert (data_asset_sensors_changed (self) == false);
 
+    printf ("TRACE CREATE Curie.Row02\n");
     asset = test_asset_new ("Curie.Row02", BIOS_PROTO_ASSET_OP_CREATE); // 8
     bios_proto_aux_insert (asset, "parent", "%s", "3");
     bios_proto_aux_insert (asset, "status", "%s", "active");
@@ -666,6 +699,7 @@ data_test (bool verbose)
     zlistx_add_end (assets_expected, (void *) "Curie.Row02");
     assert (data_asset_sensors_changed (self) == false);
 
+    printf ("TRACE CREATE Rack03\n");
     asset = test_asset_new ("Rack03", BIOS_PROTO_ASSET_OP_CREATE); // 9 
     bios_proto_aux_insert (asset, "parent", "%s", "7");
     bios_proto_aux_insert (asset, "status", "%s", "active");
@@ -677,6 +711,7 @@ data_test (bool verbose)
     zlistx_add_end (assets_expected, (void *) "Rack03");
     assert (data_asset_sensors_changed (self) == false);
 
+    printf ("TRACE CREATE Rack04\n");
     asset = test_asset_new ("Rack04", BIOS_PROTO_ASSET_OP_CREATE); // 10
     bios_proto_aux_insert (asset, "parent", "%s", "8");
     bios_proto_aux_insert (asset, "status", "%s", "active");
@@ -688,6 +723,7 @@ data_test (bool verbose)
     zlistx_add_end (assets_expected, (void *) "Rack04");
     assert (data_asset_sensors_changed (self) == false);
 
+    printf ("TRACE CREATE Rack01.ups1\n");
     asset = test_asset_new ("Rack01.ups1", BIOS_PROTO_ASSET_OP_CREATE); // 11  
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "ups");
@@ -696,6 +732,7 @@ data_test (bool verbose)
     data_asset_put (self, &asset); 
     assert (data_asset_sensors_changed (self) == false);
 
+    printf ("TRACE CREATE Sensor02\n");
     asset = test_asset_new ("Sensor02", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
@@ -711,6 +748,7 @@ data_test (bool verbose)
     data_asset_put (self, &asset);
     assert (data_asset_sensors_changed (self) == true);
 
+    printf ("TRACE CREATE Sensor03\n");
     asset = test_asset_new ("Sensor03", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
@@ -726,8 +764,8 @@ data_test (bool verbose)
     data_asset_put (self, &asset);
     assert (data_asset_sensors_changed (self) == true);
 
-    printf ("TRACE - 4 sensors missing info\n");
     // The following 4 sensors have important info missing
+    printf ("TRACE CREATE Sensor04\n");
     asset = test_asset_new ("Sensor04", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
@@ -741,8 +779,9 @@ data_test (bool verbose)
     bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
     // logical_asset missing
     data_asset_put (self, &asset);
-    assert (data_asset_sensors_changed (self) == false);
+    assert (data_asset_sensors_changed (self) == true);
 
+    printf ("TRACE CREATE Sensor05\n");
     asset = test_asset_new ("Sensor05", BIOS_PROTO_ASSET_OP_CREATE);
     // parent missing
     bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
@@ -756,8 +795,9 @@ data_test (bool verbose)
     bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "Rack01");
     data_asset_put (self, &asset);
-    assert (data_asset_sensors_changed (self) == false);
+    assert (data_asset_sensors_changed (self) == true);
 
+    printf ("TRACE CREATE Sensor06\n");
     asset = test_asset_new ("Sensor06", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
     // parent_name missing
@@ -771,8 +811,9 @@ data_test (bool verbose)
     bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "Rack01");
     data_asset_put (self, &asset);
-    assert (data_asset_sensors_changed (self) == false);
+    assert (data_asset_sensors_changed (self) == true);
 
+    printf ("TRACE CREATE Sensor07\n");
     asset = test_asset_new ("Sensor07", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
@@ -786,9 +827,9 @@ data_test (bool verbose)
     bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "Rack01");
     data_asset_put (self, &asset);
-    assert (data_asset_sensors_changed (self) == false);
-    //
+    assert (data_asset_sensors_changed (self) == true);
 
+    printf ("TRACE CREATE Sensor08\n");
     asset = test_asset_new ("Sensor08", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
@@ -804,6 +845,7 @@ data_test (bool verbose)
     data_asset_put (self, &asset);
     assert (data_asset_sensors_changed (self) == true);
 
+    printf ("TRACE CREATE Sensor09\n");
     asset = test_asset_new ("Sensor09", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
@@ -819,6 +861,7 @@ data_test (bool verbose)
     data_asset_put (self, &asset);
     assert (data_asset_sensors_changed (self) == true);
 
+    printf ("TRACE CREATE Sensor10\n");
     asset = test_asset_new ("Sensor10", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
@@ -832,6 +875,7 @@ data_test (bool verbose)
     data_asset_put (self, &asset);
     assert (data_asset_sensors_changed (self) == true);
 
+    printf ("TRACE CREATE Sensor11\n");
     asset = test_asset_new ("Sensor11", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
@@ -847,6 +891,7 @@ data_test (bool verbose)
     data_asset_put (self, &asset);
     assert (data_asset_sensors_changed (self) == true);
 
+    printf ("TRACE CREATE Sensor12\n");
     asset = test_asset_new ("Sensor12", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
@@ -861,6 +906,7 @@ data_test (bool verbose)
     data_asset_put (self, &asset);
     assert (data_asset_sensors_changed (self) == true);
 
+    printf ("TRACE CREATE Sensor13\n");
     asset = test_asset_new ("Sensor13", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
@@ -876,6 +922,7 @@ data_test (bool verbose)
     data_asset_put (self, &asset);
     assert (data_asset_sensors_changed (self) == true);
 
+    printf ("TRACE CREATE Sensor14\n");
     asset = test_asset_new ("Sensor14", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
@@ -888,6 +935,7 @@ data_test (bool verbose)
     data_asset_put (self, &asset);
     assert (data_asset_sensors_changed (self) == true);
 
+    printf ("TRACE CREATE Sensor15\n");
     asset = test_asset_new ("Sensor15", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
@@ -903,12 +951,12 @@ data_test (bool verbose)
     data_asset_put (self, &asset);
     assert (data_asset_sensors_changed (self) == true);
 
-    printf ("TRACE - Test block #1\n");
+    printf ("TRACE ---===### (Test block -1-) ###===---\n");
     {
         zlistx_t *received = data_asset_names (self);
         assert (received);
 
-        int rv = test_zlistx_compare (assets_expected, &received, 0);
+        int rv = test_zlistx_compare (assets_expected, &received, 1);
         assert (rv == 0);
         
         asset = data_asset (self, "DC-Rozskoky");
@@ -1116,7 +1164,481 @@ data_test (bool verbose)
         zlistx_destroy (&sensors);    
     }
 
+    printf ("TRACE CREATE ups2\n");
+    asset = test_asset_new ("ups2", BIOS_PROTO_ASSET_OP_CREATE); // 12
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "ups");
+    bios_proto_aux_insert (asset, "parent", "%s", "10");
+    data_asset_put (self, &asset); 
+    assert (data_asset_sensors_changed (self) == false);
 
+    printf ("TRACE UPDATE Sensor01\n");
+    asset = test_asset_new ("Sensor01", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent", "%s", "11");
+    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH1");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "-5");
+    bios_proto_ext_insert (asset, "vertical_position", "%s", "bottom");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "Rack01");
+    data_asset_put (self, &asset);
+    assert (data_asset_sensors_changed (self) == true);
+
+    printf ("TRACE UPDATE Sensor02\n");
+    asset = test_asset_new ("Sensor02", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent", "%s", "12");
+    bios_proto_aux_insert (asset, "parent_name", "%s", "ups2");
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH1");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "-7");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "-4");
+    bios_proto_ext_insert (asset, "vertical_position", "%s", "middle");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "Rack01");
+    data_asset_put (self, &asset);
+    assert (data_asset_sensors_changed (self) == true);
+
+    printf ("TRACE UPDATE Sensor03\n");
+    asset = test_asset_new ("Sensor03", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent", "%s", "11");
+    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH3");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "output");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "Rack01");
+    data_asset_put (self, &asset);
+    assert (data_asset_sensors_changed (self) == true);
+
+    printf ("TRACE UPDATE Sensor10\n");
+    asset = test_asset_new ("Sensor10", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent", "%s", "11");
+    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH2");
+    bios_proto_ext_insert (asset, "vertical_position", "%s", "top");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "output");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "Rack01");
+    data_asset_put (self, &asset);
+    assert (data_asset_sensors_changed (self) == true);
+
+    printf ("TRACE RETIRE Sensor11\n");
+    asset = test_asset_new ("Sensor11", BIOS_PROTO_ASSET_OP_RETIRE);
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    data_asset_put (self, &asset);
+    assert (data_asset_sensors_changed (self) == true);
+
+    printf ("TRACE UPDATE Sensor08\n");
+    asset = test_asset_new ("Sensor08", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent", "%s", "11");
+    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH4");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "2");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "12");
+    bios_proto_ext_insert (asset, "vertical_position", "%s", "middle");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "DC-Rozskoky");
+    data_asset_put (self, &asset);
+    assert (data_asset_sensors_changed (self) == true);
+
+    printf ("TRACE UPDATE Sensor09\n");
+    asset = test_asset_new ("Sensor09", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent", "%s", "11");
+    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH5");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "5");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "50");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "Curie.Row02");
+    data_asset_put (self, &asset);
+    assert (data_asset_sensors_changed (self) == true);
+
+    printf ("TRACE UPDATE Sensor04\n");
+    asset = test_asset_new ("Sensor04", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent", "%s", "11");
+    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH12");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "1");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "Lazer game");
+    data_asset_put (self, &asset);
+    assert (data_asset_sensors_changed (self) == true);
+
+    printf ("TRACE UPDATE Sensor05\n");
+    asset = test_asset_new ("Sensor05", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent", "%s", "11");
+    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH13");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "4");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "-6");
+    bios_proto_ext_insert (asset, "vertical_position", "%s", "top");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "output");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "DC-Rozskoky");
+    data_asset_put (self, &asset);
+    assert (data_asset_sensors_changed (self) == true);
+
+    printf ("TRACE UPDATE Sensor06\n");
+    asset = test_asset_new ("Sensor06", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent", "%s", "11");
+    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH14");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "-1");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "-1");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "output");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "Lazer game");
+    data_asset_put (self, &asset);
+    assert (data_asset_sensors_changed (self) == true);
+
+    printf ("TRACE UPDATE Sensor07\n");
+    asset = test_asset_new ("Sensor07", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent", "%s", "11");
+    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH15");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "4");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "-25");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "ambient");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "Curie.Row02");
+    data_asset_put (self, &asset);
+    assert (data_asset_sensors_changed (self) == true);
+
+    printf ("TRACE DELETE Sensor12\n");
+    asset = test_asset_new ("Sensor12", BIOS_PROTO_ASSET_OP_DELETE);
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");       
+    data_asset_put (self, &asset);
+    assert (data_asset_sensors_changed (self) == true);
+
+    printf ("TRACE UPDATE Sensor14\n");
+    asset = test_asset_new ("Sensor14", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent", "%s", "11");
+    bios_proto_aux_insert (asset, "parent_name", "%s", "ups2");
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH10");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "This-asset-does-not-exist");
+    data_asset_put (self, &asset);
+    assert (data_asset_sensors_changed (self) == true);
+
+    printf ("TRACE UPDATE Sensor15\n");
+    asset = test_asset_new ("Sensor15", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent", "%s", "11");
+    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH11");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "2");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "-3");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "Curie");
+    data_asset_put (self, &asset);
+    assert (data_asset_sensors_changed (self) == true);
+
+    printf ("TRACE DELETE Sensor13\n");
+    asset = test_asset_new ("Sensor13", BIOS_PROTO_ASSET_OP_DELETE);
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    data_asset_put (self, &asset);
+
+    printf ("TRACE ---===### (Test block -2-) ###===---\n");
+    {
+        zlistx_t *received = data_asset_names (self);
+        assert (received);
+        int rv = test_zlistx_compare (assets_expected, &received, 1);
+        assert (rv == 0);
+        
+        asset = data_asset (self, "ups2");
+        assert (asset == NULL);
+
+        asset = data_asset (self, "This-asset-does-not-exist");
+        assert (asset == NULL);
+
+        zlistx_t *sensors = data_sensor (self, "This-asset-does-not-exist", NULL);
+        assert (sensors == NULL);
+
+        sensors = data_sensor (self, "DC-Rozskoky", NULL);
+        assert (zlistx_size (sensors) == 2);
+        {
+            bios_proto_t *item = (bios_proto_t *) zlistx_first (sensors);
+            assert (streq (bios_proto_name (item), "Sensor08"));
+            assert (streq (bios_proto_aux_string (item, "parent_name", ""), "Rack01.ups1"));
+            assert (streq (bios_proto_ext_string (item, "port", ""), "TH4"));
+            assert (streq (bios_proto_ext_string (item, "vertical_position", ""), "middle"));
+            assert (streq (bios_proto_ext_string (item, "sensor_function", ""), "input"));
+            assert (streq (bios_proto_ext_string (item, "calibration_offset_t", ""), "2"));
+            assert (streq (bios_proto_ext_string (item, "calibration_offset_h", ""), "12"));
+            item = (bios_proto_t *) zlistx_next (sensors);
+
+            assert (streq (bios_proto_name (item), "Sensor05"));
+            assert (streq (bios_proto_aux_string (item, "parent_name", ""), "Rack01.ups1"));
+            assert (streq (bios_proto_ext_string (item, "port", ""), "TH13"));
+            assert (streq (bios_proto_ext_string (item, "vertical_position", ""), "top"));
+            assert (streq (bios_proto_ext_string (item, "sensor_function", ""), "output"));
+            assert (streq (bios_proto_ext_string (item, "calibration_offset_t", ""), "4"));
+            assert (streq (bios_proto_ext_string (item, "calibration_offset_h", ""), "-6"));
+            item = (bios_proto_t *) zlistx_next (sensors);
+        }
+        zlistx_destroy (&sensors);
+
+        sensors = data_sensor (self, "DC-Rozskoky", "input");
+        assert (zlistx_size (sensors) == 1);
+        {
+            bios_proto_t *item = (bios_proto_t *) zlistx_first (sensors);
+            assert (streq (bios_proto_name (item), "Sensor08"));
+        }
+        zlistx_destroy (&sensors);
+
+        sensors = data_sensor (self, "DC-Rozskoky", "output");
+        assert (zlistx_size (sensors) == 1);
+        {
+            bios_proto_t *item = (bios_proto_t *) zlistx_first (sensors);
+            assert (streq (bios_proto_name (item), "Sensor05"));
+        }
+        zlistx_destroy (&sensors);
+
+        sensors = data_sensor (self, "Lazer game", NULL);
+        assert (zlistx_size (sensors) == 2);
+        {
+            bios_proto_t *item = (bios_proto_t *) zlistx_first (sensors);
+            assert (streq (bios_proto_name (item), "Sensor04"));
+            assert (streq (bios_proto_aux_string (item, "parent_name", ""), "Rack01.ups1"));
+            assert (streq (bios_proto_ext_string (item, "port", ""), "TH12"));
+            assert (streq (bios_proto_ext_string (item, "vertical_position", ""), ""));
+            assert (streq (bios_proto_ext_string (item, "sensor_function", ""), ""));
+            assert (streq (bios_proto_ext_string (item, "calibration_offset_t", ""), "1"));
+            assert (streq (bios_proto_ext_string (item, "calibration_offset_h", ""), "1"));
+            item = (bios_proto_t *) zlistx_next (sensors);
+
+            assert (streq (bios_proto_name (item), "Sensor06"));
+            assert (streq (bios_proto_aux_string (item, "parent_name", ""), "Rack01.ups1"));
+            assert (streq (bios_proto_ext_string (item, "port", ""), "TH14"));
+            assert (streq (bios_proto_ext_string (item, "vertical_position", ""), ""));
+            assert (streq (bios_proto_ext_string (item, "sensor_function", ""), "output"));
+            assert (streq (bios_proto_ext_string (item, "calibration_offset_t", ""), "-1"));
+            assert (streq (bios_proto_ext_string (item, "calibration_offset_h", ""), "-1"));
+            item = (bios_proto_t *) zlistx_next (sensors);           
+        }
+        zlistx_destroy (&sensors);
+
+        sensors = data_sensor (self, "Lazer game", "input");
+        assert (zlistx_size (sensors) == 0);
+        zlistx_destroy (&sensors);       
+
+        sensors = data_sensor (self, "Lazer game", "output");
+        assert (zlistx_size (sensors) == 1);
+        {
+            bios_proto_t *item = (bios_proto_t *) zlistx_first (sensors);
+            assert (streq (bios_proto_name (item), "Sensor06"));
+        }
+        zlistx_destroy (&sensors);
+
+        sensors = data_sensor (self, "Lazer game", "");
+        assert (zlistx_size (sensors) == 1);
+        {
+            bios_proto_t *item = (bios_proto_t *) zlistx_first (sensors);
+            assert (streq (bios_proto_name (item), "Sensor04"));
+        }
+        zlistx_destroy (&sensors);
+
+        sensors = data_sensor (self, "Curie", NULL);
+        assert (zlistx_size (sensors) == 1);
+        {
+            bios_proto_t *item = (bios_proto_t *) zlistx_first (sensors);
+            assert (streq (bios_proto_name (item), "Sensor15"));
+            assert (streq (bios_proto_aux_string (item, "parent_name", ""), "Rack01.ups1"));
+            assert (streq (bios_proto_ext_string (item, "port", ""), "TH11"));
+            assert (streq (bios_proto_ext_string (item, "vertical_position", ""), ""));
+            assert (streq (bios_proto_ext_string (item, "sensor_function", ""), ""));
+            assert (streq (bios_proto_ext_string (item, "calibration_offset_t", ""), "2"));
+            assert (streq (bios_proto_ext_string (item, "calibration_offset_h", ""), "-3"));
+            item = (bios_proto_t *) zlistx_next (sensors);
+
+        }
+        zlistx_destroy (&sensors);
+
+        sensors = data_sensor (self, "Curie", "input");
+        assert (zlistx_size (sensors) == 0);
+        zlistx_destroy (&sensors);
+
+        sensors = data_sensor (self, "Lazer game.Row01", NULL);
+        assert (zlistx_size (sensors) == 0);
+        zlistx_destroy (&sensors);
+
+        sensors = data_sensor (self, "Curie.Row01", NULL);
+        assert (zlistx_size (sensors) == 0);
+        zlistx_destroy (&sensors);
+
+        sensors = data_sensor (self, "Curie.Row02", NULL);
+        assert (zlistx_size (sensors) == 2);
+        {
+            bios_proto_t *item = (bios_proto_t *) zlistx_first (sensors);
+            assert (streq (bios_proto_name (item), "Sensor09"));
+            assert (streq (bios_proto_aux_string (item, "parent_name", ""), "Rack01.ups1"));
+            assert (streq (bios_proto_ext_string (item, "port", ""), "TH5"));
+            assert (streq (bios_proto_ext_string (item, "vertical_position", ""), ""));
+            assert (streq (bios_proto_ext_string (item, "sensor_function", ""), ""));
+            assert (streq (bios_proto_ext_string (item, "calibration_offset_t", ""), "5"));
+            assert (streq (bios_proto_ext_string (item, "calibration_offset_h", ""), "50"));
+            item = (bios_proto_t *) zlistx_next (sensors);
+
+            assert (streq (bios_proto_name (item), "Sensor07"));
+            assert (streq (bios_proto_aux_string (item, "parent_name", ""), "Rack01.ups1"));
+            assert (streq (bios_proto_ext_string (item, "port", ""), "TH15"));
+            assert (streq (bios_proto_ext_string (item, "vertical_position", ""), ""));
+            assert (streq (bios_proto_ext_string (item, "sensor_function", ""), "ambient"));
+            assert (streq (bios_proto_ext_string (item, "calibration_offset_t", ""), "4"));
+            assert (streq (bios_proto_ext_string (item, "calibration_offset_h", ""), "-25"));
+            item = (bios_proto_t *) zlistx_next (sensors);
+        }
+        zlistx_destroy (&sensors);
+
+        sensors = data_sensor (self, "Curie.Row02", "input");
+        assert (zlistx_size (sensors) == 0);
+        zlistx_destroy (&sensors);
+
+        sensors = data_sensor (self, "Curie.Row02", "ambient");
+        assert (zlistx_size (sensors) == 1);
+        {
+            bios_proto_t *item = (bios_proto_t *) zlistx_first (sensors);
+            assert (streq (bios_proto_name (item), "Sensor07"));
+        }
+        zlistx_destroy (&sensors);
+
+        sensors = data_sensor (self, "Rack02", NULL);
+        assert (zlistx_size (sensors) == 0);
+        zlistx_destroy (&sensors);
+
+        sensors = data_sensor (self, "Rack03", NULL);
+        assert (zlistx_size (sensors) == 0);
+        zlistx_destroy (&sensors);
+
+        sensors = data_sensor (self, "Rack04", NULL);
+        assert (zlistx_size (sensors) == 0);
+        zlistx_destroy (&sensors);
+
+        sensors = data_sensor (self, "Rack01", NULL);
+        assert (zlistx_size (sensors) == 4);
+        {
+            bios_proto_t *item = (bios_proto_t *) zlistx_first (sensors);
+            assert (streq (bios_proto_name (item), "Sensor01"));
+            assert (streq (bios_proto_aux_string (item, "parent_name", ""), "Rack01.ups1"));
+            assert (streq (bios_proto_ext_string (item, "port", ""), "TH1"));
+            assert (streq (bios_proto_ext_string (item, "vertical_position", ""), "bottom"));
+            assert (streq (bios_proto_ext_string (item, "sensor_function", ""), "input"));
+            assert (streq (bios_proto_ext_string (item, "calibration_offset_t", ""), "-5"));
+            assert (streq (bios_proto_ext_string (item, "calibration_offset_h", ""), ""));
+
+            item = (bios_proto_t *) zlistx_next (sensors);
+            assert (streq (bios_proto_name (item), "Sensor02"));
+            assert (streq (bios_proto_aux_string (item, "parent_name", ""), "ups2"));
+            assert (streq (bios_proto_ext_string (item, "port", ""), "TH1"));
+            assert (streq (bios_proto_ext_string (item, "vertical_position", ""), "middle"));
+            assert (streq (bios_proto_ext_string (item, "sensor_function", ""), "input"));
+            assert (streq (bios_proto_ext_string (item, "calibration_offset_t", ""), "-7"));
+            assert (streq (bios_proto_ext_string (item, "calibration_offset_h", ""), "-4"));
+
+            item = (bios_proto_t *) zlistx_next (sensors);
+            assert (streq (bios_proto_name (item), "Sensor03"));
+            assert (streq (bios_proto_aux_string (item, "parent_name", ""), "Rack01.ups1"));
+            assert (streq (bios_proto_ext_string (item, "port", ""), "TH3"));
+            assert (streq (bios_proto_ext_string (item, "vertical_position", ""), ""));
+            assert (streq (bios_proto_ext_string (item, "sensor_function", ""), "output"));
+            assert (streq (bios_proto_ext_string (item, "calibration_offset_t", ""), ""));
+            assert (streq (bios_proto_ext_string (item, "calibration_offset_h", ""), ""));
+
+            item = (bios_proto_t *) zlistx_next (sensors);
+            assert (streq (bios_proto_name (item), "Sensor10"));
+            assert (streq (bios_proto_aux_string (item, "parent_name", ""), "Rack01.ups1"));
+            assert (streq (bios_proto_ext_string (item, "port", ""), "TH2"));
+            assert (streq (bios_proto_ext_string (item, "vertical_position", ""), "top"));
+            assert (streq (bios_proto_ext_string (item, "sensor_function", ""), "output"));
+            assert (streq (bios_proto_ext_string (item, "calibration_offset_t", ""), ""));
+            assert (streq (bios_proto_ext_string (item, "calibration_offset_h", ""), ""));
+        }
+        zlistx_destroy (&sensors);   
+
+        sensors = data_sensor (self, "Rack01", "output");
+        assert (zlistx_size (sensors) == 2);
+        {
+            bios_proto_t *item = (bios_proto_t *) zlistx_first (sensors);
+            assert (streq (bios_proto_name (item), "Sensor03"));
+            item = (bios_proto_t *) zlistx_next (sensors);
+            assert (streq (bios_proto_name (item), "Sensor10"));
+            item = (bios_proto_t *) zlistx_next (sensors);
+        }        
+        zlistx_destroy (&sensors);   
+
+        sensors = data_sensor (self, "Rack01", "input");
+        assert (zlistx_size (sensors) == 2);
+        {
+            bios_proto_t *item = (bios_proto_t *) zlistx_first (sensors);
+            assert (streq (bios_proto_name (item), "Sensor01"));
+            item = (bios_proto_t *) zlistx_next (sensors);
+            assert (streq (bios_proto_name (item), "Sensor02"));
+            item = (bios_proto_t *) zlistx_next (sensors);
+        }
+        zlistx_destroy (&sensors);   
+    }
+
+    printf ("TRACE DELETE Sensor15\n");
+    asset = test_asset_new ("Sensor15", BIOS_PROTO_ASSET_OP_DELETE);
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    data_asset_put (self, &asset);
+    assert (data_asset_sensors_changed (self) == true);
+
+    printf ("TRACE DELETE Curie.Row02\n");
+    asset = test_asset_new ("Curie.Row02", BIOS_PROTO_ASSET_OP_DELETE);
+    bios_proto_aux_insert (asset, "type", "%s", "row");
+    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    data_asset_put (self, &asset);
+
+    void *to_delete = zlistx_find  (assets_expected, (void *) "Curie.Row02");
+    assert (to_delete);
+    int rv = zlistx_delete (assets_expected, to_delete);
+    assert (rv == 0);
+    assert (data_asset_sensors_changed (self) == true);
+
+    printf ("TRACE ---===### (Test block -3-) ###===---\n");
+    {
+        zlistx_t *received = data_asset_names (self);
+        assert (received);
+        int rv = test_zlistx_compare (assets_expected, &received, 1);
+        assert (rv == 0);
+
+        zlistx_t *sensors = data_sensor (self, "Curie", NULL);
+        assert (zlistx_size (sensors) == 0);
+        zlistx_destroy (&sensors);
+
+        sensors = data_sensor (self, "Curie.Row02", NULL);
+        assert (sensors == NULL);
+    }
 
     zlistx_destroy (&assets_expected);
     data_destroy (&self);
