@@ -90,6 +90,10 @@ data_asset_put (data_t *self, bios_proto_t **message_p)
             streq (operation, BIOS_PROTO_ASSET_OP_UPDATE))
         {
             zlistx_t *list = (zlistx_t *) zhashx_lookup (self->sensors, bios_proto_name (message));
+            if (list &&
+                zhashx_lookup (self->assets, bios_proto_name (message)) == NULL) {
+                self->sensors_updated = true;
+            }
             if (!list) {
                 zlistx_t *list = zlistx_new ();
                 zlistx_set_destructor (list, (czmq_destructor *) bios_proto_destroy);
@@ -104,7 +108,6 @@ data_asset_put (data_t *self, bios_proto_t **message_p)
             void *exists = zhashx_lookup (self->assets, bios_proto_name (message));
             if (exists)
                 self->sensors_updated = true;
-
             zhashx_delete (self->sensors, bios_proto_name (message));
             zhashx_delete (self->assets, bios_proto_name (message));
             bios_proto_destroy (message_p);
@@ -117,21 +120,19 @@ data_asset_put (data_t *self, bios_proto_t **message_p)
     else
     if (streq (type, "device") && streq (subtype, "sensor"))
     {
-        self->sensors_updated = true;
-       
         if (streq (operation, BIOS_PROTO_ASSET_OP_DELETE) ||
             streq (operation, BIOS_PROTO_ASSET_OP_RETIRE)) {
-            log_error ("device/sensor OP_DELETE/OP_RETIRE");
 
             void *handle = NULL;
+            char *logical_asset = NULL;
             zlistx_t *sensors_list = (zlistx_t *) zhashx_first (self->sensors);
             while (sensors_list) {
-                log_error ("searching list for %s ", (const char *) zhashx_cursor (self->sensors));
                 bios_proto_t *proto = (bios_proto_t *) zlistx_first (sensors_list);
                 while (proto) {
                     if (streq (bios_proto_name (message), bios_proto_name (proto))) {
                         handle = zlistx_cursor (sensors_list);
-                        log_error ("found");
+                        if (bios_proto_ext_string (proto, "logical_asset", NULL))
+                            logical_asset = strdup (bios_proto_ext_string (proto, "logical_asset", NULL));
                         break;
                     }
                     proto = (bios_proto_t *) zlistx_next (sensors_list);
@@ -142,11 +143,13 @@ data_asset_put (data_t *self, bios_proto_t **message_p)
                 sensors_list = (zlistx_t *) zhashx_next (self->sensors);
             }
             if (handle) {
-                log_error ("pre-delete");
                 zlistx_delete (sensors_list, handle);
-                log_error ("post-delete");
+                if (zlistx_size (sensors_list) != 0 ||
+                    zhashx_lookup (self->assets, logical_asset) != NULL) {
+                    self->sensors_updated = true;
+                }
             }
-
+            zstr_free (&logical_asset);
             bios_proto_destroy (message_p);
             *message_p = NULL;
             return;
@@ -197,17 +200,19 @@ data_asset_put (data_t *self, bios_proto_t **message_p)
         zlistx_t *list = (zlistx_t *) zhashx_lookup (self->sensors, logical_asset);
 
         if (streq (operation, BIOS_PROTO_ASSET_OP_CREATE)) {
-            log_error ("device/sensor OP_CREATE");
             if (!list) {
                 list = zlistx_new ();
                 zlistx_set_destructor (list, (czmq_destructor *) bios_proto_destroy);
                 zhashx_insert (self->sensors, logical_asset, (void *) list);
             }
             zlistx_add_end (list, (void *) message);
+            if (zhashx_lookup (self->assets, logical_asset) != NULL) {
+                self->sensors_updated = true;
+            }
         }
         else
         if (streq (operation, BIOS_PROTO_ASSET_OP_UPDATE)) {
-            log_error ("device/sensor OP_UPDATE");
+            self->sensors_updated = true;
             // Note: When proper asset messages update is implemented, the messages
             //       will have to be merged instead of deleted and re-inserted
 
@@ -215,12 +220,10 @@ data_asset_put (data_t *self, bios_proto_t **message_p)
             void *handle = NULL;
             zlistx_t *sensors_list = (zlistx_t *) zhashx_first (self->sensors);
             while (sensors_list) {
-                log_error ("searching list for %s ", (const char *) zhashx_cursor (self->sensors));
                 bios_proto_t *proto = (bios_proto_t *) zlistx_first (sensors_list);
                 while (proto) {
                     if (streq (bios_proto_name (message), bios_proto_name (proto))) {
                         handle = zlistx_cursor (sensors_list);
-                        log_error ("found");
                         break;
                     }
                     proto = (bios_proto_t *) zlistx_next (sensors_list);
@@ -231,9 +234,7 @@ data_asset_put (data_t *self, bios_proto_t **message_p)
                 sensors_list = (zlistx_t *) zhashx_next (self->sensors);
             }
             if (handle) {
-                log_error ("pre-delete");
                 zlistx_delete (sensors_list, handle);
-                log_error ("post-delete");
             }
 
             // insert the new one
@@ -645,7 +646,7 @@ data_test (bool verbose)
     bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "Rack01");
     data_asset_put (self, &asset);
-    assert (data_asset_sensors_changed (self) == true); // TODO: Make it so, that here is false
+    assert (data_asset_sensors_changed (self) == false);
 
     {
         zlistx_t *received = data_asset_names (self);
@@ -665,7 +666,7 @@ data_test (bool verbose)
     bios_proto_ext_insert (asset, "description" , "%s",  "Lorem ipsum asd asd asd asd asd asd asd");
     data_asset_put (self, &asset);
     zlistx_add_end (assets_expected, (void *) "Rack01");
-    assert (data_asset_sensors_changed (self) == false); // TODO: Make it so, that here is true
+    assert (data_asset_sensors_changed (self) == true);
 
     printf ("TRACE CREATE Rack02\n");
     asset = test_asset_new ("Rack02", BIOS_PROTO_ASSET_OP_CREATE); // 6
@@ -779,7 +780,7 @@ data_test (bool verbose)
     bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
     // logical_asset missing
     data_asset_put (self, &asset);
-    assert (data_asset_sensors_changed (self) == true);
+    assert (data_asset_sensors_changed (self) == false);
 
     printf ("TRACE CREATE Sensor05\n");
     asset = test_asset_new ("Sensor05", BIOS_PROTO_ASSET_OP_CREATE);
@@ -795,7 +796,7 @@ data_test (bool verbose)
     bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "Rack01");
     data_asset_put (self, &asset);
-    assert (data_asset_sensors_changed (self) == true);
+    assert (data_asset_sensors_changed (self) == false);
 
     printf ("TRACE CREATE Sensor06\n");
     asset = test_asset_new ("Sensor06", BIOS_PROTO_ASSET_OP_CREATE);
@@ -811,7 +812,7 @@ data_test (bool verbose)
     bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "Rack01");
     data_asset_put (self, &asset);
-    assert (data_asset_sensors_changed (self) == true);
+    assert (data_asset_sensors_changed (self) == false);
 
     printf ("TRACE CREATE Sensor07\n");
     asset = test_asset_new ("Sensor07", BIOS_PROTO_ASSET_OP_CREATE);
@@ -827,7 +828,7 @@ data_test (bool verbose)
     bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "Rack01");
     data_asset_put (self, &asset);
-    assert (data_asset_sensors_changed (self) == true);
+    assert (data_asset_sensors_changed (self) == false);
 
     printf ("TRACE CREATE Sensor08\n");
     asset = test_asset_new ("Sensor08", BIOS_PROTO_ASSET_OP_CREATE);
