@@ -242,7 +242,7 @@ s_generate_and_start (const char *path_to_dir, const char *sensor_function, cons
 
     double clb = 0;
     if (temp_offset_count != 0)
-        clb = temp_offset_total / temp_offset_count;
+        clb = (double) temp_offset_total / temp_offset_count;
 
     contents.replace (contents.find ("##IN##"), strlen ("##IN##"), temp_in);
     contents.replace (contents.find ("##CLB##"), strlen ("##CLB##"), std::to_string (clb));
@@ -288,7 +288,7 @@ s_generate_and_start (const char *path_to_dir, const char *sensor_function, cons
 
     clb = 0;
     if (hum_offset_count != 0)
-        clb = hum_offset_total / hum_offset_count;
+        clb = (double) hum_offset_total / hum_offset_count;
 
     contents = json_tmpl;
     contents.replace (contents.find ("##IN##"), strlen ("##IN##"), hum_in);
