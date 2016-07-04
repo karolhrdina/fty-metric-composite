@@ -286,7 +286,7 @@ actor_commands_test (bool verbose)
     message = zmsg_new ();
     assert (message);
     zmsg_addstr (message, "STATE_FILE");
-    zmsg_addstr (message, "/fsdfewf/fewsdsfe/wefwfsd/fwed"); // not writable
+    zmsg_addstr (message, "/dev/null/karolino"); // not writable
     rv = actor_commands (client, &message, data);
     assert (rv == 0);
     assert (message == NULL);
