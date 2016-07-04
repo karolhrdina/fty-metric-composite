@@ -28,32 +28,33 @@
 
 #include <string>
 #include <vector>
+#include <regex>
 
 #include "composite_metrics_classes.h"
 
 // Wrapper for bios_proto_ext_string
-static int32_t
-s_bios_proto_ext_int32 (bios_proto_t *self, const char *key, int32_t default_value)
+static float
+s_bios_proto_ext_float (bios_proto_t *self, const char *key, float default_value)
 {
     assert (self);
     assert (key);
     const char *str = bios_proto_ext_string (self, key, NULL);
     if (!str)
         return default_value;
-    long u = 0;
+    float f = 0.0;
     try {
         size_t pos = 0;
-        u = std::stol (str, &pos);
+        f = std::stof (str, &pos);
         if (pos != strlen (str)) {
-            log_error ("string '%s' does not represent an integer number", str);
+            log_error ("string '%s' does not represent a number (floating point)", str);
             return default_value;
         }
     }
     catch (const std::exception& e) {
-        log_error ("string '%s' does not represent an integer number", str);
+        log_error ("string '%s' does not represent a number (floating point)", str);
         return default_value;
     }
-    return static_cast<int32_t> (u);
+    return f;
 }
 
 // Copied from agent-nut
@@ -99,6 +100,12 @@ s_remove_and_stop (const char *path_to_dir)
         return 1;
     }
 
+    std::regex file_rex ("(.+)\\.cfg");
+    std::cmatch m;
+
+    /* TODO: There is a bug in czmq zrex_t
+     *       Had to switch to std::regex for now
+     
     zrex_t *file_rex = zrex_new ("(.+)\\.cfg$");
     if (!file_rex) {
         zdir_destroy (&dir);
@@ -106,11 +113,16 @@ s_remove_and_stop (const char *path_to_dir)
         log_error ("zrex_new ('%s') failed", "(.+)\\.cfg$");
         return 1;
     }
+    */
 
     zfile_t *item = (zfile_t *) zlist_first (files);
     while (item) {
-        if (zrex_matches (file_rex, zfile_filename (item, NULL))) {
-            std::string filename = zrex_hit (file_rex, 1);
+        if (std::regex_match (zfile_filename (item, NULL), m, file_rex)) {
+            std::string filename = m.str (1);
+            // TODO: remove this log_debug when valdiated
+            log_error ("matched filename == %s\ngroup == %s\nsubstr == %s",
+                    zfile_filename (item, NULL), m.str (1).c_str (), filename.substr (filename.rfind ("/") + 1).c_str ());
+
             std::string service = "composite-metrics@";
             service += filename.substr (filename.rfind ("/") + 1);
             log_debug ("stopping/disabling service %s", service.c_str ());
@@ -121,7 +133,7 @@ s_remove_and_stop (const char *path_to_dir)
         }
         item = (zfile_t *) zlist_next (files);
     }
-    zrex_destroy (&file_rex);
+    //zrex_destroy (&file_rex);
     zlist_destroy (&files);
     zdir_destroy (&dir);
     return 0;
@@ -188,8 +200,8 @@ s_generate_and_start (const char *path_to_dir, const char *sensor_function, cons
 
     std::string temp_in = "[ ", hum_in = "[ ";
 
-    int32_t temp_offset_total = 0, temp_offset_count = 0;
-    int32_t hum_offset_total = 0, hum_offset_count = 0;
+    float temp_offset_total = 0.0, hum_offset_total = 0.0;
+    int32_t temp_offset_count = 0, hum_offset_count = 0;
     bool first = true;
  
     bios_proto_t *item = (bios_proto_t *) zlistx_first (sensors);
@@ -213,9 +225,9 @@ s_generate_and_start (const char *path_to_dir, const char *sensor_function, cons
         hum_in += bios_proto_aux_string (item, "parent_name", "(unknown)");
         hum_in += "\"";
 
-        temp_offset_total += s_bios_proto_ext_int32 (item, "calibration_offset_t", 0);
+        temp_offset_total += s_bios_proto_ext_float (item, "calibration_offset_t", 0.0);
         temp_offset_count++;
-        hum_offset_total += s_bios_proto_ext_int32 (item, "calibration_offset_h", 0);
+        hum_offset_total += s_bios_proto_ext_float (item, "calibration_offset_h", 0.0);
         hum_offset_count++;
 
         item = (bios_proto_t *) zlistx_next (sensors);
@@ -242,7 +254,7 @@ s_generate_and_start (const char *path_to_dir, const char *sensor_function, cons
 
     double clb = 0;
     if (temp_offset_count != 0)
-        clb = (double) temp_offset_total / temp_offset_count;
+        clb = temp_offset_total / temp_offset_count;
 
     contents.replace (contents.find ("##IN##"), strlen ("##IN##"), temp_in);
     contents.replace (contents.find ("##CLB##"), strlen ("##CLB##"), std::to_string (clb));
@@ -286,9 +298,9 @@ s_generate_and_start (const char *path_to_dir, const char *sensor_function, cons
                 fullpath.c_str (), filename.c_str ());
     }
 
-    clb = 0;
+    clb = 0.0;
     if (hum_offset_count != 0)
-        clb = (double) hum_offset_total / hum_offset_count;
+        clb = hum_offset_total / hum_offset_count;
 
     contents = json_tmpl;
     contents.replace (contents.find ("##IN##"), strlen ("##IN##"), hum_in);
@@ -483,7 +495,7 @@ bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
 //  Helper test function
 //  create new ASSET message of type bios_proto_t
 
-/*
+/* WIP: don't delete
 static bios_proto_t *
 test_asset_new (const char *name, const char *operation)
 {
@@ -529,7 +541,11 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zstr_sendx (configurator, "CONSUMER", "ASSETS", ".*", NULL);
     zclock_sleep (500);
 
+
+
     bios_proto_t *asset = NULL;
+
+    printf ("TRACE CREATE DC-Rozskoky\n");
     asset = test_asset_new ("DC-Rozskoky", BIOS_PROTO_ASSET_OP_CREATE); // 1
     bios_proto_aux_insert (asset, "parent", "%s", "0");
     bios_proto_aux_insert (asset, "status", "%s", "active");
@@ -537,47 +553,45 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
     bios_proto_ext_insert (asset, "max_power" , "%s",  "2");
     zmsg_t *zmessage = bios_proto_encode (&asset);
-    assert (zmessage);
     int rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (500);
+    zclock_sleep (100);
 
+    printf ("TRACE CREATE Lazer game\n");
     asset = test_asset_new ("Lazer game", BIOS_PROTO_ASSET_OP_CREATE); // 2
     bios_proto_aux_insert (asset, "parent", "%s", "1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "room");
     bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
     zmessage = bios_proto_encode (&asset);
-    assert (zmessage);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (500);
+    zclock_sleep (1000);
 
+    printf ("TRACE CREATE Curie\n");
     asset = test_asset_new ("Curie", BIOS_PROTO_ASSET_OP_CREATE); // 3
     bios_proto_aux_insert (asset, "parent", "%s", "1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "room");
     bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
     zmessage = bios_proto_encode (&asset);
-    assert (zmessage);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (500);
+    zclock_sleep (1000);
 
-
+    printf ("TRACE CREATE Lazer game.Row01\n");
     asset = test_asset_new ("Lazer game.Row01", BIOS_PROTO_ASSET_OP_CREATE); // 4
     bios_proto_aux_insert (asset, "parent", "%s", "2");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "row");
     bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
     zmessage = bios_proto_encode (&asset);
-    assert (zmessage);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (500);
+    zclock_sleep (1000);
 
-    printf ("TRACE Sensor01\n");
     // testing situation when sensor asset message arrives before asset specified in logical_asset
+    printf ("TRACE CREATE Sensor01\n");
     asset = test_asset_new ("Sensor01", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
@@ -591,12 +605,11 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "Rack01");
     zmessage = bios_proto_encode (&asset);
-    assert (zmessage);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (2000);
+    zclock_sleep (1000);
 
-    printf ("TRACE Rack01\n");
+    printf ("TRACE CREATE Rack01\n");
     asset = test_asset_new ("Rack01", BIOS_PROTO_ASSET_OP_CREATE); // 5 
     bios_proto_aux_insert (asset, "parent", "%s", "4");
     bios_proto_aux_insert (asset, "status", "%s", "active");
@@ -605,12 +618,11 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     bios_proto_ext_insert (asset, "u_size" , "%s",  "42");
     bios_proto_ext_insert (asset, "description" , "%s",  "Lorem ipsum asd asd asd asd asd asd asd");
     zmessage = bios_proto_encode (&asset);
-    assert (zmessage);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (500);
+    zclock_sleep (1000);
 
-    printf ("TRACE Rack02\n");
+    printf ("TRACE CREATE Rack02\n");
     asset = test_asset_new ("Rack02", BIOS_PROTO_ASSET_OP_CREATE); // 6
     bios_proto_aux_insert (asset, "parent", "%s", "4");
     bios_proto_aux_insert (asset, "status", "%s", "active");
@@ -618,37 +630,34 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
     bios_proto_ext_insert (asset, "u_size" , "%s",  "42");
     zmessage = bios_proto_encode (&asset);
-    assert (zmessage);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (500);
+    zclock_sleep (1000);
 
-    printf ("TRACE Curie.Row01\n");
     // Row + Racks for Curie
+    printf ("TRACE CREATE Curie.Row01\n");
     asset = test_asset_new ("Curie.Row01", BIOS_PROTO_ASSET_OP_CREATE); // 7
     bios_proto_aux_insert (asset, "parent", "%s", "3");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "row");
     bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
     zmessage = bios_proto_encode (&asset);
-    assert (zmessage);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (200);
+    zclock_sleep (1000);
 
-    printf ("TRACE Curie.Row02\n");
+    printf ("TRACE CREATE Curie.Row02\n");
     asset = test_asset_new ("Curie.Row02", BIOS_PROTO_ASSET_OP_CREATE); // 8
     bios_proto_aux_insert (asset, "parent", "%s", "3");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "row");
     bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
     zmessage = bios_proto_encode (&asset);
-    assert (zmessage);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (500);
+    zclock_sleep (1000);
 
-    printf ("TRACE Rack03\n");
+    printf ("TRACE CREATE Rack03\n");
     asset = test_asset_new ("Rack03", BIOS_PROTO_ASSET_OP_CREATE); // 9 
     bios_proto_aux_insert (asset, "parent", "%s", "7");
     bios_proto_aux_insert (asset, "status", "%s", "active");
@@ -657,12 +666,11 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     bios_proto_ext_insert (asset, "u_size" , "%s",  "42");
     bios_proto_ext_insert (asset, "description" , "%s",  "Lorem ipsum asd asd asd asd asd asd asd");
     zmessage = bios_proto_encode (&asset);
-    assert (zmessage);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (500);
+    zclock_sleep (1000);
 
-    printf ("TRACE Rack04\n");
+    printf ("TRACE CREATE Rack04\n");
     asset = test_asset_new ("Rack04", BIOS_PROTO_ASSET_OP_CREATE); // 10
     bios_proto_aux_insert (asset, "parent", "%s", "8");
     bios_proto_aux_insert (asset, "status", "%s", "active");
@@ -671,24 +679,22 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     bios_proto_ext_insert (asset, "u_size" , "%s",  "42");
     bios_proto_ext_insert (asset, "description" , "%s",  "Lorem ipsum asd asd asd asd asd asd asd");
     zmessage = bios_proto_encode (&asset);
-    assert (zmessage);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (500);
+    zclock_sleep (1000);
 
-    printf ("TRACE 800\n");
+    printf ("TRACE CREATE Rack01.ups1\n");
     asset = test_asset_new ("Rack01.ups1", BIOS_PROTO_ASSET_OP_CREATE); // 11  
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "ups");
     bios_proto_aux_insert (asset, "parent", "%s", "5");
     bios_proto_ext_insert (asset, "abc.d", "%s", " ups string 1");
     zmessage = bios_proto_encode (&asset);
-    assert (zmessage);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (500);
+    zclock_sleep (1000);
 
-    printf ("TRACE 900\n");
+    printf ("TRACE CREATE Sensor02\n");
     asset = test_asset_new ("Sensor02", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
@@ -702,12 +708,11 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "Rack01");
     zmessage = bios_proto_encode (&asset);
-    assert (zmessage);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (500);
+    zclock_sleep (1000);
 
-    printf ("TRACE 1000\n");
+    printf ("TRACE CREATE Sensor03\n");
     asset = test_asset_new ("Sensor03", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
@@ -721,17 +726,517 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "Rack01");
     zmessage = bios_proto_encode (&asset);
-    assert (zmessage);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (5000);
+    zclock_sleep (1000);
 
-    printf ("TRACE 1001\n");
+    // The following 4 sensors have important info missing
+    printf ("TRACE CREATE Sensor04\n");
+    asset = test_asset_new ("Sensor04", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_aux_insert (asset, "parent", "%s", "11");
+    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH3");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "3");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "30");
+    bios_proto_ext_insert (asset, "vertical_position", "%s", "middle");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    // logical_asset missing
+    zmessage = bios_proto_encode (&asset);
+    rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
+    assert (rv == 0);
+    zclock_sleep (1000);
+
+    printf ("TRACE CREATE Sensor05\n");
+    asset = test_asset_new ("Sensor05", BIOS_PROTO_ASSET_OP_CREATE);
+    // parent missing
+    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH3");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "3");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "30");
+    bios_proto_ext_insert (asset, "vertical_position", "%s", "middle");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "Rack01");
+    zmessage = bios_proto_encode (&asset);
+    rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
+    assert (rv == 0);
+    zclock_sleep (1000);
+
+    printf ("TRACE CREATE Sensor06\n");
+    asset = test_asset_new ("Sensor06", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_aux_insert (asset, "parent", "%s", "11");
+    // parent_name missing
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH3");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "3");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "30");
+    bios_proto_ext_insert (asset, "vertical_position", "%s", "middle");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "Rack01");
+    zmessage = bios_proto_encode (&asset);
+    rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
+    assert (rv == 0);
+    zclock_sleep (1000);
+
+    printf ("TRACE CREATE Sensor07\n");
+    asset = test_asset_new ("Sensor07", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_aux_insert (asset, "parent", "%s", "11");
+    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    // port missing
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "3");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "30");
+    bios_proto_ext_insert (asset, "vertical_position", "%s", "middle");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "Rack01");
+    zmessage = bios_proto_encode (&asset);
+    rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
+    assert (rv == 0);
+    zclock_sleep (1000);
+
+    printf ("TRACE CREATE Sensor08\n");
+    asset = test_asset_new ("Sensor08", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_aux_insert (asset, "parent", "%s", "11");
+    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH4");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "1");
+    bios_proto_ext_insert (asset, "vertical_position", "%s", "bottom");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "Rack02");
+    zmessage = bios_proto_encode (&asset);
+    rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
+    assert (rv == 0);
+    zclock_sleep (1000);
+
+    printf ("TRACE CREATE Sensor09\n");
+    asset = test_asset_new ("Sensor09", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_aux_insert (asset, "parent", "%s", "11");
+    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH5");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "2.0");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "2.0");
+    bios_proto_ext_insert (asset, "vertical_position", "%s", "top");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "output");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "Rack02");
+    zmessage = bios_proto_encode (&asset);
+    rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
+    assert (rv == 0);
+    zclock_sleep (1000);
+
+    printf ("TRACE CREATE Sensor10\n");
+    asset = test_asset_new ("Sensor10", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_aux_insert (asset, "parent", "%s", "11");
+    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH6");
+    bios_proto_ext_insert (asset, "vertical_position", "%s", "top");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "output");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "Rack01");
+    zmessage = bios_proto_encode (&asset);
+    rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
+    assert (rv == 0);
+    zclock_sleep (1000);
+
+    printf ("TRACE CREATE Sensor11\n");
+    asset = test_asset_new ("Sensor11", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_aux_insert (asset, "parent", "%s", "11");
+    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH7");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "15.5");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "20");
+    bios_proto_ext_insert (asset, "vertical_position", "%s", "top");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "output");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "Rack01");
+    zmessage = bios_proto_encode (&asset);
+    rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
+    assert (rv == 0);
+    zclock_sleep (1000);
+
+    printf ("TRACE CREATE Sensor12\n");
+    asset = test_asset_new ("Sensor12", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_aux_insert (asset, "parent", "%s", "11");
+    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH8");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "0");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "0");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "neuvedeno");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "Rack01");
+    zmessage = bios_proto_encode (&asset);
+    rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
+    assert (rv == 0);
+    zclock_sleep (1000);
+
+    printf ("TRACE CREATE Sensor13\n");
+    asset = test_asset_new ("Sensor13", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_aux_insert (asset, "parent", "%s", "11");
+    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH9");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "-1");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "1");
+    bios_proto_ext_insert (asset, "vertical_position", "%s", "top");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "Curie.Row02");
+    zmessage = bios_proto_encode (&asset);
+    rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
+    assert (rv == 0);
+    zclock_sleep (1000);
+
+    printf ("TRACE CREATE Sensor14\n");
+    asset = test_asset_new ("Sensor14", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_aux_insert (asset, "parent", "%s", "11");
+    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH10");
+    bios_proto_ext_insert (asset, "vertical_position", "%s", "bottom");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "Curie");
+    zmessage = bios_proto_encode (&asset);
+    rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
+    assert (rv == 0);
+    zclock_sleep (1000);
+
+    printf ("TRACE CREATE Sensor15\n");
+    asset = test_asset_new ("Sensor15", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_aux_insert (asset, "parent", "%s", "11");
+    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH11");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "1.4");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "-1");
+    bios_proto_ext_insert (asset, "vertical_position", "%s", "middle");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "output");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "Curie.Row02");
+    zmessage = bios_proto_encode (&asset);
+    rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
+    assert (rv == 0);
+    zclock_sleep (1000);
+
+    printf ("TRACE ---===### (Test block -1-) ###===---\n");
+    {
+    }
+
+    printf ("TRACE CREATE ups2\n");
+    asset = test_asset_new ("ups2", BIOS_PROTO_ASSET_OP_CREATE); // 12
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "ups");
+    bios_proto_aux_insert (asset, "parent", "%s", "10");
+    zmessage = bios_proto_encode (&asset);
+    rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
+    assert (rv == 0);
+    zclock_sleep (1000);
+
+    printf ("TRACE UPDATE Sensor01\n");
+    asset = test_asset_new ("Sensor01", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent", "%s", "11");
+    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH1");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "-5.2");
+    bios_proto_ext_insert (asset, "vertical_position", "%s", "bottom");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "Rack01");
+    zmessage = bios_proto_encode (&asset);
+    rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
+    assert (rv == 0);
+    zclock_sleep (1000);
+
+    printf ("TRACE UPDATE Sensor02\n");
+    asset = test_asset_new ("Sensor02", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent", "%s", "12");
+    bios_proto_aux_insert (asset, "parent_name", "%s", "ups2");
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH1");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "-7");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "-4.14");
+    bios_proto_ext_insert (asset, "vertical_position", "%s", "middle");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "Rack01");
+    zmessage = bios_proto_encode (&asset);
+    rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
+    assert (rv == 0);
+    zclock_sleep (1000);
+
+    printf ("TRACE UPDATE Sensor03\n");
+    asset = test_asset_new ("Sensor03", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent", "%s", "11");
+    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH3");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "output");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "Rack01");
+    zmessage = bios_proto_encode (&asset);
+    rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
+    assert (rv == 0);
+    zclock_sleep (1000);
+
+    printf ("TRACE UPDATE Sensor10\n");
+    asset = test_asset_new ("Sensor10", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent", "%s", "11");
+    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH2");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "-0.16");
+    bios_proto_ext_insert (asset, "vertical_position", "%s", "top");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "output");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "Rack01");
+    zmessage = bios_proto_encode (&asset);
+    rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
+    assert (rv == 0);
+    zclock_sleep (1000);
+
+    printf ("TRACE RETIRE Sensor11\n");
+    asset = test_asset_new ("Sensor11", BIOS_PROTO_ASSET_OP_RETIRE);
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    zmessage = bios_proto_encode (&asset);
+    rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
+    assert (rv == 0);
+    zclock_sleep (1000);
+
+    printf ("TRACE UPDATE Sensor08\n");
+    asset = test_asset_new ("Sensor08", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent", "%s", "11");
+    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH4");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "2.0");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "12");
+    bios_proto_ext_insert (asset, "vertical_position", "%s", "middle");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "DC-Rozskoky");
+    zmessage = bios_proto_encode (&asset);
+    rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
+    assert (rv == 0);
+    zclock_sleep (1000);
+
+    printf ("TRACE UPDATE Sensor09\n");
+    asset = test_asset_new ("Sensor09", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent", "%s", "11");
+    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH5");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "5");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "50");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "Curie.Row02");
+    zmessage = bios_proto_encode (&asset);
+    rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
+    assert (rv == 0);
+    zclock_sleep (1000);
+
+    printf ("TRACE UPDATE Sensor04\n");
+    asset = test_asset_new ("Sensor04", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent", "%s", "11");
+    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH12");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "1");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "Lazer game");
+    zmessage = bios_proto_encode (&asset);
+    rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
+    assert (rv == 0);
+    zclock_sleep (1000);
+
+    printf ("TRACE UPDATE Sensor05\n");
+    asset = test_asset_new ("Sensor05", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent", "%s", "11");
+    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH13");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "4");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "-6");
+    bios_proto_ext_insert (asset, "vertical_position", "%s", "top");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "output");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "DC-Rozskoky");
+    zmessage = bios_proto_encode (&asset);
+    rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
+    assert (rv == 0);
+    zclock_sleep (1000);
+
+    printf ("TRACE UPDATE Sensor06\n");
+    asset = test_asset_new ("Sensor06", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent", "%s", "11");
+    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH14");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "-1.2");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "-1.4");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "output");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "Lazer game");
+    zmessage = bios_proto_encode (&asset);
+    rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
+    assert (rv == 0);
+    zclock_sleep (1000);
+
+    printf ("TRACE UPDATE Sensor07\n");
+    asset = test_asset_new ("Sensor07", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent", "%s", "11");
+    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH15");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "4");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "-25");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "ambient");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "Curie.Row02");
+    zmessage = bios_proto_encode (&asset);
+    rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
+    assert (rv == 0);
+    zclock_sleep (1000);
+
+    printf ("TRACE DELETE Sensor12\n");
+    asset = test_asset_new ("Sensor12", BIOS_PROTO_ASSET_OP_DELETE);
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");       
+    zmessage = bios_proto_encode (&asset);
+    rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
+    assert (rv == 0);
+    zclock_sleep (1000);
+
+    printf ("TRACE UPDATE Sensor14\n");
+    asset = test_asset_new ("Sensor14", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent", "%s", "12");
+    bios_proto_aux_insert (asset, "parent_name", "%s", "ups2");
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH10");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "This-asset-does-not-exist");
+    zmessage = bios_proto_encode (&asset);
+    rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
+    assert (rv == 0);
+    zclock_sleep (1000);
+
+    printf ("TRACE UPDATE Sensor15\n");
+    asset = test_asset_new ("Sensor15", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent", "%s", "11");
+    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH11");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "2.1");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "-3.3");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "Curie");
+    zmessage = bios_proto_encode (&asset);
+    rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
+    assert (rv == 0);
+    zclock_sleep (1000);
+
+    printf ("TRACE DELETE Sensor13\n");
+    asset = test_asset_new ("Sensor13", BIOS_PROTO_ASSET_OP_DELETE);
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    zmessage = bios_proto_encode (&asset);
+    rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
+    assert (rv == 0);
+    zclock_sleep (1000);
+
+    printf ("TRACE ---===### (Test block -2-) ###===---\n");
+    {
+    }
+
+    printf ("TRACE DELETE Sensor15\n");
+    asset = test_asset_new ("Sensor15", BIOS_PROTO_ASSET_OP_DELETE);
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    zmessage = bios_proto_encode (&asset);
+    rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
+    assert (rv == 0);
+    zclock_sleep (1000);
+
+    printf ("TRACE DELETE Curie.Row02\n");
+    asset = test_asset_new ("Curie.Row02", BIOS_PROTO_ASSET_OP_DELETE);
+    bios_proto_aux_insert (asset, "type", "%s", "row");
+    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    zmessage = bios_proto_encode (&asset);
+    rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
+    assert (rv == 0);
+    zclock_sleep (1000);
+
+    printf ("TRACE CREATE Sensor16\n");
+    asset = test_asset_new ("Sensor16", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent", "%s", "13");
+    bios_proto_aux_insert (asset, "parent_name", "%s", "nas rack controller");
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH2");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "-3.51");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "DC-Rozskoky");
+    zmessage = bios_proto_encode (&asset);
+    rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
+    assert (rv == 0);
+    zclock_sleep (1000);
+
+    printf ("TRACE CREATE nas rack controller\n");
+    asset = test_asset_new ("nas rack controller", BIOS_PROTO_ASSET_OP_CREATE); // 12
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "rack controller");
+    bios_proto_aux_insert (asset, "parent", "%s", "5");
+    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01");
+    zmessage = bios_proto_encode (&asset);
+    rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
+    assert (rv == 0);
+    zclock_sleep (1000);
+
+    printf ("TRACE ---===### (Test block -3-) ###===---\n");
+    {
+    }
 
     mlm_client_destroy (&producer);
     zactor_destroy (&configurator);
     zactor_destroy (&server);
+    */
     //  @end
-    */    
     printf ("OK\n");
 }
