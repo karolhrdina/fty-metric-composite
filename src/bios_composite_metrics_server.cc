@@ -82,7 +82,10 @@ void bios_composite_metrics_server (zsock_t *pipe, void* args) {
             if (streq (cmd, "CONNECT")) {
                 char* endpoint = zmsg_popstr (msg);
                 mlm_client_connect(client, endpoint, 1000, name);
-                mlm_client_set_producer(client, "METRICS");
+                int rv = mlm_client_set_producer(client, "METRICS");
+                if (rv == -1) {
+                    zsys_error ("mlm_client_set_producer () failed.");
+                }
                 zstr_free(&endpoint);
                 phase = 1;
             }
@@ -189,15 +192,25 @@ void bios_composite_metrics_server (zsock_t *pipe, void* args) {
                 goto next_iter;
             }
             bios_proto_t *n_met = bios_proto_new(BIOS_PROTO_METRIC);
+            zsys_debug ("Creating new bios proto message");
             char *buff = strdup(lua_tostring(L, -3));
+            zsys_debug ("buff == '%s'", buff);
             bios_proto_set_element_src(n_met, "%s", strrchr(buff, '@') + 1);
+            zsys_debug ("strrchr (buff, '@') + 1 == '%s'", strrchr(buff, '@') + 1);
             (*strrchr(buff, '@')) = 0;
+            zsys_debug ("buff == '%s'", buff);
             bios_proto_set_type(n_met, "%s", buff);
             bios_proto_set_value(n_met, "%.2f", lua_tonumber(L, -2));
+            zsys_debug ("lua_tonumber (L, -2) == '%.2f'", lua_tonumber(L, -2));
             bios_proto_set_unit(n_met,  "%s", lua_tostring(L, -1));
+            zsys_debug ("lua_tostring (L, -1) == '%s'", lua_tostring (L, -1));
             bios_proto_set_ttl(n_met,  TTL);
             zmsg_t* z_met = bios_proto_encode(&n_met);
-            mlm_client_send(client, lua_tostring(L, -3), &z_met);
+            zsys_debug ("lua_tostring (L, -3) == '%s'", lua_tostring(L, -3));
+            int rv = mlm_client_send(client, lua_tostring(L, -3), &z_met);
+            if (rv != 0) {
+                zsys_error ("mlm_client_send () failed.");
+            }
             free (buff);
         } else {
             zsys_error ("Not enough valid data...\n");
