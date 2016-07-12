@@ -103,36 +103,17 @@ s_remove_and_stop (const char *path_to_dir)
     std::regex file_rex ("(.+)\\.cfg");
     std::cmatch m;
 
-    /* TODO: There is a bug in czmq zrex_t
-     *       Had to switch to std::regex for now
-     
-    zrex_t *file_rex = zrex_new ("(.+)\\.cfg$");
-    if (!file_rex) {
-        zdir_destroy (&dir);
-        zlist_destroy (&files);
-        log_error ("zrex_new ('%s') failed", "(.+)\\.cfg$");
-        return 1;
-    }
-    */
-
     zfile_t *item = (zfile_t *) zlist_first (files);
     while (item) {
-        if (std::regex_match (zfile_filename (item, NULL), m, file_rex)) {
-            std::string filename = m.str (1);
-            // TODO: remove when validated
-            log_debug ("matched filename == %s\ngroup == %s\nsubstr == %s",
-                    zfile_filename (item, NULL), m.str (1).c_str (), filename.substr (filename.rfind ("/") + 1).c_str ());
+        if (std::regex_match (zfile_filename (item, path_to_dir), m, file_rex)) {
             std::string service = "composite-metrics@";
-            service += filename.substr (filename.rfind ("/") + 1);
-            log_debug ("stopping/disabling service %s", service.c_str ());
+            service += m.str (1);
             s_bits_systemctl ("stop", service.c_str ());
             s_bits_systemctl ("disable", service.c_str ());
-            log_debug ("removing %s", zfile_filename (item, NULL));
             zfile_remove (item);
         }
         item = (zfile_t *) zlist_next (files);
     }
-    //zrex_destroy (&file_rex);
     zlist_destroy (&files);
     zdir_destroy (&dir);
     return 0;
@@ -287,7 +268,6 @@ s_generate_and_start (const char *path_to_dir, const char *sensor_function, cons
     service += filename;
 
     if (s_write_file (fullpath.c_str (), contents.c_str ()) == 0) {
-        log_debug ("enabling/starting service %s", service.c_str ());
         s_bits_systemctl ("enable", service.c_str ());
         s_bits_systemctl ("start", service.c_str ());
     }
@@ -334,7 +314,6 @@ s_generate_and_start (const char *path_to_dir, const char *sensor_function, cons
     service += filename;
 
     if (s_write_file (fullpath.c_str (), contents.c_str ()) == 0) {
-        log_debug ("enabling/starting service %s", service.c_str ());
         s_bits_systemctl ("enable", service.c_str ());
         s_bits_systemctl ("start", service.c_str ());
     }
