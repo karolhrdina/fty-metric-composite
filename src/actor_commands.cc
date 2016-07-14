@@ -173,29 +173,13 @@ actor_commands (
 //  --------------------------------------------------------------------------
 //  Self test of this class
 
-#define STDERR_EMPTY \
-    {\
-    fseek (fp, 0L, SEEK_END);\
-    uint64_t sz = ftell (fp);\
-    fclose (fp);\
-    assert (sz == 0);\
-    }
-
-#define STDERR_NON_EMPTY \
-    {\
-    fseek (fp, 0L, SEEK_END);\
-    uint64_t sz = ftell (fp);\
-    fclose (fp);\
-    assert (sz > 0);\
-    }
-
 void
 actor_commands_test (bool verbose)
 {
     printf (" * actor_commands: ");
     //  @selftest
-    static const char* endpoint = "ipc://bios-smtp-server-test";
-
+    
+    static const char* endpoint = "ipc://bios-actor-commands-test";
     // malamute broker
     zactor_t *malamute = zactor_new (mlm_server, (void*) "Malamute");
     assert (malamute);
@@ -208,9 +192,7 @@ actor_commands_test (bool verbose)
 
     zmsg_t *message = NULL;
     data_t *data = data_new ();
-
-    // --------------------------------------------------------------
-    FILE *fp = freopen ("stderr.txt", "w+", stderr);
+   
     // empty message - expected fail
     message = zmsg_new ();
     assert (message);
@@ -220,10 +202,7 @@ actor_commands_test (bool verbose)
     assert (streq (data_statefile (data), ""));
     assert (streq (data_cfgdir (data), ""));
 
-    STDERR_NON_EMPTY
-
     // --------------------------------------------------------------
-    fp = freopen ("stderr.txt", "w+", stderr);
     // empty string - expected fail
     message = zmsg_new ();
     assert (message);
@@ -234,10 +213,7 @@ actor_commands_test (bool verbose)
     assert (streq (data_statefile (data), ""));
     assert (streq (data_cfgdir (data), ""));
 
-    STDERR_NON_EMPTY
-
     // --------------------------------------------------------------
-    fp = freopen ("stderr.txt", "w+", stderr);
     // unknown command - expected fail
     message = zmsg_new ();
     assert (message);
@@ -248,10 +224,7 @@ actor_commands_test (bool verbose)
     assert (streq (data_statefile (data), ""));
     assert (streq (data_cfgdir (data), ""));
 
-    STDERR_NON_EMPTY
-
     // --------------------------------------------------------------
-    fp = freopen ("stderr.txt", "w+", stderr);
     // STATE_FILE - expected fail
     message = zmsg_new ();
     assert (message);
@@ -263,10 +236,7 @@ actor_commands_test (bool verbose)
     assert (streq (data_statefile (data), ""));
     assert (streq (data_cfgdir (data), ""));
 
-    STDERR_NON_EMPTY
-
     // --------------------------------------------------------------
-    fp = freopen ("stderr.txt", "w+", stderr);
     // STATE_FILE - expected fail
     message = zmsg_new ();
     assert (message);
@@ -277,11 +247,8 @@ actor_commands_test (bool verbose)
     assert (message == NULL);
     assert (streq (data_statefile (data), ""));
     assert (streq (data_cfgdir (data), ""));
-
-    STDERR_NON_EMPTY
  
     // --------------------------------------------------------------
-    fp = freopen ("stderr.txt", "w+", stderr);
     // STATE_FILE - expected fail
     message = zmsg_new ();
     assert (message);
@@ -292,11 +259,8 @@ actor_commands_test (bool verbose)
     assert (message == NULL);
     assert (streq (data_statefile (data), ""));
     assert (streq (data_cfgdir (data), ""));
-
-    STDERR_NON_EMPTY   
  
     // --------------------------------------------------------------
-    fp = freopen ("stderr.txt", "w+", stderr);
     // STATE_FILE - expected fail
     message = zmsg_new ();
     assert (message);
@@ -308,10 +272,7 @@ actor_commands_test (bool verbose)
     assert (streq (data_statefile (data), ""));
     assert (streq (data_cfgdir (data), ""));
 
-    STDERR_NON_EMPTY  
-
     // --------------------------------------------------------------
-    fp = freopen ("stderr.txt", "w+", stderr);
     // STATE_FILE - expected fail
     message = zmsg_new ();
     assert (message);
@@ -323,10 +284,7 @@ actor_commands_test (bool verbose)
     assert (streq (data_statefile (data), ""));
     assert (streq (data_cfgdir (data), ""));
 
-    STDERR_NON_EMPTY
-
     // --------------------------------------------------------------
-    fp = freopen ("stderr.txt", "w+", stderr);
     // CFG_DIRECTORY - expected fail
     message = zmsg_new ();
     assert (message);
@@ -338,10 +296,7 @@ actor_commands_test (bool verbose)
     assert (streq (data_statefile (data), ""));
     assert (streq (data_cfgdir (data), ""));
 
-    STDERR_NON_EMPTY
-
     // --------------------------------------------------------------
-    fp = freopen ("stderr.txt", "w+", stderr);
     // CFG_DIRECTORY - expected fail
     message = zmsg_new ();
     assert (message);
@@ -353,10 +308,7 @@ actor_commands_test (bool verbose)
     assert (streq (data_statefile (data), ""));
     assert (streq (data_cfgdir (data), ""));
 
-    STDERR_NON_EMPTY
-
     // --------------------------------------------------------------
-    fp = freopen ("stderr.txt", "w+", stderr);
     // CFG_DIRECTORY - expected fail
     message = zmsg_new ();
     assert (message);
@@ -368,10 +320,7 @@ actor_commands_test (bool verbose)
     assert (streq (data_statefile (data), ""));
     assert (streq (data_cfgdir (data), ""));
 
-    STDERR_NON_EMPTY
-
     // --------------------------------------------------------------
-    fp = freopen ("stderr.txt", "w+", stderr);
     // CONNECT - expected fail
     message = zmsg_new ();
     assert (message);
@@ -383,10 +332,7 @@ actor_commands_test (bool verbose)
     assert (message == NULL);
     assert (streq (data_statefile (data), ""));
 
-    STDERR_NON_EMPTY
-
     // --------------------------------------------------------------
-    fp = freopen ("stderr.txt", "w+", stderr);
     // CONNECT - expected fail
     message = zmsg_new ();
     assert (message);
@@ -398,10 +344,7 @@ actor_commands_test (bool verbose)
     assert (message == NULL);  
     assert (streq (data_statefile (data), ""));
 
-    STDERR_NON_EMPTY
-
     // --------------------------------------------------------------
-    fp = freopen ("stderr.txt", "w+", stderr);
     // CONNECT - expected fail; bad endpoint
     message = zmsg_new ();
     assert (message);
@@ -413,10 +356,7 @@ actor_commands_test (bool verbose)
     assert (message == NULL);  
     assert (streq (data_statefile (data), ""));
 
-    STDERR_NON_EMPTY
-
     // --------------------------------------------------------------
-    fp = freopen ("stderr.txt", "w+", stderr);    
     // CONSUMER - expected fail
     message = zmsg_new ();
     assert (message);
@@ -428,10 +368,7 @@ actor_commands_test (bool verbose)
     assert (message == NULL);
     assert (streq (data_statefile (data), ""));
 
-    STDERR_NON_EMPTY
-
     // --------------------------------------------------------------
-    fp = freopen ("stderr.txt", "w+", stderr);    
     // CONSUMER - expected fail
     message = zmsg_new ();
     assert (message);
@@ -443,10 +380,7 @@ actor_commands_test (bool verbose)
     assert (message == NULL);
     assert (streq (data_statefile (data), ""));
 
-    STDERR_NON_EMPTY
-
     // --------------------------------------------------------------
-    fp = freopen ("stderr.txt", "w+", stderr);    
     // PRODUCER - expected fail
     message = zmsg_new ();
     assert (message);
@@ -457,22 +391,19 @@ actor_commands_test (bool verbose)
     assert (message == NULL);
     assert (streq (data_statefile (data), ""));
 
-    STDERR_NON_EMPTY
-
     // The original client still waiting on the bad endpoint for malamute
     // server to show up. Therefore we must destroy and create it again.
     mlm_client_destroy (&client);
-    client = mlm_client_new ();
-    assert (client);
+
+    mlm_client_t *client2 = mlm_client_new ();
+    assert (client2);
 
     // --------------------------------------------------------------
-    fp = freopen ("stderr.txt", "w+", stderr);    
-
     // $TERM
     message = zmsg_new ();
     assert (message);
     zmsg_addstr (message, "$TERM");   
-    rv = actor_commands (client, &message, data);
+    rv = actor_commands (client2, &message, data);
     assert (rv == 1);
     assert (message == NULL);
     assert (streq (data_statefile (data), ""));
@@ -484,7 +415,7 @@ actor_commands_test (bool verbose)
     zmsg_addstr (message, "CONNECT");   
     zmsg_addstr (message, endpoint);
     zmsg_addstr (message, "test-agent");   
-    rv = actor_commands (client, &message, data);
+    rv = actor_commands (client2, &message, data);
     assert (rv == 0);
     assert (message == NULL);
     assert (streq (data_statefile (data), ""));
@@ -496,7 +427,7 @@ actor_commands_test (bool verbose)
     zmsg_addstr (message, "CONSUMER");
     zmsg_addstr (message, "some-stream");   
     zmsg_addstr (message, ".+@.+");   
-    rv = actor_commands (client, &message, data);
+    rv = actor_commands (client2, &message, data);
     assert (rv == 0);
     assert (message == NULL);
     assert (streq (data_statefile (data), ""));
@@ -507,7 +438,7 @@ actor_commands_test (bool verbose)
     assert (message);
     zmsg_addstr (message, "PRODUCER");
     zmsg_addstr (message, "some-stream");   
-    rv = actor_commands (client, &message, data);
+    rv = actor_commands (client2, &message, data);
     assert (rv == 0);
     assert (message == NULL);
     assert (streq (data_statefile (data), ""));
@@ -518,7 +449,7 @@ actor_commands_test (bool verbose)
     assert (message);
     zmsg_addstr (message, "STATE_FILE");
     zmsg_addstr (message, "./test_state_file");
-    rv = actor_commands (client, &message, data);
+    rv = actor_commands (client2, &message, data);
     assert (rv == 0);
     assert (message == NULL);
     assert (streq (data_statefile (data), "./test_state_file"));
@@ -529,7 +460,7 @@ actor_commands_test (bool verbose)
     assert (message);
     zmsg_addstr (message, "CFG_DIRECTORY");
     zmsg_addstr (message, "./");
-    rv = actor_commands (client, &message, data);
+    rv = actor_commands (client2, &message, data);
     assert (rv == 0);
     assert (message == NULL);
     assert (streq (data_statefile (data), "./test_state_file"));
@@ -540,19 +471,17 @@ actor_commands_test (bool verbose)
     assert (message);
     zmsg_addstr (message, "CFG_DIRECTORY");
     zmsg_addstr (message, "../");
-    rv = actor_commands (client, &message, data);
+    rv = actor_commands (client2, &message, data);
     assert (rv == 0);
     assert (message == NULL);
     assert (streq (data_statefile (data), "./test_state_file"));
     assert (streq (data_cfgdir (data), "../"));
 
-    STDERR_EMPTY
 
-    data_destroy (&data);
     zmsg_destroy (&message);
-    mlm_client_destroy (&client);
+    data_destroy (&data); 
+    mlm_client_destroy (&client2);
     zactor_destroy (&malamute);
-
     //  @end
     printf ("OK\n");
 }
