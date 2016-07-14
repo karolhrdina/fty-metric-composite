@@ -64,17 +64,18 @@ s_bits_systemctl (const char *operation, const char *service)
 {
     assert (operation);
     assert (service);
+    log_debug ("calling `sudo systemctl '%s' '%s'`", operation, service);
 
     std::vector <std::string> _argv = {"sudo", "systemctl", operation, service};
 
     SubProcess systemd (_argv);
     if (systemd.run()) {
-        int result = systemd.wait ();
-        log_info ("sudo systemctl %s %s result: %i (%s)",
+        int result = systemd.wait (false);
+        log_info ("sudo systemctl '%s' '%s' result  == %i (%s)",
                   operation, service, result, result == 0 ? "ok" : "failed");
         return result;
     }
-    log_error ("can't run sudo systemctl %s %s command", operation, service);
+    log_error ("can't run sudo systemctl '%s' '%s' command", operation, service);
     return -1;
 }
 
@@ -100,17 +101,19 @@ s_remove_and_stop (const char *path_to_dir)
         return 1;
     }
 
-    std::regex file_rex ("(.+)\\.cfg");
-    std::cmatch m;
+    std::regex file_rex (".+\\.cfg");
 
     zfile_t *item = (zfile_t *) zlist_first (files);
     while (item) {
-        if (std::regex_match (zfile_filename (item, path_to_dir), m, file_rex)) {
+        if (std::regex_match (zfile_filename (item, path_to_dir), file_rex)) {
+            std::string filename = zfile_filename (item, path_to_dir);
+            filename.erase (filename.size () - 4);
             std::string service = "composite-metrics@";
-            service += m.str (1);
+            service += filename;
             s_bits_systemctl ("stop", service.c_str ());
             s_bits_systemctl ("disable", service.c_str ());
             zfile_remove (item);
+            log_debug ("file removed");
         }
         item = (zfile_t *) zlist_next (files);
     }
@@ -354,6 +357,7 @@ s_regenerate (data_t *data)
             // Ti, Hi
             sensors = data_sensor (data, asset, "input");
             s_generate_and_start (data_cfgdir (data), "input", asset, &sensors);
+
             // To, Ho
             sensors = data_sensor (data, asset, "output");
             s_generate_and_start (data_cfgdir (data), "output", asset, &sensors);
@@ -463,7 +467,6 @@ bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
         }
         zmsg_destroy (&message);
     }
-
     data_save (data);
     data_destroy (&data);
     zpoller_destroy (&poller);
@@ -498,30 +501,29 @@ test_dir_contents (
         const std::string& directory,
         std::vector <std::string>& expected)
 {
+    printf ("test_dir_contents (): start\n");
     zdir_t *dir = zdir_new (directory.c_str (), "-");
     assert (dir);
 
     zlist_t *files = zdir_list (dir);
     assert (files);
 
-    std::regex file_rex ("(.+)\\.cfg");
-    std::cmatch m;
+    std::regex file_rex (".+\\.cfg");
 
     zfile_t *item = (zfile_t *) zlist_first (files);
     while (item) {
-        if (std::regex_match (zfile_filename (item, directory.c_str ()), m, file_rex)) {
-            std::string filename = m.str (1);           
+        if (std::regex_match (zfile_filename (item, directory.c_str ()), file_rex)) {
             bool found = false;
             for (auto it = expected.begin (); it != expected.end (); it++)
             {
-                if (it->compare (filename) == 0) {
+                if (it->compare (zfile_filename (item, directory.c_str ())) == 0) {
                     expected.erase (it);
                     found = true;
                     break;
                 }
             }
             if (!found) {
-                printf ("Filename '%s' present in directory but not expected.\n", filename.c_str ());
+                printf ("Filename '%s' present in directory but not expected.\n", zfile_filename (item, directory.c_str ()));
                 zlist_destroy (&files);
                 zdir_destroy (&dir);
                 return 1;
@@ -586,7 +588,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zmsg_t *zmessage = bios_proto_encode (&asset);
     int rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (100);
+    zclock_sleep (50);
 
     printf ("TRACE CREATE Lazer game\n");
     asset = test_asset_new ("Lazer game", BIOS_PROTO_ASSET_OP_CREATE); // 2
@@ -597,7 +599,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zmessage = bios_proto_encode (&asset);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (100);
+    zclock_sleep (50);
 
     printf ("TRACE CREATE Curie\n");
     asset = test_asset_new ("Curie", BIOS_PROTO_ASSET_OP_CREATE); // 3
@@ -608,7 +610,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zmessage = bios_proto_encode (&asset);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (100);
+    zclock_sleep (50);
 
     printf ("TRACE CREATE Lazer game.Row01\n");
     asset = test_asset_new ("Lazer game.Row01", BIOS_PROTO_ASSET_OP_CREATE); // 4
@@ -619,7 +621,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zmessage = bios_proto_encode (&asset);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (100);
+    zclock_sleep (50);
 
     // testing situation when sensor asset message arrives before asset specified in logical_asset
     printf ("TRACE CREATE Sensor01\n");
@@ -638,7 +640,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zmessage = bios_proto_encode (&asset);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (100);
+    zclock_sleep (50);
 
     printf ("TRACE CREATE Rack01\n");
     asset = test_asset_new ("Rack01", BIOS_PROTO_ASSET_OP_CREATE); // 5 
@@ -651,7 +653,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zmessage = bios_proto_encode (&asset);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (100);
+    zclock_sleep (50);
 
     printf ("TRACE CREATE Rack02\n");
     asset = test_asset_new ("Rack02", BIOS_PROTO_ASSET_OP_CREATE); // 6
@@ -663,7 +665,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zmessage = bios_proto_encode (&asset);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (100);
+    zclock_sleep (50);
 
     printf ("TRACE CREATE Curie.Row01\n");
     asset = test_asset_new ("Curie.Row01", BIOS_PROTO_ASSET_OP_CREATE); // 7
@@ -674,7 +676,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zmessage = bios_proto_encode (&asset);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (100);
+    zclock_sleep (50);
 
     printf ("TRACE CREATE Curie.Row02\n");
     asset = test_asset_new ("Curie.Row02", BIOS_PROTO_ASSET_OP_CREATE); // 8
@@ -685,7 +687,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zmessage = bios_proto_encode (&asset);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (100);
+    zclock_sleep (50);
 
     printf ("TRACE CREATE Rack03\n");
     asset = test_asset_new ("Rack03", BIOS_PROTO_ASSET_OP_CREATE); // 9 
@@ -711,7 +713,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zmessage = bios_proto_encode (&asset);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (100);
+    zclock_sleep (50);
 
     printf ("TRACE CREATE Rack01.ups1\n");
     asset = test_asset_new ("Rack01.ups1", BIOS_PROTO_ASSET_OP_CREATE); // 11  
@@ -722,7 +724,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zmessage = bios_proto_encode (&asset);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (100);
+    zclock_sleep (50);
 
     printf ("TRACE CREATE Sensor02\n");
     asset = test_asset_new ("Sensor02", BIOS_PROTO_ASSET_OP_CREATE);
@@ -740,7 +742,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zmessage = bios_proto_encode (&asset);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (100);
+    zclock_sleep (50);
 
     printf ("TRACE CREATE Sensor03\n");
     asset = test_asset_new ("Sensor03", BIOS_PROTO_ASSET_OP_CREATE);
@@ -777,7 +779,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zmessage = bios_proto_encode (&asset);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (100);
+    zclock_sleep (50);
 
     printf ("TRACE CREATE Sensor05\n");
     asset = test_asset_new ("Sensor05", BIOS_PROTO_ASSET_OP_CREATE);
@@ -795,7 +797,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zmessage = bios_proto_encode (&asset);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (100);
+    zclock_sleep (50);
 
     printf ("TRACE CREATE Sensor06\n");
     asset = test_asset_new ("Sensor06", BIOS_PROTO_ASSET_OP_CREATE);
@@ -813,7 +815,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zmessage = bios_proto_encode (&asset);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (100);
+    zclock_sleep (50);
 
     printf ("TRACE CREATE Sensor07\n");
     asset = test_asset_new ("Sensor07", BIOS_PROTO_ASSET_OP_CREATE);
@@ -831,7 +833,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zmessage = bios_proto_encode (&asset);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (100);
+    zclock_sleep (50);
 
     printf ("TRACE CREATE Sensor08\n");
     asset = test_asset_new ("Sensor08", BIOS_PROTO_ASSET_OP_CREATE);
@@ -849,7 +851,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zmessage = bios_proto_encode (&asset);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (100);
+    zclock_sleep (50);
 
     printf ("TRACE CREATE Sensor09\n");
     asset = test_asset_new ("Sensor09", BIOS_PROTO_ASSET_OP_CREATE);
@@ -867,7 +869,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zmessage = bios_proto_encode (&asset);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (100);
+    zclock_sleep (50);
 
     printf ("TRACE CREATE Sensor10\n");
     asset = test_asset_new ("Sensor10", BIOS_PROTO_ASSET_OP_CREATE);
@@ -883,7 +885,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zmessage = bios_proto_encode (&asset);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (100);
+    zclock_sleep (50);
 
     printf ("TRACE CREATE Sensor11\n");
     asset = test_asset_new ("Sensor11", BIOS_PROTO_ASSET_OP_CREATE);
@@ -901,7 +903,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zmessage = bios_proto_encode (&asset);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (100);
+    zclock_sleep (50);
 
     printf ("TRACE CREATE Sensor12\n");
     asset = test_asset_new ("Sensor12", BIOS_PROTO_ASSET_OP_CREATE);
@@ -918,7 +920,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zmessage = bios_proto_encode (&asset);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (100);
+    zclock_sleep (50);
 
     printf ("TRACE CREATE Sensor13\n");
     asset = test_asset_new ("Sensor13", BIOS_PROTO_ASSET_OP_CREATE);
@@ -936,7 +938,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zmessage = bios_proto_encode (&asset);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (100);
+    zclock_sleep (50);
 
     printf ("TRACE CREATE Sensor14\n");
     asset = test_asset_new ("Sensor14", BIOS_PROTO_ASSET_OP_CREATE);
@@ -951,7 +953,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zmessage = bios_proto_encode (&asset);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (100);
+    zclock_sleep (50);
 
     printf ("TRACE CREATE Sensor15\n");
     asset = test_asset_new ("Sensor15", BIOS_PROTO_ASSET_OP_CREATE);
@@ -969,12 +971,12 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zmessage = bios_proto_encode (&asset);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (100);
+    zclock_sleep (50);
 
     printf ("TRACE ---===### (Test block -1-) ###===---\n");
     {
         printf ("Sleeping 1m for configurator kick in and finish\n");
-        zclock_sleep (60000);
+        zclock_sleep (60000); // magical constant
 
         std::vector <std::string> expected_configs = {
             "Rack01-input-temperature.cfg",
@@ -992,7 +994,9 @@ bios_composite_metrics_configurator_server_test (bool verbose)
         };
 
         int rv = test_dir_contents ("./test_dir", expected_configs);
+        printf ("rv == %d\n", rv);
         assert (rv == 0);
+        printf ("Test block -1- Ok\n");
     }
 
     printf ("TRACE CREATE ups2\n");
@@ -1003,7 +1007,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zmessage = bios_proto_encode (&asset);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (100);
+    zclock_sleep (50);
 
     printf ("TRACE UPDATE Sensor01\n");
     asset = test_asset_new ("Sensor01", BIOS_PROTO_ASSET_OP_UPDATE);
@@ -1020,7 +1024,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zmessage = bios_proto_encode (&asset);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (100);
+    zclock_sleep (50);
 
     printf ("TRACE UPDATE Sensor02\n");
     asset = test_asset_new ("Sensor02", BIOS_PROTO_ASSET_OP_UPDATE);
@@ -1038,7 +1042,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zmessage = bios_proto_encode (&asset);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (100);
+    zclock_sleep (50);
 
     printf ("TRACE UPDATE Sensor03\n");
     asset = test_asset_new ("Sensor03", BIOS_PROTO_ASSET_OP_UPDATE);
@@ -1053,7 +1057,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zmessage = bios_proto_encode (&asset);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (100);
+    zclock_sleep (50);
 
     printf ("TRACE UPDATE Sensor10\n");
     asset = test_asset_new ("Sensor10", BIOS_PROTO_ASSET_OP_UPDATE);
@@ -1070,7 +1074,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zmessage = bios_proto_encode (&asset);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (100);
+    zclock_sleep (50);
 
     printf ("TRACE RETIRE Sensor11\n");
     asset = test_asset_new ("Sensor11", BIOS_PROTO_ASSET_OP_RETIRE);
@@ -1079,7 +1083,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zmessage = bios_proto_encode (&asset);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (100);
+    zclock_sleep (50);
 
     printf ("TRACE UPDATE Sensor08\n");
     asset = test_asset_new ("Sensor08", BIOS_PROTO_ASSET_OP_UPDATE);
@@ -1097,7 +1101,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zmessage = bios_proto_encode (&asset);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (100);
+    zclock_sleep (50);
 
     printf ("TRACE UPDATE Sensor09\n");
     asset = test_asset_new ("Sensor09", BIOS_PROTO_ASSET_OP_UPDATE);
@@ -1113,7 +1117,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zmessage = bios_proto_encode (&asset);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (100);
+    zclock_sleep (50);
 
     printf ("TRACE UPDATE Sensor04\n");
     asset = test_asset_new ("Sensor04", BIOS_PROTO_ASSET_OP_UPDATE);
@@ -1129,7 +1133,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zmessage = bios_proto_encode (&asset);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (100);
+    zclock_sleep (50);
 
     printf ("TRACE UPDATE Sensor05\n");
     asset = test_asset_new ("Sensor05", BIOS_PROTO_ASSET_OP_UPDATE);
@@ -1147,7 +1151,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zmessage = bios_proto_encode (&asset);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (100);
+    zclock_sleep (50);
 
     printf ("TRACE UPDATE Sensor06\n");
     asset = test_asset_new ("Sensor06", BIOS_PROTO_ASSET_OP_UPDATE);
@@ -1164,7 +1168,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zmessage = bios_proto_encode (&asset);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (100);
+    zclock_sleep (50);
 
     printf ("TRACE UPDATE Sensor07\n");
     asset = test_asset_new ("Sensor07", BIOS_PROTO_ASSET_OP_UPDATE);
@@ -1181,7 +1185,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zmessage = bios_proto_encode (&asset);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (100);
+    zclock_sleep (50);
 
     printf ("TRACE DELETE Sensor12\n");
     asset = test_asset_new ("Sensor12", BIOS_PROTO_ASSET_OP_DELETE);
@@ -1190,7 +1194,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zmessage = bios_proto_encode (&asset);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (100);
+    zclock_sleep (50);
 
     printf ("TRACE UPDATE Sensor14\n");
     asset = test_asset_new ("Sensor14", BIOS_PROTO_ASSET_OP_UPDATE);
@@ -1204,7 +1208,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zmessage = bios_proto_encode (&asset);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (100);
+    zclock_sleep (50);
 
     printf ("TRACE UPDATE Sensor15\n");
     asset = test_asset_new ("Sensor15", BIOS_PROTO_ASSET_OP_UPDATE);
@@ -1220,7 +1224,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zmessage = bios_proto_encode (&asset);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (100);
+    zclock_sleep (50);
 
     printf ("TRACE DELETE Sensor13\n");
     asset = test_asset_new ("Sensor13", BIOS_PROTO_ASSET_OP_DELETE);
@@ -1229,7 +1233,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zmessage = bios_proto_encode (&asset);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (100);
+    zclock_sleep (50);
 
     printf ("TRACE ---===### (Test block -2-) ###===---\n");
     {
@@ -1252,7 +1256,9 @@ bios_composite_metrics_configurator_server_test (bool verbose)
         };
 
         int rv = test_dir_contents ("./test_dir", expected_configs);
+        printf ("rv == %d\n", rv);
         assert (rv == 0);       
+        printf ("Test block -2- Ok\n");
     }
 
     printf ("TRACE DELETE Sensor15\n");
@@ -1262,7 +1268,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zmessage = bios_proto_encode (&asset);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (100);
+    zclock_sleep (50);
 
     printf ("TRACE DELETE Curie.Row02\n");
     asset = test_asset_new ("Curie.Row02", BIOS_PROTO_ASSET_OP_DELETE);
@@ -1271,7 +1277,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zmessage = bios_proto_encode (&asset);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (100);
+    zclock_sleep (50);
 
     printf ("TRACE CREATE Sensor16\n");
     asset = test_asset_new ("Sensor16", BIOS_PROTO_ASSET_OP_UPDATE);
@@ -1286,7 +1292,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zmessage = bios_proto_encode (&asset);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (100);
+    zclock_sleep (50);
 
     printf ("TRACE CREATE nas rack controller\n");
     asset = test_asset_new ("nas rack controller", BIOS_PROTO_ASSET_OP_CREATE); // 12
@@ -1297,7 +1303,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zmessage = bios_proto_encode (&asset);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
-    zclock_sleep (1000);
+    zclock_sleep (50);
 
     printf ("TRACE ---===### (Test block -3-) ###===---\n");
     {
@@ -1316,7 +1322,9 @@ bios_composite_metrics_configurator_server_test (bool verbose)
         };
 
         int rv = test_dir_contents ("./test_dir", expected_configs);
-        assert (rv == 0);             
+        printf ("rv == %d\n", rv);
+        assert (rv == 0);
+        printf ("Test block -3- Ok\n");
     }
 
     mlm_client_destroy (&producer);

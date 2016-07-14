@@ -306,4 +306,5 @@ bios_composite_metrics_server_test (bool verbose)
     zactor_destroy (&server);
 
     // @end
+    printf ("OK\n");
 }
