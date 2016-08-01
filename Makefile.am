@@ -45,6 +45,7 @@ EXTRA_DIST = \
     src/subprocess.h \
     src/actor_commands.h \
     src/data.h \
+    src/proto_metric_unavailable.h \
     src/composite_metrics_classes.h
 
 include $(srcdir)/src/Makemodule.am

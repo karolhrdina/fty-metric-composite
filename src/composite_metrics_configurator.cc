@@ -159,6 +159,7 @@ int main (int argc, char *argv [])
     zstr_sendx (server,  "CFG_DIRECTORY", output_dir, NULL);
     zstr_sendx (server,  "CONNECT", ENDPOINT, AGENT_NAME, NULL);
     zstr_sendx (server,  "CONSUMER", BIOS_PROTO_STREAM_ASSETS, ".*", NULL);
+    zstr_sendx (server,  "PRODUCER", BIOS_PROTO_STREAM_METRICS_UNAVAILABLE, NULL);
 
     while (true) {
         char *message = zstr_recv (server);

@@ -37,6 +37,7 @@
 #include "subprocess.h"
 #include "actor_commands.h"
 #include "data.h"
+#include "proto_metric_unavailable.h"
 
 //  *** To avoid double-definitions, only define if building without draft ***
 #ifndef COMPOSITE_METRICS_BUILD_DRAFT_API
@@ -60,6 +61,11 @@ COMPOSITE_METRICS_EXPORT void
 //  Self test of this class.
 COMPOSITE_METRICS_EXPORT void
     data_test (bool verbose);
+
+//  *** Draft method, defined for internal use only ***
+//  Self test of this class.
+COMPOSITE_METRICS_EXPORT void
+    proto_metric_unavailable_test (bool verbose);
 
 #endif // COMPOSITE_METRICS_BUILD_DRAFT_API
 

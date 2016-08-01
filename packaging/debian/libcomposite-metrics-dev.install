@@ -1,3 +1,5 @@
 usr/include/*
 usr/lib/*/libcomposite_metrics.so
 usr/lib/*/pkgconfig/libcomposite_metrics.pc
+usr/share/man/man3/*
+usr/share/man/man7/*
