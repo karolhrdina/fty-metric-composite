@@ -27,6 +27,7 @@ src_libcomposite_metrics_la_SOURCES = \
     src/subprocess.cc \
     src/actor_commands.cc \
     src/data.cc \
+    src/proto_metric_unavailable.cc \
     src/platform.h
 
 if ENABLE_DRAFTS

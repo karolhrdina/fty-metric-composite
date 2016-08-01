@@ -26,11 +26,17 @@ License:        GPL-2.0+
 URL:            https://eaton.com/
 Source0:        %{name}-%{version}.tar.gz
 Group:          System/Libraries
+# Note: ghostscript is required by graphviz which is required by
+#       asciidoc. On Fedora 24 the ghostscript dependencies cannot
+#       be resolved automatically. Thus add working dependency here!
+BuildRequires:  ghostscript
+BuildRequires:  asciidoc
 BuildRequires:  automake
 BuildRequires:  autoconf
 BuildRequires:  libtool
-BuildRequires:  pkg-config
+BuildRequires:  pkgconfig
 BuildRequires:  systemd-devel
+BuildRequires:  xmlto
 BuildRequires:  gcc-c++
 BuildRequires:  zeromq-devel
 BuildRequires:  czmq-devel
@@ -79,6 +85,8 @@ This package contains development files.
 %{_includedir}/*
 %{_libdir}/libcomposite_metrics.so
 %{_libdir}/pkgconfig/libcomposite_metrics.pc
+%{_mandir}/man3/*
+%{_mandir}/man7/*
 
 %prep
 %setup -q
@@ -99,8 +107,10 @@ find %{buildroot} -name '*.la' | xargs rm -f
 %defattr(-,root,root)
 %doc COPYING
 %{_bindir}/composite-metrics
+%{_mandir}/man1/composite-metrics*
 %{_sysconfdir}/composite-metrics/composite-metrics.cfg.example
 %{_bindir}/composite-metrics-configurator
+%{_mandir}/man1/composite-metrics-configurator*
 %{_prefix}/lib/systemd/system/composite-metrics*.service
 %{_prefix}/lib/systemd/system/composite-metrics-configurator*.service
 %{_prefix}/lib/tmpfiles.d/composite-metrics.conf

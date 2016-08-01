@@ -48,6 +48,12 @@
 #if defined (__WINDOWS__)
 #   if defined COMPOSITE_METRICS_STATIC
 #       define COMPOSITE_METRICS_EXPORT
+#   elif defined COMPOSITE_METRICS_INTERNAL_BUILD
+#       if defined DLL_EXPORT
+#           define COMPOSITE_METRICS_EXPORT __declspec(dllexport)
+#       else
+#           define COMPOSITE_METRICS_EXPORT
+#       endif
 #   elif defined COMPOSITE_METRICS_EXPORTS
 #       define COMPOSITE_METRICS_EXPORT __declspec(dllexport)
 #   else
