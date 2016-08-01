@@ -330,7 +330,7 @@ AC_CANONICAL_HOST
 #   --with-docs=no overrides this
 AC_ARG_WITH([docs],
     AS_HELP_STRING([--with-docs],
-        [Build and install man pages [default=yes]]),
+        [Build and install man pages [default=no]]),
     [with_docs=$withval])
 
 if test "x$with_docs" = "xno"; then
