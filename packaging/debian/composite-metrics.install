@@ -1,7 +1,5 @@
 usr/bin/composite-metrics
-usr/share/man/man1/composite-metrics.1
 usr/bin/composite-metrics-configurator
 usr/lib/systemd/system/composite-metrics*.service
 usr/lib/systemd/system/composite-metrics-configurator*.service
 usr/lib/tmpfiles.d/composite-metrics.conf
-usr/share/man/man1/composite-metrics-configurator.1
