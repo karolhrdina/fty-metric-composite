@@ -558,7 +558,6 @@ fi
 
 # Specify output files
 AC_CONFIG_FILES([Makefile
-                 doc/Makefile
                  src/libcomposite_metrics.pc
                  src/composite-metrics.cfg
                  src/composite-metrics-configurator.cfg
