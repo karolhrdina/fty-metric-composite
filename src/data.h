@@ -22,6 +22,8 @@
 #ifndef DATA_H_INCLUDED
 #define DATA_H_INCLUDED
 
+#include <set>
+#include <string>
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -40,6 +42,14 @@ COMPOSITE_METRICS_EXPORT void
 //  Last data_asset_put () call made changes to sensors data
 COMPOSITE_METRICS_EXPORT bool
     data_asset_sensors_changed (data_t *self);
+
+//  Update list of metrics produced by composite_metrics
+COMPOSITE_METRICS_EXPORT void
+    data_set_produced_metrics (data_t *self, std::set <std::string> &metrics);
+
+//  Get list of metrics produced by composite_metrics
+COMPOSITE_METRICS_EXPORT std::set <std::string>
+    data_get_produced_metrics (data_t *self);
 
 //  Get asset names
 //  The caller is responsible for destroying the return value when finished with it

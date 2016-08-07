@@ -27,14 +27,15 @@
 */
 
 #include "composite_metrics_classes.h"
-
+#include <set>
+#include <string>
 //  Structure of our class
 
 struct _data_t {
     zhashx_t *sensors; // (asset name -> zlistx_t of sensor bios_proto_t* messages)
     zhashx_t *assets; // (asset name -> latest bios_proto_t* asset message)
     bool sensors_updated; // sensors data was change during last data_asset_put () call
-
+    std::set<std::string> produced_metrics; // list of metrics, that are now produced by composite_metric
     char *state_file;
     char *output_dir;
 };
@@ -255,6 +256,22 @@ data_asset_put (data_t *self, bios_proto_t **message_p)
         bios_proto_destroy (message_p);
     }
     *message_p = NULL;
+}
+
+//  --------------------------------------------------------------------------
+//  Update list of metrics produced by composite_metrics
+void
+data_set_produced_metrics (data_t *self, std::set <std::string> &metrics)
+{
+    self->produced_metrics = std::move (metrics);
+}
+
+//  --------------------------------------------------------------------------
+//  Get list of metrics produced by composite_metrics
+std::set <std::string>
+data_get_produced_metrics (data_t *self)
+{
+    return self->produced_metrics;
 }
 
 //  --------------------------------------------------------------------------

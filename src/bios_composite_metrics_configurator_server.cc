@@ -162,7 +162,7 @@ s_write_file (const char *fullpath, const char *contents)
 // Generate todo
 // 0 - success, 1 - failure
 static void 
-s_generate_and_start (const char *path_to_dir, const char *sensor_function, const char *asset_name, zlistx_t **sensors_p)
+s_generate_and_start (const char *path_to_dir, const char *sensor_function, const char *asset_name, zlistx_t **sensors_p, std::set <std::string> &newMetricsGenerated)
 {
     assert (path_to_dir);
     assert (asset_name);
@@ -231,7 +231,7 @@ s_generate_and_start (const char *path_to_dir, const char *sensor_function, cons
                            "                      num = num + 1;\n"
                            "                  end;\n"
                            "                  tmp = sum / num + ##CLB##;\n"
-                           "                  return 'average.##QNTY##@##LOGICAL_ASSET##', tmp, '##UNITS##', 0;\"\n"
+                           "                  return '##RESULT_TOPIC##', tmp, '##UNITS##', 0;\"\n"
                            "}\n";
     std::string contents = json_tmpl;
 
@@ -241,16 +241,16 @@ s_generate_and_start (const char *path_to_dir, const char *sensor_function, cons
 
     contents.replace (contents.find ("##IN##"), strlen ("##IN##"), temp_in);
     contents.replace (contents.find ("##CLB##"), strlen ("##CLB##"), std::to_string (clb));
-    contents.replace (contents.find ("##LOGICAL_ASSET##"), strlen ("##LOGICAL_ASSET##"), asset_name);
+    std::string qnty = "temperature";
     if (sensor_function) {
-        std::string qnty = "temperature";
         qnty += "-";
         qnty += sensor_function;
-        contents.replace (contents.find ("##QNTY##"), strlen ("##QNTY##"), qnty);
     }
-    else {
-        contents.replace (contents.find ("##QNTY##"), strlen ("##QNTY##"), "temperature");
-    }
+    std::string result_topic = "average.";
+    result_topic += qnty;
+    result_topic += "@";
+    result_topic += asset_name;
+    contents.replace (contents.find ("##RESULT_TOPIC##"), strlen ("##RESULT_TOPIC##"), result_topic);
     contents.replace (contents.find ("##UNITS##"), strlen ("##UNITS##"), "C");
 
     // name of the file (service) without extension
@@ -273,6 +273,7 @@ s_generate_and_start (const char *path_to_dir, const char *sensor_function, cons
     if (s_write_file (fullpath.c_str (), contents.c_str ()) == 0) {
         s_bits_systemctl ("enable", service.c_str ());
         s_bits_systemctl ("start", service.c_str ());
+        newMetricsGenerated.insert (result_topic);
     }
     else {
         log_error (
@@ -287,16 +288,16 @@ s_generate_and_start (const char *path_to_dir, const char *sensor_function, cons
     contents = json_tmpl;
     contents.replace (contents.find ("##IN##"), strlen ("##IN##"), hum_in);
     contents.replace (contents.find ("##CLB##"), strlen ("##CLB##"), std::to_string (clb));
-    contents.replace (contents.find ("##LOGICAL_ASSET##"), strlen ("##LOGICAL_ASSET##"), asset_name);
+    qnty = "humidity";
     if (sensor_function) {
-        std::string qnty = "humidity";
         qnty += "-";
         qnty += sensor_function;
-        contents.replace (contents.find ("##QNTY##"), strlen ("##QNTY##"), qnty);
     }
-    else {
-        contents.replace (contents.find ("##QNTY##"), strlen ("##QNTY##"), "humidity");
-    }
+    result_topic = "average.";
+    result_topic += qnty;
+    result_topic += "@";
+    result_topic += asset_name;
+    contents.replace (contents.find ("##RESULT_TOPIC##"), strlen ("##RESULT_TOPIC##"), result_topic);
     contents.replace (contents.find ("##UNITS##"), strlen ("##UNITS##"), "%");
 
     // name of the file (service) without extension
@@ -319,6 +320,7 @@ s_generate_and_start (const char *path_to_dir, const char *sensor_function, cons
     if (s_write_file (fullpath.c_str (), contents.c_str ()) == 0) {
         s_bits_systemctl ("enable", service.c_str ());
         s_bits_systemctl ("start", service.c_str ());
+        newMetricsGenerated.insert (result_topic);
     }
     else {
         log_error (
@@ -329,10 +331,11 @@ s_generate_and_start (const char *path_to_dir, const char *sensor_function, cons
 } 
 
 static void
-s_regenerate (data_t *data)
+s_regenerate (data_t *data, std::set <std::string> &metrics_unavailable)
 {
     assert (data);
-
+    // potential unavailable metrics are those, what are now still available
+    metrics_unavailable = data_get_produced_metrics (data); 
     // 1. Delete all files in output dir and stop/disable services
     int rv = s_remove_and_stop (data_cfgdir (data));
     if (rv != 0) {
@@ -350,26 +353,31 @@ s_regenerate (data_t *data)
     }
 
     const char *asset = (const char *) zlistx_first (assets);
+    std::set <std::string> metricsAvailable;
     while (asset) {
         bios_proto_t *proto = data_asset (data, asset);
         if (streq (bios_proto_aux_string (proto, "type", ""), "rack")) {
             zlistx_t *sensors = NULL;
             // Ti, Hi
             sensors = data_sensor (data, asset, "input");
-            s_generate_and_start (data_cfgdir (data), "input", asset, &sensors);
+            s_generate_and_start (data_cfgdir (data), "input", asset, &sensors, metricsAvailable);
 
             // To, Ho
             sensors = data_sensor (data, asset, "output");
-            s_generate_and_start (data_cfgdir (data), "output", asset, &sensors);
+            s_generate_and_start (data_cfgdir (data), "output", asset, &sensors, metricsAvailable);
         }
         else {
             zlistx_t *sensors = NULL;
             // T, H
             sensors = data_sensor (data, asset, NULL);
-            s_generate_and_start (data_cfgdir (data), NULL, asset, &sensors);
+            s_generate_and_start (data_cfgdir (data), NULL, asset, &sensors, metricsAvailable);
         }
         asset = (const char *) zlistx_next (assets);
     }
+    for ( const auto &one_metric : metricsAvailable ) {
+        metrics_unavailable.erase (one_metric);
+    }
+    data_set_produced_metrics (data, metricsAvailable);
     zlistx_destroy (&assets);
 }
 
@@ -411,7 +419,11 @@ bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
                 break;
             }
             if (zpoller_expired (poller) && flag) {
-                s_regenerate (data);
+                std::set <std::string> metrics_unavailable;
+                s_regenerate (data, metrics_unavailable);
+                for ( const auto &one_metric : metrics_unavailable ) {
+                    proto_metric_unavailable_send (client, one_metric.c_str());
+                }// ACE: HERE 
                 flag = false;
             }
             continue;
