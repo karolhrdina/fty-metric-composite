@@ -45,7 +45,7 @@ COMPOSITE_METRICS_EXPORT bool
 
 //  Update list of metrics produced by composite_metrics
 COMPOSITE_METRICS_EXPORT void
-    data_set_produced_metrics (data_t *self, std::set <std::string> &metrics);
+    data_set_produced_metrics (data_t *self,const std::set <std::string> &metrics);
 
 //  Get list of metrics produced by composite_metrics
 COMPOSITE_METRICS_EXPORT std::set <std::string>

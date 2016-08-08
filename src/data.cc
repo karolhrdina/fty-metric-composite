@@ -261,9 +261,9 @@ data_asset_put (data_t *self, bios_proto_t **message_p)
 //  --------------------------------------------------------------------------
 //  Update list of metrics produced by composite_metrics
 void
-data_set_produced_metrics (data_t *self, std::set <std::string> &metrics)
+data_set_produced_metrics (data_t *self,const std::set <std::string> &metrics)
 {
-    self->produced_metrics = std::move (metrics);
+    self->produced_metrics = metrics;
 }
 
 //  --------------------------------------------------------------------------
