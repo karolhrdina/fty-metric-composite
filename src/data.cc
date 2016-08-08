@@ -263,6 +263,7 @@ data_asset_put (data_t *self, bios_proto_t **message_p)
 void
 data_set_produced_metrics (data_t *self,const std::set <std::string> &metrics)
 {
+    self->produced_metrics.clear();
     self->produced_metrics = metrics;
 }
 
