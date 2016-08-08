@@ -105,8 +105,8 @@ find %{buildroot} -name '*.la' | xargs rm -f
 %defattr(-,root,root)
 %doc COPYING
 %{_bindir}/composite-metrics
-%{_sysconfdir}/composite-metrics/composite-metrics.cfg.example
 %{_bindir}/composite-metrics-configurator
+%{_sysconfdir}/composite-metrics/composite-metrics*.cfg
 %{_prefix}/lib/systemd/system/composite-metrics*.service
 %{_prefix}/lib/systemd/system/composite-metrics-configurator*.service
 %{_prefix}/lib/tmpfiles.d/composite-metrics.conf
