@@ -60,7 +60,7 @@ data_new (void)
     //  state_file
     self->state_file = strdup (""); 
     //  output_dir
-    self->output_dir = strdup ("");  
+    self->output_dir = strdup ("");
     return self;
 }
 
@@ -463,6 +463,7 @@ data_destroy (data_t **self_p)
         zhashx_destroy (&self->assets);
         zstr_free (&self->state_file);
         zstr_free (&self->output_dir);
+        self->produced_metrics.clear();
         //  Free object itself
         free (self);
         *self_p = NULL;
@@ -1760,6 +1761,13 @@ data_test (bool verbose)
         sensors = data_sensor (self, "Curie.Row02", NULL);
         assert (sensors == NULL);
     }
+
+
+    data_t *newdata = data_new();
+    std::set <std::string> newset{"sdlkfj"};
+    data_set_produced_metrics (newdata, newset);
+
+    data_destroy (&newdata);
 
     zlistx_destroy (&assets_expected);
     data_destroy (&self);
