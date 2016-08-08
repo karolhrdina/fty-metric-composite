@@ -586,6 +586,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zstr_sendx (configurator, "STATE_FILE", "./test_state_file", NULL);   
     zstr_sendx (configurator, "CONNECT", endpoint, "configurator", NULL);
     zstr_sendx (configurator, "CONSUMER", "ASSETS", ".*", NULL);
+    zstr_sendx (configurator, "PRODUCER", "_METRICS_UNAVAILABLE", ".*", NULL);
     zclock_sleep (500);
 
     bios_proto_t *asset = NULL;
