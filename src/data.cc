@@ -27,14 +27,15 @@
 */
 
 #include "composite_metrics_classes.h"
-
+#include <set>
+#include <string>
 //  Structure of our class
 
 struct _data_t {
     zhashx_t *sensors; // (asset name -> zlistx_t of sensor bios_proto_t* messages)
     zhashx_t *assets; // (asset name -> latest bios_proto_t* asset message)
     bool sensors_updated; // sensors data was change during last data_asset_put () call
-
+    std::set<std::string> produced_metrics; // list of metrics, that are now produced by composite_metric
     char *state_file;
     char *output_dir;
 };
@@ -59,7 +60,7 @@ data_new (void)
     //  state_file
     self->state_file = strdup (""); 
     //  output_dir
-    self->output_dir = strdup ("");  
+    self->output_dir = strdup ("");
     return self;
 }
 
@@ -258,6 +259,23 @@ data_asset_put (data_t *self, bios_proto_t **message_p)
 }
 
 //  --------------------------------------------------------------------------
+//  Update list of metrics produced by composite_metrics
+void
+data_set_produced_metrics (data_t *self,const std::set <std::string> &metrics)
+{
+    self->produced_metrics.clear();
+    self->produced_metrics = metrics;
+}
+
+//  --------------------------------------------------------------------------
+//  Get list of metrics produced by composite_metrics
+std::set <std::string>
+data_get_produced_metrics (data_t *self)
+{
+    return self->produced_metrics;
+}
+
+//  --------------------------------------------------------------------------
 //  Last data_asset_put () call made changes to sensors data
 
 bool
@@ -445,6 +463,7 @@ data_destroy (data_t **self_p)
         zhashx_destroy (&self->assets);
         zstr_free (&self->state_file);
         zstr_free (&self->output_dir);
+        self->produced_metrics.clear();
         //  Free object itself
         free (self);
         *self_p = NULL;
@@ -1742,6 +1761,13 @@ data_test (bool verbose)
         sensors = data_sensor (self, "Curie.Row02", NULL);
         assert (sensors == NULL);
     }
+
+
+    data_t *newdata = data_new();
+    std::set <std::string> newset{"sdlkfj"};
+    data_set_produced_metrics (newdata, newset);
+
+    data_destroy (&newdata);
 
     zlistx_destroy (&assets_expected);
     data_destroy (&self);

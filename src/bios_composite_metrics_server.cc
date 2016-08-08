@@ -109,9 +109,9 @@ void bios_composite_metrics_server (zsock_t *pipe, void* args) {
                 for(auto it : si->getMember("in")) {
                     std::string buff;
                     it >>= buff;
-                    mlm_client_set_consumer(client, BIOS_PROTO_STREAM_METRICS_SENSOR, buff.c_str());
+                    mlm_client_set_consumer(client, "_METRICS_SENSOR", buff.c_str());
                     if (verbose)
-                        zsys_debug("%s: Registered to receive '%s' from stream '%s'", name, buff.c_str(), BIOS_PROTO_STREAM_METRICS_SENSOR);
+                        zsys_debug("%s: Registered to receive '%s' from stream '%s'", name, buff.c_str(), "_METRICS_SENSOR");
                 }
                 zstr_free (&filename);
                 phase = 2;
@@ -239,7 +239,7 @@ bios_composite_metrics_server_test (bool verbose)
 
     mlm_client_t *producer = mlm_client_new ();
     mlm_client_connect (producer, endpoint, 1000, "producer");
-    mlm_client_set_producer (producer, BIOS_PROTO_STREAM_METRICS_SENSOR);
+    mlm_client_set_producer (producer, "_METRICS_SENSOR");
 
     mlm_client_t *consumer = mlm_client_new ();
     mlm_client_connect (consumer, endpoint, 1000, "consumer");
