@@ -578,6 +578,11 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     mlm_client_set_producer (producer, "ASSETS");
     zclock_sleep (100);
 
+    mlm_client_t *alert_generator = mlm_client_new ();
+    mlm_client_connect (alert_generator, endpoint, 1000, "alert_generator");
+    mlm_client_set_consumer (alert_generator, "_METRICS_UNAVAILABLE", ".*");
+    zclock_sleep (100);
+
     zactor_t *configurator = zactor_new (bios_composite_metrics_configurator_server, NULL);
     assert (configurator);
     zclock_sleep (100);
@@ -1270,7 +1275,44 @@ bios_composite_metrics_configurator_server_test (bool verbose)
 
         int rv = test_dir_contents ("./test_dir", expected_configs);
         printf ("rv == %d\n", rv);
-        assert (rv == 0);       
+        assert (rv == 0);
+
+        zlistx_t *expected_unavailable = zlistx_new ();
+        zlistx_set_duplicator (expected_unavailable, (czmq_duplicator *) strdup);
+        zlistx_set_destructor (expected_unavailable, (czmq_destructor *) zstr_free);
+        zlistx_set_comparator (expected_unavailable, (czmq_comparator *) strcmp);
+
+
+        zlistx_add_end (expected_unavailable, (void *) "average.humidity-input@Rack02");        
+        zlistx_add_end (expected_unavailable, (void *) "average.temperature-input@Rack02");        
+        zlistx_add_end (expected_unavailable, (void *) "average.humidity-output@Rack02");        
+        zlistx_add_end (expected_unavailable, (void *) "average.temperature-output@Rack02");        
+
+        while (zlistx_size (expected_unavailable) != 0) {
+            zmsg_t *message = mlm_client_recv (alert_generator);
+            assert (message);
+            assert (streq (mlm_client_subject (alert_generator), "metric_topic"));
+
+            char *part = zmsg_popstr (message);
+            assert (part);
+            assert (streq (part, "METRICUNAVAILABLE"));
+            zstr_free (&part);
+
+            part = zmsg_popstr (message);
+            assert (part);
+            printf ("Got metric unavailable topic '%s' ... ", part);
+            void *handle = zlistx_find (expected_unavailable, (void *) part);
+            assert (handle);
+            printf ("It's OK.\n");
+            zlistx_delete (expected_unavailable, handle);
+
+            zstr_free (&part);
+            zmsg_destroy (&message);
+        }
+
+
+        zlistx_destroy (&expected_unavailable);
+
         printf ("Test block -2- Ok\n");
     }
 
@@ -1337,10 +1379,45 @@ bios_composite_metrics_configurator_server_test (bool verbose)
         int rv = test_dir_contents ("./test_dir", expected_configs);
         printf ("rv == %d\n", rv);
         assert (rv == 0);
+
+        zlistx_t *expected_unavailable = zlistx_new ();
+        zlistx_set_duplicator (expected_unavailable, (czmq_duplicator *) strdup);
+        zlistx_set_destructor (expected_unavailable, (czmq_destructor *) zstr_free);
+        zlistx_set_comparator (expected_unavailable, (czmq_comparator *) strcmp);
+
+        zlistx_add_end (expected_unavailable, (void *) "average.temperature@Curie");
+        zlistx_add_end (expected_unavailable, (void *) "average.humidity@Curie");
+        zlistx_add_end (expected_unavailable, (void *) "average.temperature@Curie.Row02");
+        zlistx_add_end (expected_unavailable, (void *) "average.humidity@Curie.Row02");
+
+        while (zlistx_size (expected_unavailable) != 0) {
+            zmsg_t *message = mlm_client_recv (alert_generator);
+            assert (message);
+            assert (streq (mlm_client_subject (alert_generator), "metric_topic"));
+
+            char *part = zmsg_popstr (message);
+            assert (part);
+            assert (streq (part, "METRICUNAVAILABLE"));
+            zstr_free (&part);
+
+            part = zmsg_popstr (message);
+            assert (part);
+            printf ("Got metric unavailable topic '%s' ... ", part);
+            void *handle = zlistx_find (expected_unavailable, (void *) part);
+            assert (handle);
+            printf ("It's OK.\n");
+            zlistx_delete (expected_unavailable, handle);
+
+            zstr_free (&part);
+            zmsg_destroy (&message);
+        }
+        zlistx_destroy (&expected_unavailable);
+
         printf ("Test block -3- Ok\n");
     }
 
     mlm_client_destroy (&producer);
+    mlm_client_destroy (&alert_generator);
     zactor_destroy (&configurator);
     zactor_destroy (&server);
     //  @end
