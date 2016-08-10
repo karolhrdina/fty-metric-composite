@@ -408,8 +408,11 @@ bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
 
     bool flag = false;
 
+    uint64_t timestamp = (uint64_t) zclock_mono ();
+    uint64_t timeout = (uint64_t) 30000;    
+
     while (!zsys_interrupted) {
-        void *which = zpoller_wait (poller, 30000);
+        void *which = zpoller_wait (poller, timeout);
 
         if (which == NULL) {
             if (zpoller_terminated (poller) || zsys_interrupted) {
@@ -418,14 +421,17 @@ bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
                     zpoller_terminated (poller) ? "true" : "false", zsys_interrupted ? "true" : "false");
                 break;
             }
-            if (zpoller_expired (poller) && flag) {
-                std::set <std::string> metrics_unavailable;
-                s_regenerate (data, metrics_unavailable);
-                for ( const auto &one_metric : metrics_unavailable ) {
-                    proto_metric_unavailable_send (client, one_metric.c_str());
-                }// ACE: HERE 
-                flag = false;
+            if (zpoller_expired (poller)) { 
+                if (flag) {
+                    std::set <std::string> metrics_unavailable;
+                    s_regenerate (data, metrics_unavailable);
+                    for ( const auto &one_metric : metrics_unavailable ) {
+                        proto_metric_unavailable_send (client, one_metric.c_str());
+                    }// ACE: HERE 
+                    flag = false;
+                }
             }
+            timestamp = (uint64_t) zclock_mono ();
             continue;
         }
 
@@ -439,6 +445,19 @@ bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
                 break;
             }
             continue;
+        }
+
+        uint64_t now = (uint64_t) zclock_mono ();
+        if (now - timestamp >= timeout) {
+             if (flag) {
+                std::set <std::string> metrics_unavailable;
+                s_regenerate (data, metrics_unavailable);
+                for ( const auto &one_metric : metrics_unavailable ) {
+                    proto_metric_unavailable_send (client, one_metric.c_str());
+                }// ACE: HERE 
+                flag = false;
+            }           
+            timestamp = (uint64_t) zclock_mono ();
         }
 
         if (which != mlm_client_msgpipe (client)) {
