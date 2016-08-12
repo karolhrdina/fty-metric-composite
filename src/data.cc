@@ -102,7 +102,20 @@ data_asset_put (data_t *self, bios_proto_t **message_p)
                 // 2. we need to regenerate configuration
                 self->sensors_updated = true;
             }
-            // update ( or insert) information about the asset
+            // BIOS-2484-start : "automatically propagate sensors  in topology"
+            if ( asset ) {
+                // if asset is known we need to check, if physical topology changed
+                if ( streq (bios_proto_aux_string (asset, "parent_name", ""),
+                            bios_proto_aux_string (message, "parent_name", "")
+                           )
+                   ) {
+                    // 1. TODO
+                    // 2. we need to regenerate configuration
+                    self->sensors_updated = true;
+                }
+            }
+            // BIOS-2484-end : "automatically propagate sensors  in topology"
+            // update (or insert) information about the asset
             zhashx_update (self->assets, bios_proto_name (message), (void *) message);
         }
         else
