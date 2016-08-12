@@ -404,6 +404,12 @@ bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
     }
 
     data_t *data = data_new ();
+    if (!data) {
+        log_error ("data_new () failed");
+        zpoller_destroy (&poller);
+        mlm_client_destroy (&client);
+        return;
+    }
     zsock_signal (pipe, 0);
 
     bool flag = false;
