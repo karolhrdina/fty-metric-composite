@@ -32,8 +32,9 @@
 //  Structure of our class
 
 struct _data_t {
-    zhashx_t *sensors; // (asset name -> zlistx_t of sensor bios_proto_t* messages)
-    zhashx_t *assets; // (asset name -> latest bios_proto_t* asset message)
+    // (asset name -> zlistx_t of sensor bios_proto_t* messages)
+    zhashx_t *asset_sensors_map; // For every asset it has a list of sensors logically assigned to it
+    zhashx_t *assets;  // (asset name -> latest bios_proto_t* asset message)
     bool sensors_updated; // sensors data was change during last data_asset_put () call
     std::set<std::string> produced_metrics; // list of metrics, that are now produced by composite_metric
     char *state_file;
@@ -49,9 +50,9 @@ data_new (void)
     data_t *self = (data_t *) zmalloc (sizeof (data_t));
     assert (self);
     //  Initialize class properties here
-    //  sensors
-    self->sensors = zhashx_new ();
-    zhashx_set_destructor (self->sensors, (zhashx_destructor_fn *) zlistx_destroy);
+    //  asset_sensors_map
+    self->asset_sensors_map = zhashx_new ();
+    zhashx_set_destructor (self->asset_sensors_map, (zhashx_destructor_fn *) zlistx_destroy);
     //  assets
     self->assets = zhashx_new ();
     zhashx_set_destructor (self->assets, (zhashx_destructor_fn *) bios_proto_destroy);
@@ -90,15 +91,14 @@ data_asset_put (data_t *self, bios_proto_t **message_p)
         if (streq (operation, BIOS_PROTO_ASSET_OP_CREATE) ||
             streq (operation, BIOS_PROTO_ASSET_OP_UPDATE))
         {
-            zlistx_t *list = (zlistx_t *) zhashx_lookup (self->sensors, bios_proto_name (message));
-            if (list &&
-                zhashx_lookup (self->assets, bios_proto_name (message)) == NULL) {
+            zlistx_t *list = (zlistx_t *) zhashx_lookup (self->asset_sensors_map, bios_proto_name (message));
+            if (list && zhashx_lookup (self->assets, bios_proto_name (message)) == NULL) {
                 self->sensors_updated = true;
             }
             if (!list) {
                 zlistx_t *list = zlistx_new ();
                 zlistx_set_destructor (list, (czmq_destructor *) bios_proto_destroy);
-                zhashx_insert (self->sensors, bios_proto_name (message), (void *) list);
+                zhashx_insert (self->asset_sensors_map, bios_proto_name (message), (void *) list);
             }
             zhashx_update (self->assets, bios_proto_name (message), (void *) message);
         }
@@ -109,7 +109,7 @@ data_asset_put (data_t *self, bios_proto_t **message_p)
             void *exists = zhashx_lookup (self->assets, bios_proto_name (message));
             if (exists)
                 self->sensors_updated = true;
-            zhashx_delete (self->sensors, bios_proto_name (message));
+            zhashx_delete (self->asset_sensors_map, bios_proto_name (message));
             zhashx_delete (self->assets, bios_proto_name (message));
             bios_proto_destroy (message_p);
         }
@@ -126,7 +126,7 @@ data_asset_put (data_t *self, bios_proto_t **message_p)
 
             void *handle = NULL;
             char *logical_asset = NULL;
-            zlistx_t *sensors_list = (zlistx_t *) zhashx_first (self->sensors);
+            zlistx_t *sensors_list = (zlistx_t *) zhashx_first (self->asset_sensors_map);
             while (sensors_list) {
                 bios_proto_t *proto = (bios_proto_t *) zlistx_first (sensors_list);
                 while (proto) {
@@ -141,7 +141,7 @@ data_asset_put (data_t *self, bios_proto_t **message_p)
                 if (handle) {
                     break;
                 }
-                sensors_list = (zlistx_t *) zhashx_next (self->sensors);
+                sensors_list = (zlistx_t *) zhashx_next (self->asset_sensors_map);
             }
             if (handle) {
                 zlistx_delete (sensors_list, handle);
@@ -198,13 +198,13 @@ data_asset_put (data_t *self, bios_proto_t **message_p)
             return;           
         }
 
-        zlistx_t *list = (zlistx_t *) zhashx_lookup (self->sensors, logical_asset);
+        zlistx_t *list = (zlistx_t *) zhashx_lookup (self->asset_sensors_map, logical_asset);
 
         if (streq (operation, BIOS_PROTO_ASSET_OP_CREATE)) {
             if (!list) {
                 list = zlistx_new ();
                 zlistx_set_destructor (list, (czmq_destructor *) bios_proto_destroy);
-                zhashx_insert (self->sensors, logical_asset, (void *) list);
+                zhashx_insert (self->asset_sensors_map, logical_asset, (void *) list);
             }
             zlistx_add_end (list, (void *) message);
             if (zhashx_lookup (self->assets, logical_asset) != NULL) {
@@ -219,7 +219,7 @@ data_asset_put (data_t *self, bios_proto_t **message_p)
 
             // remove the old one
             void *handle = NULL;
-            zlistx_t *sensors_list = (zlistx_t *) zhashx_first (self->sensors);
+            zlistx_t *sensors_list = (zlistx_t *) zhashx_first (self->asset_sensors_map);
             while (sensors_list) {
                 bios_proto_t *proto = (bios_proto_t *) zlistx_first (sensors_list);
                 while (proto) {
@@ -232,7 +232,7 @@ data_asset_put (data_t *self, bios_proto_t **message_p)
                 if (handle) {
                     break;
                 }
-                sensors_list = (zlistx_t *) zhashx_next (self->sensors);
+                sensors_list = (zlistx_t *) zhashx_next (self->asset_sensors_map);
             }
             if (handle) {
                 zlistx_delete (sensors_list, handle);
@@ -242,7 +242,7 @@ data_asset_put (data_t *self, bios_proto_t **message_p)
             if (!list) {
                 list = zlistx_new ();
                 zlistx_set_destructor (list, (czmq_destructor *) bios_proto_destroy);
-                zhashx_insert (self->sensors, logical_asset, (void *) list);
+                zhashx_insert (self->asset_sensors_map, logical_asset, (void *) list);
             }
             zlistx_add_end (list, (void *) message);
         }
@@ -332,10 +332,10 @@ data_sensor (
         return NULL;
     }
 
-    zlistx_t *sensors = (zlistx_t *) zhashx_lookup (self->sensors, asset_name);
+    zlistx_t *sensors = (zlistx_t *) zhashx_lookup (self->asset_sensors_map, asset_name);
     if (!sensors) {
         log_error (
-                "Internal structure error. Asset name '%s' stored in self->assets but not in self->sensors.",
+                "Internal structure error. Asset name '%s' stored in self->assets but not in self->asset_sensors_map.",
                 asset_name);
         return NULL;
     }
@@ -459,7 +459,7 @@ data_destroy (data_t **self_p)
     if (*self_p) {
         data_t *self = *self_p;
         //  Free class properties here
-        zhashx_destroy (&self->sensors);
+        zhashx_destroy (&self->asset_sensors_map);
         zhashx_destroy (&self->assets);
         zstr_free (&self->state_file);
         zstr_free (&self->output_dir);
