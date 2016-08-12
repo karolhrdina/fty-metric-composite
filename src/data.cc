@@ -91,16 +91,21 @@ data_asset_put (data_t *self, bios_proto_t **message_p)
         if (streq (operation, BIOS_PROTO_ASSET_OP_CREATE) ||
             streq (operation, BIOS_PROTO_ASSET_OP_UPDATE))
         {
-            // Look for the asset 
+            // Look for the asset
             bios_proto_t *asset = (bios_proto_t*) zhashx_lookup (self->assets, bios_proto_name (message));
-            if ( asset == NULL ) {
-                // if the asset was not known
-                // 1. We need to add it to the lists
-                zlistx_t *asset_sensors = zlistx_new ();
-                zlistx_set_destructor (asset_sensors, (czmq_destructor *) bios_proto_destroy);
-                zhashx_insert (self->asset_sensors_map, bios_proto_name (message), (void *) asset_sensors);
-                // 2. we need to regenerate configuration
-                self->sensors_updated = true;
+            if ( asset == NULL ) { // if the asset was not known
+                // We need to add it to the lists, but take in account, that sometimes "sensor" can come before "logicl_asset"
+                zlistx_t *asset_sensors = (zlistx_t *) zhashx_lookup (self->asset_sensors_map, bios_proto_name (message));
+                if ( asset_sensors ) {
+                    // if "sensors" already known -> then "sensor" msg arrive before "logical_asset"
+                    self->sensors_updated = true;
+                }
+                else {
+                    // if "sensors" are not know yet then add empty list and there is no need for reconfiguration
+                    asset_sensors = zlistx_new ();
+                    zlistx_set_destructor (asset_sensors, (czmq_destructor *) bios_proto_destroy);
+                    zhashx_insert (self->asset_sensors_map, bios_proto_name (message), (void *) asset_sensors);
+                }
             }
             // BIOS-2484-start : "automatically propagate sensors  in topology"
             if ( asset ) {
