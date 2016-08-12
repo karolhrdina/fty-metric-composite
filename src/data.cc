@@ -91,15 +91,18 @@ data_asset_put (data_t *self, bios_proto_t **message_p)
         if (streq (operation, BIOS_PROTO_ASSET_OP_CREATE) ||
             streq (operation, BIOS_PROTO_ASSET_OP_UPDATE))
         {
-            zlistx_t *asset_sensors = (zlistx_t *) zhashx_lookup (self->asset_sensors_map, bios_proto_name (message));
-            if (asset_sensors && zhashx_lookup (self->assets, bios_proto_name (message)) == NULL) {
-                self->sensors_updated = true;
-            }
-            if (!asset_sensors) {
-                asset_sensors = zlistx_new ();
+            // Look for the asset 
+            bios_proto_t *asset = (bios_proto_t*) zhashx_lookup (self->assets, bios_proto_name (message));
+            if ( asset == NULL ) {
+                // if the asset was not known
+                // 1. We need to add it to the lists
+                zlistx_t *asset_sensors = zlistx_new ();
                 zlistx_set_destructor (asset_sensors, (czmq_destructor *) bios_proto_destroy);
                 zhashx_insert (self->asset_sensors_map, bios_proto_name (message), (void *) asset_sensors);
+                // 2. we need to regenerate configuration
+                self->sensors_updated = true;
             }
+            // update ( or insert) information about the asset
             zhashx_update (self->assets, bios_proto_name (message), (void *) message);
         }
         else
