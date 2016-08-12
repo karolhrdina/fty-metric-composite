@@ -91,14 +91,14 @@ data_asset_put (data_t *self, bios_proto_t **message_p)
         if (streq (operation, BIOS_PROTO_ASSET_OP_CREATE) ||
             streq (operation, BIOS_PROTO_ASSET_OP_UPDATE))
         {
-            zlistx_t *list = (zlistx_t *) zhashx_lookup (self->asset_sensors_map, bios_proto_name (message));
-            if (list && zhashx_lookup (self->assets, bios_proto_name (message)) == NULL) {
+            zlistx_t *asset_sensors = (zlistx_t *) zhashx_lookup (self->asset_sensors_map, bios_proto_name (message));
+            if (asset_sensors && zhashx_lookup (self->assets, bios_proto_name (message)) == NULL) {
                 self->sensors_updated = true;
             }
-            if (!list) {
-                zlistx_t *list = zlistx_new ();
-                zlistx_set_destructor (list, (czmq_destructor *) bios_proto_destroy);
-                zhashx_insert (self->asset_sensors_map, bios_proto_name (message), (void *) list);
+            if (!asset_sensors) {
+                asset_sensors = zlistx_new ();
+                zlistx_set_destructor (asset_sensors, (czmq_destructor *) bios_proto_destroy);
+                zhashx_insert (self->asset_sensors_map, bios_proto_name (message), (void *) asset_sensors);
             }
             zhashx_update (self->assets, bios_proto_name (message), (void *) message);
         }
