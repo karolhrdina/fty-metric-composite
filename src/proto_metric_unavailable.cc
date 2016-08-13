@@ -1,21 +1,21 @@
 /*  =========================================================================
     proto_metric_unavailable - metric unavailable protocol send part
 
-    Copyright (C) 2014 - 2015 Eaton                                        
-                                                                           
-    This program is free software; you can redistribute it and/or modify   
-    it under the terms of the GNU General Public License as published by   
-    the Free Software Foundation; either version 2 of the License, or      
-    (at your option) any later version.                                    
-                                                                           
-    This program is distributed in the hope that it will be useful,        
-    but WITHOUT ANY WARRANTY; without even the implied warranty of         
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the          
-    GNU General Public License for more details.                           
-                                                                           
+    Copyright (C) 2014 - 2015 Eaton
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
     You should have received a copy of the GNU General Public License along
     with this program; if not, write to the Free Software Foundation, Inc.,
-    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.            
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
     =========================================================================
 */
 
@@ -36,7 +36,7 @@ proto_metric_unavailable_send (mlm_client_t *client, const char *topic)
 {
     assert (client);
     assert (topic);
-   
+
     zmsg_t *message = zmsg_new ();
     assert (message);
 
@@ -60,7 +60,7 @@ proto_metric_unavailable_test (bool verbose)
 
     //  @selftest
     static const char* endpoint = "inproc://proto-metric-unavailable-server-test";
-    
+
     printf (" * bios_composite_metrics_configurator_server: ");
     if (verbose)
         printf ("\n");

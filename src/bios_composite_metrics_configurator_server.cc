@@ -1,21 +1,21 @@
 /*  =========================================================================
     bios_composite_metrics_configurator_server - Composite metrics server configurator
 
-    Copyright (C) 2014 - 2015 Eaton                                        
-                                                                           
-    This program is free software; you can redistribute it and/or modify   
-    it under the terms of the GNU General Public License as published by   
-    the Free Software Foundation; either version 2 of the License, or      
-    (at your option) any later version.                                    
-                                                                           
-    This program is distributed in the hope that it will be useful,        
-    but WITHOUT ANY WARRANTY; without even the implied warranty of         
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the          
-    GNU General Public License for more details.                           
-                                                                           
+    Copyright (C) 2014 - 2015 Eaton
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
     You should have received a copy of the GNU General Public License along
     with this program; if not, write to the Free Software Foundation, Inc.,
-    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.            
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
     =========================================================================
 */
 
@@ -161,7 +161,7 @@ s_write_file (const char *fullpath, const char *contents)
 
 // Generate todo
 // 0 - success, 1 - failure
-static void 
+static void
 s_generate_and_start (const char *path_to_dir, const char *sensor_function, const char *asset_name, zlistx_t **sensors_p, std::set <std::string> &newMetricsGenerated)
 {
     assert (path_to_dir);
@@ -186,7 +186,7 @@ s_generate_and_start (const char *path_to_dir, const char *sensor_function, cons
     float temp_offset_total = 0.0, hum_offset_total = 0.0;
     int32_t temp_offset_count = 0, hum_offset_count = 0;
     bool first = true;
- 
+
     bios_proto_t *item = (bios_proto_t *) zlistx_first (sensors);
     while (item) {
         if (first) {
@@ -220,7 +220,7 @@ s_generate_and_start (const char *path_to_dir, const char *sensor_function, cons
 
     temp_in += " ]";
     hum_in += " ]";
- 
+
     static const char *json_tmpl =
                            "{\n"
                            "\"in\" : ##IN##,\n"
@@ -326,16 +326,16 @@ s_generate_and_start (const char *path_to_dir, const char *sensor_function, cons
         log_error (
                 "Creating config file '%s' failed. Service '%s' not started.",
                 fullpath.c_str (), filename.c_str ());
-    }   
+    }
     return;
-} 
+}
 
 static void
 s_regenerate (data_t *data, std::set <std::string> &metrics_unavailable)
 {
     assert (data);
     // potential unavailable metrics are those, what are now still available
-    metrics_unavailable = data_get_produced_metrics (data); 
+    metrics_unavailable = data_get_produced_metrics (data);
     // 1. Delete all files in output dir and stop/disable services
     int rv = s_remove_and_stop (data_cfgdir (data));
     if (rv != 0) {
@@ -383,7 +383,7 @@ s_regenerate (data_t *data, std::set <std::string> &metrics_unavailable)
 
 
 //  --------------------------------------------------------------------------
-//  composite metrics configurator server 
+//  composite metrics configurator server
 
 void
 bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
@@ -415,7 +415,7 @@ bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
     bool is_reconfigure_pending = false;
 
     uint64_t timestamp = (uint64_t) zclock_mono ();
-    uint64_t timeout = (uint64_t) 30000;    
+    uint64_t timeout = (uint64_t) 30000;
 
     while (!zsys_interrupted) {
         void *which = zpoller_wait (poller, timeout);
@@ -427,7 +427,7 @@ bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
                     zpoller_terminated (poller) ? "true" : "false", zsys_interrupted ? "true" : "false");
                 break;
             }
-            if (zpoller_expired (poller)) { 
+            if (zpoller_expired (poller)) {
                 if (is_reconfigure_pending) {
                     std::set <std::string> metrics_unavailable;
                     s_regenerate (data, metrics_unavailable);
@@ -462,7 +462,7 @@ bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
                     proto_metric_unavailable_send (client, one_metric.c_str());
                 }
                 is_reconfigure_pending = false;
-            }           
+            }
             timestamp = (uint64_t) zclock_mono ();
         }
 
@@ -533,7 +533,7 @@ test_asset_new (const char *name, const char *operation)
 //  Test directory contents for expected files
 //  0 - ok, 1 - failure
 
-static int 
+static int
 test_dir_contents (
         const std::string& directory,
         std::vector <std::string>& expected)
@@ -579,7 +579,7 @@ test_dir_contents (
 
 
 // Improvement memo: make expected_configs a string->string map and check the file contents
-//                   as well (or parse json). 
+//                   as well (or parse json).
 
 void
 bios_composite_metrics_configurator_server_test (bool verbose)
@@ -591,7 +591,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
         printf ("\n");
 
     //  @selftest
-    
+
     zactor_t *server = zactor_new (mlm_server, (void*) "Malamute");
     zstr_sendx (server, "BIND", endpoint, NULL);
     if (verbose)
@@ -611,9 +611,9 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zactor_t *configurator = zactor_new (bios_composite_metrics_configurator_server, NULL);
     assert (configurator);
     zclock_sleep (100);
- 
+
     zstr_sendx (configurator, "CFG_DIRECTORY", "./test_dir", NULL);
-    zstr_sendx (configurator, "STATE_FILE", "./test_state_file", NULL);   
+    zstr_sendx (configurator, "STATE_FILE", "./test_state_file", NULL);
     zstr_sendx (configurator, "CONNECT", endpoint, "configurator", NULL);
     zstr_sendx (configurator, "CONSUMER", "ASSETS", ".*", NULL);
     zstr_sendx (configurator, "PRODUCER", "_METRICS_UNAVAILABLE", ".*", NULL);
@@ -686,7 +686,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zclock_sleep (50);
 
     printf ("TRACE CREATE Rack01\n");
-    asset = test_asset_new ("Rack01", BIOS_PROTO_ASSET_OP_CREATE); // 5 
+    asset = test_asset_new ("Rack01", BIOS_PROTO_ASSET_OP_CREATE); // 5
     bios_proto_aux_insert (asset, "parent", "%s", "4");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "rack");
@@ -733,7 +733,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zclock_sleep (50);
 
     printf ("TRACE CREATE Rack03\n");
-    asset = test_asset_new ("Rack03", BIOS_PROTO_ASSET_OP_CREATE); // 9 
+    asset = test_asset_new ("Rack03", BIOS_PROTO_ASSET_OP_CREATE); // 9
     bios_proto_aux_insert (asset, "parent", "%s", "7");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "rack");
@@ -759,7 +759,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zclock_sleep (50);
 
     printf ("TRACE CREATE Rack01.ups1\n");
-    asset = test_asset_new ("Rack01.ups1", BIOS_PROTO_ASSET_OP_CREATE); // 11  
+    asset = test_asset_new ("Rack01.ups1", BIOS_PROTO_ASSET_OP_CREATE); // 11
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "ups");
     bios_proto_aux_insert (asset, "parent", "%s", "5");
@@ -1233,7 +1233,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     printf ("TRACE DELETE Sensor12\n");
     asset = test_asset_new ("Sensor12", BIOS_PROTO_ASSET_OP_DELETE);
     bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");       
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
     zmessage = bios_proto_encode (&asset);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
@@ -1308,10 +1308,10 @@ bios_composite_metrics_configurator_server_test (bool verbose)
         zlistx_set_comparator (expected_unavailable, (czmq_comparator *) strcmp);
 
 
-        zlistx_add_end (expected_unavailable, (void *) "average.humidity-input@Rack02");        
-        zlistx_add_end (expected_unavailable, (void *) "average.temperature-input@Rack02");        
-        zlistx_add_end (expected_unavailable, (void *) "average.humidity-output@Rack02");        
-        zlistx_add_end (expected_unavailable, (void *) "average.temperature-output@Rack02");        
+        zlistx_add_end (expected_unavailable, (void *) "average.humidity-input@Rack02");
+        zlistx_add_end (expected_unavailable, (void *) "average.temperature-input@Rack02");
+        zlistx_add_end (expected_unavailable, (void *) "average.humidity-output@Rack02");
+        zlistx_add_end (expected_unavailable, (void *) "average.temperature-output@Rack02");
 
         while (zlistx_size (expected_unavailable) != 0) {
             zmsg_t *message = mlm_client_recv (alert_generator);
