@@ -66,8 +66,12 @@ void bios_composite_metrics_server (zsock_t *pipe, void* args) {
         if (which == pipe) {
             zmsg_t *msg = zmsg_recv (pipe);
             char *cmd = zmsg_popstr (msg);
+            if ( verbose ) {
+                zsys_debug ("actor command=%s", cmd);
+            }
 
             if (streq (cmd, "$TERM")) {
+                zsys_info ("Got $TERM");
                 zstr_free (&cmd);
                 zmsg_destroy (&msg);
                 goto exit;
@@ -247,7 +251,7 @@ bios_composite_metrics_server_test (bool verbose)
 
     char *name = NULL;
     if(asprintf(&name, "composite-metrics-%s", "sd") < 0) {
-        printf("Can't allocate name of agent\n");
+        zsys_error ("Can't allocate name of agent");
         exit(1);
     }
 

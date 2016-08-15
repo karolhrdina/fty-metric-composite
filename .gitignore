@@ -21,11 +21,16 @@
 # Executables
 composite-metrics_selftest
 composite_metrics
+composite-metrics
 *.exe
 *.out
 *.app
 core
 generate.sh
+
+# Service units
+src/composite-metrics-configurator.cfg
+src/composite-metrics.cfg
 
 # Man pages
 doc/*.1

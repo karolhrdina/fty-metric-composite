@@ -1,21 +1,21 @@
 /*  =========================================================================
     actor_commands - actor commands
 
-    Copyright (C) 2014 - 2015 Eaton                                        
-                                                                           
-    This program is free software; you can redistribute it and/or modify   
-    it under the terms of the GNU General Public License as published by   
-    the Free Software Foundation; either version 2 of the License, or      
-    (at your option) any later version.                                    
-                                                                           
-    This program is distributed in the hope that it will be useful,        
-    but WITHOUT ANY WARRANTY; without even the implied warranty of         
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the          
-    GNU General Public License for more details.                           
-                                                                           
+    Copyright (C) 2014 - 2015 Eaton
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
     You should have received a copy of the GNU General Public License along
     with this program; if not, write to the Free Software Foundation, Inc.,
-    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.            
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
     =========================================================================
 */
 
@@ -38,7 +38,7 @@ actor_commands (
     assert (data);
 
     zmsg_t *message = *message_p;
-    
+
     char *cmd = zmsg_popstr (message);
     if (!cmd) {
         log_error (
@@ -51,6 +51,7 @@ actor_commands (
     int ret = 0;
     log_debug ("actor command = '%s'", cmd);
     if (streq (cmd, "$TERM")) {
+        log_info ("Got $TERM");
         ret = 1;
     }
     else
@@ -144,7 +145,7 @@ actor_commands (
             return 0;
         }
         data_set_statefile (data, state_file);
-        zstr_free (&state_file); 
+        zstr_free (&state_file);
     }
     else
     if (streq (cmd, "CFG_DIRECTORY")) {
@@ -158,8 +159,8 @@ actor_commands (
             return 0;
         }
         data_set_cfgdir (data, cfgdir);
-        zstr_free (&cfgdir); 
-    }   
+        zstr_free (&cfgdir);
+    }
     else {
         log_warning ("Command '%s' is unknown or not implemented", cmd);
     }
@@ -178,7 +179,7 @@ actor_commands_test (bool verbose)
 {
     printf (" * actor_commands: ");
     //  @selftest
-    
+
     static const char* endpoint = "ipc://bios-actor-commands-test";
     // malamute broker
     zactor_t *malamute = zactor_new (mlm_server, (void*) "Malamute");
@@ -192,7 +193,7 @@ actor_commands_test (bool verbose)
 
     zmsg_t *message = NULL;
     data_t *data = data_new ();
-   
+
     // empty message - expected fail
     message = zmsg_new ();
     assert (message);
@@ -206,10 +207,10 @@ actor_commands_test (bool verbose)
     // empty string - expected fail
     message = zmsg_new ();
     assert (message);
-    zmsg_addstr (message, "");   
+    zmsg_addstr (message, "");
     rv = actor_commands (client, &message, data);
     assert (rv == 0);
-    assert (message == NULL);  
+    assert (message == NULL);
     assert (streq (data_statefile (data), ""));
     assert (streq (data_cfgdir (data), ""));
 
@@ -217,10 +218,10 @@ actor_commands_test (bool verbose)
     // unknown command - expected fail
     message = zmsg_new ();
     assert (message);
-    zmsg_addstr (message, "MAGIC!");   
+    zmsg_addstr (message, "MAGIC!");
     rv = actor_commands (client, &message, data);
     assert (rv == 0);
-    assert (message == NULL);  
+    assert (message == NULL);
     assert (streq (data_statefile (data), ""));
     assert (streq (data_cfgdir (data), ""));
 
@@ -247,7 +248,7 @@ actor_commands_test (bool verbose)
     assert (message == NULL);
     assert (streq (data_statefile (data), ""));
     assert (streq (data_cfgdir (data), ""));
- 
+
     // --------------------------------------------------------------
     // STATE_FILE - expected fail
     message = zmsg_new ();
@@ -259,7 +260,7 @@ actor_commands_test (bool verbose)
     assert (message == NULL);
     assert (streq (data_statefile (data), ""));
     assert (streq (data_cfgdir (data), ""));
- 
+
     // --------------------------------------------------------------
     // STATE_FILE - expected fail
     message = zmsg_new ();
@@ -324,7 +325,7 @@ actor_commands_test (bool verbose)
     // CONNECT - expected fail
     message = zmsg_new ();
     assert (message);
-    zmsg_addstr (message, "CONNECT");   
+    zmsg_addstr (message, "CONNECT");
     zmsg_addstr (message, endpoint);
     // missing name here
     rv = actor_commands (client, &message, data);
@@ -336,24 +337,24 @@ actor_commands_test (bool verbose)
     // CONNECT - expected fail
     message = zmsg_new ();
     assert (message);
-    zmsg_addstr (message, "CONNECT");   
+    zmsg_addstr (message, "CONNECT");
     // missing endpoint here
     // missing name here
     rv = actor_commands (client, &message, data);
     assert (rv == 0);
-    assert (message == NULL);  
+    assert (message == NULL);
     assert (streq (data_statefile (data), ""));
 
     // --------------------------------------------------------------
     // CONNECT - expected fail; bad endpoint
     message = zmsg_new ();
     assert (message);
-    zmsg_addstr (message, "CONNECT");   
+    zmsg_addstr (message, "CONNECT");
     zmsg_addstr (message, "ipc://bios-smtp-server-BAD");
     zmsg_addstr (message, "test-agent");
     rv = actor_commands (client, &message, data);
     assert (rv == 0);
-    assert (message == NULL);  
+    assert (message == NULL);
     assert (streq (data_statefile (data), ""));
 
     // --------------------------------------------------------------
@@ -361,7 +362,7 @@ actor_commands_test (bool verbose)
     message = zmsg_new ();
     assert (message);
     zmsg_addstr (message, "CONSUMER");
-    zmsg_addstr (message, "some-stream");   
+    zmsg_addstr (message, "some-stream");
     // missing pattern here
     rv = actor_commands (client, &message, data);
     assert (rv == 0);
@@ -402,7 +403,7 @@ actor_commands_test (bool verbose)
     // $TERM
     message = zmsg_new ();
     assert (message);
-    zmsg_addstr (message, "$TERM");   
+    zmsg_addstr (message, "$TERM");
     rv = actor_commands (client2, &message, data);
     assert (rv == 1);
     assert (message == NULL);
@@ -412,9 +413,9 @@ actor_commands_test (bool verbose)
     // CONNECT
     message = zmsg_new ();
     assert (message);
-    zmsg_addstr (message, "CONNECT");   
+    zmsg_addstr (message, "CONNECT");
     zmsg_addstr (message, endpoint);
-    zmsg_addstr (message, "test-agent");   
+    zmsg_addstr (message, "test-agent");
     rv = actor_commands (client2, &message, data);
     assert (rv == 0);
     assert (message == NULL);
@@ -425,8 +426,8 @@ actor_commands_test (bool verbose)
     message = zmsg_new ();
     assert (message);
     zmsg_addstr (message, "CONSUMER");
-    zmsg_addstr (message, "some-stream");   
-    zmsg_addstr (message, ".+@.+");   
+    zmsg_addstr (message, "some-stream");
+    zmsg_addstr (message, ".+@.+");
     rv = actor_commands (client2, &message, data);
     assert (rv == 0);
     assert (message == NULL);
@@ -437,7 +438,7 @@ actor_commands_test (bool verbose)
     message = zmsg_new ();
     assert (message);
     zmsg_addstr (message, "PRODUCER");
-    zmsg_addstr (message, "some-stream");   
+    zmsg_addstr (message, "some-stream");
     rv = actor_commands (client2, &message, data);
     assert (rv == 0);
     assert (message == NULL);
@@ -479,7 +480,7 @@ actor_commands_test (bool verbose)
 
 
     zmsg_destroy (&message);
-    data_destroy (&data); 
+    data_destroy (&data);
     mlm_client_destroy (&client2);
     zactor_destroy (&malamute);
     //  @end

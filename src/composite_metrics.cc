@@ -47,7 +47,7 @@ main (int argc, char** argv) {
     char *tmp_arg = strdup(argv[1]);
     char *name;
     if(asprintf(&name, "composite-metrics-%s", basename(tmp_arg)) < 0) {
-        printf("Can't allocate name of agent\n");
+        zsys_error("Can't allocate name of agent\n");
         exit(1);
     }
     zactor_t *cm_server = zactor_new (bios_composite_metrics_server, (void*) name);

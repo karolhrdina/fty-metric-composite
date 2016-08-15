@@ -1,21 +1,21 @@
 /*  =========================================================================
     data - composite metrics data structure
 
-    Copyright (C) 2014 - 2015 Eaton                                        
-                                                                           
-    This program is free software; you can redistribute it and/or modify   
-    it under the terms of the GNU General Public License as published by   
-    the Free Software Foundation; either version 2 of the License, or      
-    (at your option) any later version.                                    
-                                                                           
-    This program is distributed in the hope that it will be useful,        
-    but WITHOUT ANY WARRANTY; without even the implied warranty of         
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the          
-    GNU General Public License for more details.                           
-                                                                           
+    Copyright (C) 2014 - 2015 Eaton
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
     You should have received a copy of the GNU General Public License along
     with this program; if not, write to the Free Software Foundation, Inc.,
-    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.            
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
     =========================================================================
 */
 
@@ -59,14 +59,14 @@ data_new (void)
     //  sensors_updated
     self->sensors_updated = false;
     //  state_file
-    self->state_file = strdup (""); 
+    self->state_file = strdup ("");
     //  output_dir
     self->output_dir = strdup ("");
     return self;
 }
 
 //  --------------------------------------------------------------------------
-//  Store asset 
+//  Store asset
 
 void
 data_asset_put (data_t *self, bios_proto_t **message_p)
@@ -198,7 +198,7 @@ data_asset_put (data_t *self, bios_proto_t **message_p)
                     "parent", "aux", bios_proto_name (message));
             bios_proto_destroy (message_p);
             *message_p = NULL;
-            return;           
+            return;
         }
         if (!parent_name) {
             log_error (
@@ -207,7 +207,7 @@ data_asset_put (data_t *self, bios_proto_t **message_p)
                     "parent_name", "ext", bios_proto_name (message));
             bios_proto_destroy (message_p);
             *message_p = NULL;
-            return;           
+            return;
         }
         if (!port) {
             log_error (
@@ -216,7 +216,7 @@ data_asset_put (data_t *self, bios_proto_t **message_p)
                     "port", "ext", bios_proto_name (message));
             bios_proto_destroy (message_p);
             *message_p = NULL;
-            return;           
+            return;
         }
 
         zlistx_t *list = (zlistx_t *) zhashx_lookup (self->asset_sensors_map, logical_asset);
@@ -368,10 +368,10 @@ data_sensor (
     while (item) {
         assert (streq (asset_name, bios_proto_ext_string (item, "logical_asset", "")));
         if (!sensor_function) {
-            zlistx_add_end (list, (void *) item); 
+            zlistx_add_end (list, (void *) item);
         }
         else if (streq (sensor_function, bios_proto_ext_string (item, "sensor_function", ""))) {
-            zlistx_add_end (list, (void *) item); 
+            zlistx_add_end (list, (void *) item);
         }
         item = (bios_proto_t *) zlistx_next (sensors);
     }
@@ -431,7 +431,7 @@ data_cfgdir (data_t *self)
 
 //  --------------------------------------------------------------------------
 //  Set configuration directory path
-//  0 - success, -1 - error 
+//  0 - success, -1 - error
 
 int
 data_set_cfgdir (data_t *self, const char *path)
@@ -509,11 +509,11 @@ test_asset_new (const char *name, const char *operation)
 }
 
 //  Helper test function
-//  0 - same, 1 - different  
+//  0 - same, 1 - different
 static int
 test_zlistx_compare (zlistx_t *expected, zlistx_t **received_p, int print = 0)
 {
-    assert (expected); 
+    assert (expected);
     assert (received_p && *received_p);
 
     zlistx_t *received = *received_p;
@@ -558,19 +558,19 @@ data_test (bool verbose)
     printf (" * data: \n");
 
     //  @selftest
-    //  Simple create/destroy test    
+    //  Simple create/destroy test
     data_t *self = data_new ();
     assert (self);
-    
+
     data_destroy (&self);
     assert (self == NULL);
-    
+
     data_destroy (&self);
     assert (self == NULL);
-    
+
     self = data_new ();
 
-    // data_statefile () 
+    // data_statefile ()
     // data_set_statefile ()
     {
     const char *state_file = data_statefile (self);
@@ -580,7 +580,7 @@ data_test (bool verbose)
     assert (rv == 0);
     state_file = data_statefile (self);
     assert (streq (state_file, "./state_file"));
-    
+
     rv = data_set_statefile (self, "/tmp/composite-metrics/state_file");
     assert (rv == 0);
     state_file = data_statefile (self);
@@ -697,7 +697,7 @@ data_test (bool verbose)
     }
 
     printf ("TRACE CREATE Rack01\n");
-    asset = test_asset_new ("Rack01", BIOS_PROTO_ASSET_OP_CREATE); // 5 
+    asset = test_asset_new ("Rack01", BIOS_PROTO_ASSET_OP_CREATE); // 5
     bios_proto_aux_insert (asset, "parent", "%s", "4");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "rack");
@@ -741,7 +741,7 @@ data_test (bool verbose)
     assert (data_asset_sensors_changed (self) == false);
 
     printf ("TRACE CREATE Rack03\n");
-    asset = test_asset_new ("Rack03", BIOS_PROTO_ASSET_OP_CREATE); // 9 
+    asset = test_asset_new ("Rack03", BIOS_PROTO_ASSET_OP_CREATE); // 9
     bios_proto_aux_insert (asset, "parent", "%s", "7");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "rack");
@@ -765,12 +765,12 @@ data_test (bool verbose)
     assert (data_asset_sensors_changed (self) == false);
 
     printf ("TRACE CREATE Rack01.ups1\n");
-    asset = test_asset_new ("Rack01.ups1", BIOS_PROTO_ASSET_OP_CREATE); // 11  
+    asset = test_asset_new ("Rack01.ups1", BIOS_PROTO_ASSET_OP_CREATE); // 11
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "ups");
     bios_proto_aux_insert (asset, "parent", "%s", "5");
     bios_proto_ext_insert (asset, "abc.d", "%s", " ups string 1");
-    data_asset_put (self, &asset); 
+    data_asset_put (self, &asset);
     assert (data_asset_sensors_changed (self) == false);
 
     printf ("TRACE CREATE Sensor02\n");
@@ -999,7 +999,7 @@ data_test (bool verbose)
 
         int rv = test_zlistx_compare (assets_expected, &received, 1);
         assert (rv == 0);
-        
+
         asset = data_asset (self, "DC-Rozskoky");
         assert (asset);
         assert (streq (bios_proto_aux_string (asset, "type", ""), "datacenter"));
@@ -1132,7 +1132,7 @@ data_test (bool verbose)
             assert (streq (bios_proto_ext_string (item, "calibration_offset_t", ""), "2.0"));
             assert (streq (bios_proto_ext_string (item, "calibration_offset_h", ""), "2.0"));
             item = (bios_proto_t *) zlistx_next (sensors);
-        }       
+        }
         zlistx_destroy (&sensors);
 
         sensors = data_sensor (self, "Rack02", "input");
@@ -1217,7 +1217,7 @@ data_test (bool verbose)
             assert (streq (bios_proto_ext_string (item, "calibration_offset_h", ""), "0"));
 
         }
-        zlistx_destroy (&sensors);    
+        zlistx_destroy (&sensors);
 
         sensors = data_sensor (self, "Rack01", "input");
         assert (zlistx_size (sensors) == 3);
@@ -1247,7 +1247,7 @@ data_test (bool verbose)
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "ups");
     bios_proto_aux_insert (asset, "parent", "%s", "10");
-    data_asset_put (self, &asset); 
+    data_asset_put (self, &asset);
     assert (data_asset_sensors_changed (self) == false);
 
     printf ("TRACE UPDATE Sensor01\n");
@@ -1409,7 +1409,7 @@ data_test (bool verbose)
     printf ("TRACE DELETE Sensor12\n");
     asset = test_asset_new ("Sensor12", BIOS_PROTO_ASSET_OP_DELETE);
     bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");       
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
     data_asset_put (self, &asset);
     assert (data_asset_sensors_changed (self) == true);
 
@@ -1451,7 +1451,7 @@ data_test (bool verbose)
         assert (received);
         int rv = test_zlistx_compare (assets_expected, &received, 1);
         assert (rv == 0);
-        
+
         asset = data_asset (self, "ups2");
         assert (asset == NULL);
 
@@ -1521,13 +1521,13 @@ data_test (bool verbose)
             assert (streq (bios_proto_ext_string (item, "sensor_function", ""), "output"));
             assert (streq (bios_proto_ext_string (item, "calibration_offset_t", ""), "-1.2"));
             assert (streq (bios_proto_ext_string (item, "calibration_offset_h", ""), "-1.4"));
-            item = (bios_proto_t *) zlistx_next (sensors);           
+            item = (bios_proto_t *) zlistx_next (sensors);
         }
         zlistx_destroy (&sensors);
 
         sensors = data_sensor (self, "Lazer game", "input");
         assert (zlistx_size (sensors) == 0);
-        zlistx_destroy (&sensors);       
+        zlistx_destroy (&sensors);
 
         sensors = data_sensor (self, "Lazer game", "output");
         assert (zlistx_size (sensors) == 1);
@@ -1660,7 +1660,7 @@ data_test (bool verbose)
             assert (streq (bios_proto_ext_string (item, "calibration_offset_t", ""), ""));
             assert (streq (bios_proto_ext_string (item, "calibration_offset_h", ""), "-0.16"));
         }
-        zlistx_destroy (&sensors);   
+        zlistx_destroy (&sensors);
 
         sensors = data_sensor (self, "Rack01", "output");
         assert (zlistx_size (sensors) == 2);
@@ -1670,8 +1670,8 @@ data_test (bool verbose)
             item = (bios_proto_t *) zlistx_next (sensors);
             assert (streq (bios_proto_name (item), "Sensor10"));
             item = (bios_proto_t *) zlistx_next (sensors);
-        }        
-        zlistx_destroy (&sensors);   
+        }
+        zlistx_destroy (&sensors);
 
         sensors = data_sensor (self, "Rack01", "input");
         assert (zlistx_size (sensors) == 2);
@@ -1682,7 +1682,7 @@ data_test (bool verbose)
             assert (streq (bios_proto_name (item), "Sensor02"));
             item = (bios_proto_t *) zlistx_next (sensors);
         }
-        zlistx_destroy (&sensors);   
+        zlistx_destroy (&sensors);
     }
 
     printf ("TRACE DELETE Sensor15\n");
@@ -1723,7 +1723,7 @@ data_test (bool verbose)
     bios_proto_aux_insert (asset, "subtype", "%s", "rack controller");
     bios_proto_aux_insert (asset, "parent", "%s", "5");
     bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01");
-    data_asset_put (self, &asset); 
+    data_asset_put (self, &asset);
     assert (data_asset_sensors_changed (self) == false);
 
     printf ("TRACE ---===### (Test block -3-) ###===---\n");
@@ -1778,7 +1778,7 @@ data_test (bool verbose)
 
         asset = data_asset (self, "Curie.Row02");
         assert (asset == NULL);
- 
+
         sensors = data_sensor (self, "Curie.Row02", NULL);
         assert (sensors == NULL);
     }
