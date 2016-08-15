@@ -102,18 +102,6 @@ void data_reassign_sensors (data_t *self)
         //
         // TODO BIOS-2484: end
 
-        // find detailed information about logical asset
-        bios_proto_t *logical_asset = (bios_proto_t *) zhashx_lookup (self->all_assets, logical_asset_name);
-        // Check for errors
-        if ( logical_asset == NULL ) {
-            // If detailed information about logical asset was not found
-            // It can happen if:
-            //  * reconfiguration started before detailed "logical_asset" message arrived
-            //  * something is really wrong!
-            //  TODO
-            //  break return continue
-        }
-
         // So, now let us put our sensor to the right place
 
         // Find already assigned sensors
@@ -131,6 +119,18 @@ void data_reassign_sensors (data_t *self)
         // TODO BIOS-2484: start - propagate sensor in physical topology 
         // (need to add sensor to all "parents" of the logical asset)
         //
+        // find detailed information about logical asset
+//        bios_proto_t *logical_asset = (bios_proto_t *) zhashx_lookup (self->all_assets, logical_asset_name);
+        // Check for errors
+//        if ( logical_asset == NULL ) {
+            // If detailed information about logical asset was not found
+            // It can happen if:
+            //  * reconfiguration started before detailed "logical_asset" message arrived
+            //  * something is really wrong!
+            //  TODO
+            //  break return continue
+//        }
+
         // TODO BIOS-2484: end
 
         // at this point configuration of this sensor is done
