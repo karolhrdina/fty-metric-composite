@@ -110,8 +110,8 @@ data_asset_put (data_t *self, bios_proto_t **message_p)
             // BIOS-2484-start : "automatically propagate sensors  in topology"
             if ( asset ) {
                 // if asset is known we need to check, if physical topology changed
-                if ( streq (bios_proto_aux_string (asset, "parent_name1", ""),
-                            bios_proto_aux_string (message, "parent_name1", "")
+                if ( streq (bios_proto_aux_string (asset, "parent_name.1", ""),
+                            bios_proto_aux_string (message, "parent_name.1", "")
                            )
                    ) {
                     // 1. TODO
@@ -180,7 +180,7 @@ data_asset_put (data_t *self, bios_proto_t **message_p)
         const char *logical_asset = bios_proto_ext_string (message, "logical_asset", NULL);
         const char *parent = bios_proto_aux_string (message, "parent", NULL);
         const char *port = bios_proto_ext_string (message, "port", NULL);
-        const char *parent_name = bios_proto_aux_string (message, "parent_name1", NULL);
+        const char *parent_name = bios_proto_aux_string (message, "parent_name.1", NULL);
 
         if (!logical_asset) {
             log_error (
@@ -204,7 +204,7 @@ data_asset_put (data_t *self, bios_proto_t **message_p)
             log_error (
                     "Attribute '%s' is missing from '%s' field of message where asset name = '%s'. "
                     "This message is not stored.",
-                    "parent_name1", "ext", bios_proto_name (message));
+                    "parent_name.1", "ext", bios_proto_name (message));
             bios_proto_destroy (message_p);
             *message_p = NULL;
             return;
@@ -675,7 +675,7 @@ data_test (bool verbose)
     printf ("TRACE CREATE Sensor01\n");
     asset = test_asset_new ("Sensor01", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
-    bios_proto_aux_insert (asset, "parent_name1", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -776,7 +776,7 @@ data_test (bool verbose)
     printf ("TRACE CREATE Sensor02\n");
     asset = test_asset_new ("Sensor02", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
-    bios_proto_aux_insert (asset, "parent_name1", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -792,7 +792,7 @@ data_test (bool verbose)
     printf ("TRACE CREATE Sensor03\n");
     asset = test_asset_new ("Sensor03", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
-    bios_proto_aux_insert (asset, "parent_name1", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -809,7 +809,7 @@ data_test (bool verbose)
     printf ("TRACE CREATE Sensor04\n");
     asset = test_asset_new ("Sensor04", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
-    bios_proto_aux_insert (asset, "parent_name1", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -825,7 +825,7 @@ data_test (bool verbose)
     printf ("TRACE CREATE Sensor05\n");
     asset = test_asset_new ("Sensor05", BIOS_PROTO_ASSET_OP_CREATE);
     // parent missing
-    bios_proto_aux_insert (asset, "parent_name1", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -841,7 +841,7 @@ data_test (bool verbose)
     printf ("TRACE CREATE Sensor06\n");
     asset = test_asset_new ("Sensor06", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
-    // parent_name1 missing
+    // parent_name.1 missing
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -857,7 +857,7 @@ data_test (bool verbose)
     printf ("TRACE CREATE Sensor07\n");
     asset = test_asset_new ("Sensor07", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
-    bios_proto_aux_insert (asset, "parent_name1", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -873,7 +873,7 @@ data_test (bool verbose)
     printf ("TRACE CREATE Sensor08\n");
     asset = test_asset_new ("Sensor08", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
-    bios_proto_aux_insert (asset, "parent_name1", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -889,7 +889,7 @@ data_test (bool verbose)
     printf ("TRACE CREATE Sensor09\n");
     asset = test_asset_new ("Sensor09", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
-    bios_proto_aux_insert (asset, "parent_name1", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -905,7 +905,7 @@ data_test (bool verbose)
     printf ("TRACE CREATE Sensor10\n");
     asset = test_asset_new ("Sensor10", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
-    bios_proto_aux_insert (asset, "parent_name1", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -919,7 +919,7 @@ data_test (bool verbose)
     printf ("TRACE CREATE Sensor11\n");
     asset = test_asset_new ("Sensor11", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
-    bios_proto_aux_insert (asset, "parent_name1", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -935,7 +935,7 @@ data_test (bool verbose)
     printf ("TRACE CREATE Sensor12\n");
     asset = test_asset_new ("Sensor12", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
-    bios_proto_aux_insert (asset, "parent_name1", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -950,7 +950,7 @@ data_test (bool verbose)
     printf ("TRACE CREATE Sensor13\n");
     asset = test_asset_new ("Sensor13", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
-    bios_proto_aux_insert (asset, "parent_name1", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -966,7 +966,7 @@ data_test (bool verbose)
     printf ("TRACE CREATE Sensor14\n");
     asset = test_asset_new ("Sensor14", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
-    bios_proto_aux_insert (asset, "parent_name1", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -979,7 +979,7 @@ data_test (bool verbose)
     printf ("TRACE CREATE Sensor15\n");
     asset = test_asset_new ("Sensor15", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
-    bios_proto_aux_insert (asset, "parent_name1", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -1048,7 +1048,7 @@ data_test (bool verbose)
         {
             bios_proto_t *item = (bios_proto_t *) zlistx_first (sensors);
             assert (streq (bios_proto_name (item), "Sensor14"));
-            assert (streq (bios_proto_aux_string (item, "parent_name1", ""), "Rack01.ups1"));
+            assert (streq (bios_proto_aux_string (item, "parent_name.1", ""), "Rack01.ups1"));
             assert (streq (bios_proto_ext_string (item, "port", ""), "TH10"));
             assert (streq (bios_proto_ext_string (item, "vertical_position", ""), "bottom"));
             assert (streq (bios_proto_ext_string (item, "sensor_function", ""), ""));
@@ -1076,7 +1076,7 @@ data_test (bool verbose)
         {
             bios_proto_t *item = (bios_proto_t *) zlistx_first (sensors);
             assert (streq (bios_proto_name (item), "Sensor13"));
-            assert (streq (bios_proto_aux_string (item, "parent_name1", ""), "Rack01.ups1"));
+            assert (streq (bios_proto_aux_string (item, "parent_name.1", ""), "Rack01.ups1"));
             assert (streq (bios_proto_ext_string (item, "port", ""), "TH9"));
             assert (streq (bios_proto_ext_string (item, "vertical_position", ""), "top"));
             assert (streq (bios_proto_ext_string (item, "sensor_function", ""), "input"));
@@ -1085,7 +1085,7 @@ data_test (bool verbose)
             item = (bios_proto_t *) zlistx_next (sensors);
 
             assert (streq (bios_proto_name (item), "Sensor15"));
-            assert (streq (bios_proto_aux_string (item, "parent_name1", ""), "Rack01.ups1"));
+            assert (streq (bios_proto_aux_string (item, "parent_name.1", ""), "Rack01.ups1"));
             assert (streq (bios_proto_ext_string (item, "port", ""), "TH11"));
             assert (streq (bios_proto_ext_string (item, "vertical_position", ""), "middle"));
             assert (streq (bios_proto_ext_string (item, "sensor_function", ""), "output"));
@@ -1116,7 +1116,7 @@ data_test (bool verbose)
         {
             bios_proto_t *item = (bios_proto_t *) zlistx_first (sensors);
             assert (streq (bios_proto_name (item), "Sensor08"));
-            assert (streq (bios_proto_aux_string (item, "parent_name1", ""), "Rack01.ups1"));
+            assert (streq (bios_proto_aux_string (item, "parent_name.1", ""), "Rack01.ups1"));
             assert (streq (bios_proto_ext_string (item, "port", ""), "TH4"));
             assert (streq (bios_proto_ext_string (item, "vertical_position", ""), "bottom"));
             assert (streq (bios_proto_ext_string (item, "sensor_function", ""), "input"));
@@ -1125,7 +1125,7 @@ data_test (bool verbose)
             item = (bios_proto_t *) zlistx_next (sensors);
 
             assert (streq (bios_proto_name (item), "Sensor09"));
-            assert (streq (bios_proto_aux_string (item, "parent_name1", ""), "Rack01.ups1"));
+            assert (streq (bios_proto_aux_string (item, "parent_name.1", ""), "Rack01.ups1"));
             assert (streq (bios_proto_ext_string (item, "port", ""), "TH5"));
             assert (streq (bios_proto_ext_string (item, "vertical_position", ""), "top"));
             assert (streq (bios_proto_ext_string (item, "sensor_function", ""), "output"));
@@ -1164,7 +1164,7 @@ data_test (bool verbose)
         {
             bios_proto_t *item = (bios_proto_t *) zlistx_first (sensors);
             assert (streq (bios_proto_name (item), "Sensor01"));
-            assert (streq (bios_proto_aux_string (item, "parent_name1", ""), "Rack01.ups1"));
+            assert (streq (bios_proto_aux_string (item, "parent_name.1", ""), "Rack01.ups1"));
             assert (streq (bios_proto_ext_string (item, "port", ""), "TH1"));
             assert (streq (bios_proto_ext_string (item, "vertical_position", ""), "bottom"));
             assert (streq (bios_proto_ext_string (item, "sensor_function", ""), "input"));
@@ -1173,7 +1173,7 @@ data_test (bool verbose)
 
             item = (bios_proto_t *) zlistx_next (sensors);
             assert (streq (bios_proto_name (item), "Sensor02"));
-            assert (streq (bios_proto_aux_string (item, "parent_name1", ""), "Rack01.ups1"));
+            assert (streq (bios_proto_aux_string (item, "parent_name.1", ""), "Rack01.ups1"));
             assert (streq (bios_proto_ext_string (item, "port", ""), "TH2"));
             assert (streq (bios_proto_ext_string (item, "vertical_position", ""), "bottom"));
             assert (streq (bios_proto_ext_string (item, "sensor_function", ""), "input"));
@@ -1182,7 +1182,7 @@ data_test (bool verbose)
 
             item = (bios_proto_t *) zlistx_next (sensors);
             assert (streq (bios_proto_name (item), "Sensor03"));
-            assert (streq (bios_proto_aux_string (item, "parent_name1", ""), "Rack01.ups1"));
+            assert (streq (bios_proto_aux_string (item, "parent_name.1", ""), "Rack01.ups1"));
             assert (streq (bios_proto_ext_string (item, "port", ""), "TH3"));
             assert (streq (bios_proto_ext_string (item, "vertical_position", ""), "middle"));
             assert (streq (bios_proto_ext_string (item, "sensor_function", ""), "input"));
@@ -1191,7 +1191,7 @@ data_test (bool verbose)
 
             item = (bios_proto_t *) zlistx_next (sensors);
             assert (streq (bios_proto_name (item), "Sensor10"));
-            assert (streq (bios_proto_aux_string (item, "parent_name1", ""), "Rack01.ups1"));
+            assert (streq (bios_proto_aux_string (item, "parent_name.1", ""), "Rack01.ups1"));
             assert (streq (bios_proto_ext_string (item, "port", ""), "TH6"));
             assert (streq (bios_proto_ext_string (item, "vertical_position", ""), "top"));
             assert (streq (bios_proto_ext_string (item, "sensor_function", ""), "output"));
@@ -1200,7 +1200,7 @@ data_test (bool verbose)
 
             item = (bios_proto_t *) zlistx_next (sensors);
             assert (streq (bios_proto_name (item), "Sensor11"));
-            assert (streq (bios_proto_aux_string (item, "parent_name1", ""), "Rack01.ups1"));
+            assert (streq (bios_proto_aux_string (item, "parent_name.1", ""), "Rack01.ups1"));
             assert (streq (bios_proto_ext_string (item, "port", ""), "TH7"));
             assert (streq (bios_proto_ext_string (item, "vertical_position", ""), "top"));
             assert (streq (bios_proto_ext_string (item, "sensor_function", ""), "output"));
@@ -1209,7 +1209,7 @@ data_test (bool verbose)
 
             item = (bios_proto_t *) zlistx_next (sensors);
             assert (streq (bios_proto_name (item), "Sensor12"));
-            assert (streq (bios_proto_aux_string (item, "parent_name1", ""), "Rack01.ups1"));
+            assert (streq (bios_proto_aux_string (item, "parent_name.1", ""), "Rack01.ups1"));
             assert (streq (bios_proto_ext_string (item, "port", ""), "TH8"));
             assert (streq (bios_proto_ext_string (item, "vertical_position", ""), ""));
             assert (streq (bios_proto_ext_string (item, "sensor_function", ""), "neuvedeno"));
@@ -1253,7 +1253,7 @@ data_test (bool verbose)
     printf ("TRACE UPDATE Sensor01\n");
     asset = test_asset_new ("Sensor01", BIOS_PROTO_ASSET_OP_UPDATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
-    bios_proto_aux_insert (asset, "parent_name1", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -1268,7 +1268,7 @@ data_test (bool verbose)
     printf ("TRACE UPDATE Sensor02\n");
     asset = test_asset_new ("Sensor02", BIOS_PROTO_ASSET_OP_UPDATE);
     bios_proto_aux_insert (asset, "parent", "%s", "12");
-    bios_proto_aux_insert (asset, "parent_name1", "%s", "ups2");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "ups2");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -1284,7 +1284,7 @@ data_test (bool verbose)
     printf ("TRACE UPDATE Sensor03\n");
     asset = test_asset_new ("Sensor03", BIOS_PROTO_ASSET_OP_UPDATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
-    bios_proto_aux_insert (asset, "parent_name1", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -1297,7 +1297,7 @@ data_test (bool verbose)
     printf ("TRACE UPDATE Sensor10\n");
     asset = test_asset_new ("Sensor10", BIOS_PROTO_ASSET_OP_UPDATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
-    bios_proto_aux_insert (asset, "parent_name1", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -1319,7 +1319,7 @@ data_test (bool verbose)
     printf ("TRACE UPDATE Sensor08\n");
     asset = test_asset_new ("Sensor08", BIOS_PROTO_ASSET_OP_UPDATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
-    bios_proto_aux_insert (asset, "parent_name1", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -1335,7 +1335,7 @@ data_test (bool verbose)
     printf ("TRACE UPDATE Sensor09\n");
     asset = test_asset_new ("Sensor09", BIOS_PROTO_ASSET_OP_UPDATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
-    bios_proto_aux_insert (asset, "parent_name1", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -1349,7 +1349,7 @@ data_test (bool verbose)
     printf ("TRACE UPDATE Sensor04\n");
     asset = test_asset_new ("Sensor04", BIOS_PROTO_ASSET_OP_UPDATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
-    bios_proto_aux_insert (asset, "parent_name1", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -1363,7 +1363,7 @@ data_test (bool verbose)
     printf ("TRACE UPDATE Sensor05\n");
     asset = test_asset_new ("Sensor05", BIOS_PROTO_ASSET_OP_UPDATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
-    bios_proto_aux_insert (asset, "parent_name1", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -1379,7 +1379,7 @@ data_test (bool verbose)
     printf ("TRACE UPDATE Sensor06\n");
     asset = test_asset_new ("Sensor06", BIOS_PROTO_ASSET_OP_UPDATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
-    bios_proto_aux_insert (asset, "parent_name1", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -1394,7 +1394,7 @@ data_test (bool verbose)
     printf ("TRACE UPDATE Sensor07\n");
     asset = test_asset_new ("Sensor07", BIOS_PROTO_ASSET_OP_UPDATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
-    bios_proto_aux_insert (asset, "parent_name1", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -1416,7 +1416,7 @@ data_test (bool verbose)
     printf ("TRACE UPDATE Sensor14\n");
     asset = test_asset_new ("Sensor14", BIOS_PROTO_ASSET_OP_UPDATE);
     bios_proto_aux_insert (asset, "parent", "%s", "12");
-    bios_proto_aux_insert (asset, "parent_name1", "%s", "ups2");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "ups2");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -1428,7 +1428,7 @@ data_test (bool verbose)
     printf ("TRACE UPDATE Sensor15\n");
     asset = test_asset_new ("Sensor15", BIOS_PROTO_ASSET_OP_UPDATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
-    bios_proto_aux_insert (asset, "parent_name1", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -1466,7 +1466,7 @@ data_test (bool verbose)
         {
             bios_proto_t *item = (bios_proto_t *) zlistx_first (sensors);
             assert (streq (bios_proto_name (item), "Sensor08"));
-            assert (streq (bios_proto_aux_string (item, "parent_name1", ""), "Rack01.ups1"));
+            assert (streq (bios_proto_aux_string (item, "parent_name.1", ""), "Rack01.ups1"));
             assert (streq (bios_proto_ext_string (item, "port", ""), "TH4"));
             assert (streq (bios_proto_ext_string (item, "vertical_position", ""), "middle"));
             assert (streq (bios_proto_ext_string (item, "sensor_function", ""), "input"));
@@ -1475,7 +1475,7 @@ data_test (bool verbose)
             item = (bios_proto_t *) zlistx_next (sensors);
 
             assert (streq (bios_proto_name (item), "Sensor05"));
-            assert (streq (bios_proto_aux_string (item, "parent_name1", ""), "Rack01.ups1"));
+            assert (streq (bios_proto_aux_string (item, "parent_name.1", ""), "Rack01.ups1"));
             assert (streq (bios_proto_ext_string (item, "port", ""), "TH13"));
             assert (streq (bios_proto_ext_string (item, "vertical_position", ""), "top"));
             assert (streq (bios_proto_ext_string (item, "sensor_function", ""), "output"));
@@ -1506,7 +1506,7 @@ data_test (bool verbose)
         {
             bios_proto_t *item = (bios_proto_t *) zlistx_first (sensors);
             assert (streq (bios_proto_name (item), "Sensor04"));
-            assert (streq (bios_proto_aux_string (item, "parent_name1", ""), "Rack01.ups1"));
+            assert (streq (bios_proto_aux_string (item, "parent_name.1", ""), "Rack01.ups1"));
             assert (streq (bios_proto_ext_string (item, "port", ""), "TH12"));
             assert (streq (bios_proto_ext_string (item, "vertical_position", ""), ""));
             assert (streq (bios_proto_ext_string (item, "sensor_function", ""), ""));
@@ -1515,7 +1515,7 @@ data_test (bool verbose)
             item = (bios_proto_t *) zlistx_next (sensors);
 
             assert (streq (bios_proto_name (item), "Sensor06"));
-            assert (streq (bios_proto_aux_string (item, "parent_name1", ""), "Rack01.ups1"));
+            assert (streq (bios_proto_aux_string (item, "parent_name.1", ""), "Rack01.ups1"));
             assert (streq (bios_proto_ext_string (item, "port", ""), "TH14"));
             assert (streq (bios_proto_ext_string (item, "vertical_position", ""), ""));
             assert (streq (bios_proto_ext_string (item, "sensor_function", ""), "output"));
@@ -1550,7 +1550,7 @@ data_test (bool verbose)
         {
             bios_proto_t *item = (bios_proto_t *) zlistx_first (sensors);
             assert (streq (bios_proto_name (item), "Sensor15"));
-            assert (streq (bios_proto_aux_string (item, "parent_name1", ""), "Rack01.ups1"));
+            assert (streq (bios_proto_aux_string (item, "parent_name.1", ""), "Rack01.ups1"));
             assert (streq (bios_proto_ext_string (item, "port", ""), "TH11"));
             assert (streq (bios_proto_ext_string (item, "vertical_position", ""), ""));
             assert (streq (bios_proto_ext_string (item, "sensor_function", ""), ""));
@@ -1578,7 +1578,7 @@ data_test (bool verbose)
         {
             bios_proto_t *item = (bios_proto_t *) zlistx_first (sensors);
             assert (streq (bios_proto_name (item), "Sensor09"));
-            assert (streq (bios_proto_aux_string (item, "parent_name1", ""), "Rack01.ups1"));
+            assert (streq (bios_proto_aux_string (item, "parent_name.1", ""), "Rack01.ups1"));
             assert (streq (bios_proto_ext_string (item, "port", ""), "TH5"));
             assert (streq (bios_proto_ext_string (item, "vertical_position", ""), ""));
             assert (streq (bios_proto_ext_string (item, "sensor_function", ""), ""));
@@ -1587,7 +1587,7 @@ data_test (bool verbose)
             item = (bios_proto_t *) zlistx_next (sensors);
 
             assert (streq (bios_proto_name (item), "Sensor07"));
-            assert (streq (bios_proto_aux_string (item, "parent_name1", ""), "Rack01.ups1"));
+            assert (streq (bios_proto_aux_string (item, "parent_name.1", ""), "Rack01.ups1"));
             assert (streq (bios_proto_ext_string (item, "port", ""), "TH15"));
             assert (streq (bios_proto_ext_string (item, "vertical_position", ""), ""));
             assert (streq (bios_proto_ext_string (item, "sensor_function", ""), "ambient"));
@@ -1626,7 +1626,7 @@ data_test (bool verbose)
         {
             bios_proto_t *item = (bios_proto_t *) zlistx_first (sensors);
             assert (streq (bios_proto_name (item), "Sensor01"));
-            assert (streq (bios_proto_aux_string (item, "parent_name1", ""), "Rack01.ups1"));
+            assert (streq (bios_proto_aux_string (item, "parent_name.1", ""), "Rack01.ups1"));
             assert (streq (bios_proto_ext_string (item, "port", ""), "TH1"));
             assert (streq (bios_proto_ext_string (item, "vertical_position", ""), "bottom"));
             assert (streq (bios_proto_ext_string (item, "sensor_function", ""), "input"));
@@ -1635,7 +1635,7 @@ data_test (bool verbose)
 
             item = (bios_proto_t *) zlistx_next (sensors);
             assert (streq (bios_proto_name (item), "Sensor02"));
-            assert (streq (bios_proto_aux_string (item, "parent_name1", ""), "ups2"));
+            assert (streq (bios_proto_aux_string (item, "parent_name.1", ""), "ups2"));
             assert (streq (bios_proto_ext_string (item, "port", ""), "TH1"));
             assert (streq (bios_proto_ext_string (item, "vertical_position", ""), "middle"));
             assert (streq (bios_proto_ext_string (item, "sensor_function", ""), "input"));
@@ -1644,7 +1644,7 @@ data_test (bool verbose)
 
             item = (bios_proto_t *) zlistx_next (sensors);
             assert (streq (bios_proto_name (item), "Sensor03"));
-            assert (streq (bios_proto_aux_string (item, "parent_name1", ""), "Rack01.ups1"));
+            assert (streq (bios_proto_aux_string (item, "parent_name.1", ""), "Rack01.ups1"));
             assert (streq (bios_proto_ext_string (item, "port", ""), "TH3"));
             assert (streq (bios_proto_ext_string (item, "vertical_position", ""), ""));
             assert (streq (bios_proto_ext_string (item, "sensor_function", ""), "output"));
@@ -1653,7 +1653,7 @@ data_test (bool verbose)
 
             item = (bios_proto_t *) zlistx_next (sensors);
             assert (streq (bios_proto_name (item), "Sensor10"));
-            assert (streq (bios_proto_aux_string (item, "parent_name1", ""), "Rack01.ups1"));
+            assert (streq (bios_proto_aux_string (item, "parent_name.1", ""), "Rack01.ups1"));
             assert (streq (bios_proto_ext_string (item, "port", ""), "TH2"));
             assert (streq (bios_proto_ext_string (item, "vertical_position", ""), "top"));
             assert (streq (bios_proto_ext_string (item, "sensor_function", ""), "output"));
@@ -1707,7 +1707,7 @@ data_test (bool verbose)
     printf ("TRACE CREATE Sensor16\n");
     asset = test_asset_new ("Sensor16", BIOS_PROTO_ASSET_OP_UPDATE);
     bios_proto_aux_insert (asset, "parent", "%s", "13");
-    bios_proto_aux_insert (asset, "parent_name1", "%s", "nas rack controller");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "nas rack controller");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -1722,7 +1722,7 @@ data_test (bool verbose)
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "rack controller");
     bios_proto_aux_insert (asset, "parent", "%s", "5");
-    bios_proto_aux_insert (asset, "parent_name1", "%s", "Rack01");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01");
     data_asset_put (self, &asset);
     assert (data_asset_sensors_changed (self) == false);
 
@@ -1738,7 +1738,7 @@ data_test (bool verbose)
         {
             bios_proto_t *item = (bios_proto_t *) zlistx_first (sensors);
             assert (streq (bios_proto_name (item), "Sensor08"));
-            assert (streq (bios_proto_aux_string (item, "parent_name1", ""), "Rack01.ups1"));
+            assert (streq (bios_proto_aux_string (item, "parent_name.1", ""), "Rack01.ups1"));
             assert (streq (bios_proto_ext_string (item, "port", ""), "TH4"));
             assert (streq (bios_proto_ext_string (item, "vertical_position", ""), "middle"));
             assert (streq (bios_proto_ext_string (item, "sensor_function", ""), "input"));
@@ -1747,7 +1747,7 @@ data_test (bool verbose)
             item = (bios_proto_t *) zlistx_next (sensors);
 
             assert (streq (bios_proto_name (item), "Sensor05"));
-            assert (streq (bios_proto_aux_string (item, "parent_name1", ""), "Rack01.ups1"));
+            assert (streq (bios_proto_aux_string (item, "parent_name.1", ""), "Rack01.ups1"));
             assert (streq (bios_proto_ext_string (item, "port", ""), "TH13"));
             assert (streq (bios_proto_ext_string (item, "vertical_position", ""), "top"));
             assert (streq (bios_proto_ext_string (item, "sensor_function", ""), "output"));
@@ -1756,7 +1756,7 @@ data_test (bool verbose)
             item = (bios_proto_t *) zlistx_next (sensors);
 
             assert (streq (bios_proto_name (item), "Sensor16"));
-            assert (streq (bios_proto_aux_string (item, "parent_name1", ""), "nas rack controller"));
+            assert (streq (bios_proto_aux_string (item, "parent_name.1", ""), "nas rack controller"));
             assert (streq (bios_proto_ext_string (item, "port", ""), "TH2"));
             assert (streq (bios_proto_ext_string (item, "vertical_position", ""), ""));
             assert (streq (bios_proto_ext_string (item, "sensor_function", ""), ""));
