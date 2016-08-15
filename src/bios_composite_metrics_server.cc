@@ -238,8 +238,6 @@ bios_composite_metrics_server_test (bool verbose)
     //  @selftest
     zactor_t *server = zactor_new (mlm_server, (void*) "Malamute");
     zstr_sendx (server, "BIND", endpoint, NULL);
-    if (verbose)
-        zstr_send (server, "VERBOSE");
 
     mlm_client_t *producer = mlm_client_new ();
     mlm_client_connect (producer, endpoint, 1000, "producer");
