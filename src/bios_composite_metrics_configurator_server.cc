@@ -351,7 +351,7 @@ s_regenerate (data_t *data, std::set <std::string> &metrics_unavailable)
         log_error ("data_asset_names () failed");
         return;
     }
-
+    data_reassign_sensors (data);
     const char *asset = (const char *) zlistx_first (assets);
     std::set <std::string> metricsAvailable;
     while (asset) {
@@ -359,17 +359,17 @@ s_regenerate (data_t *data, std::set <std::string> &metrics_unavailable)
         if (streq (bios_proto_aux_string (proto, "type", ""), "rack")) {
             zlistx_t *sensors = NULL;
             // Ti, Hi
-            sensors = data_sensor (data, asset, "input");
+            sensors = data_get_assigned_sensors (data, asset, "input");
             s_generate_and_start (data_cfgdir (data), "input", asset, &sensors, metricsAvailable);
 
             // To, Ho
-            sensors = data_sensor (data, asset, "output");
+            sensors = data_get_assigned_sensors (data, asset, "output");
             s_generate_and_start (data_cfgdir (data), "output", asset, &sensors, metricsAvailable);
         }
         else {
             zlistx_t *sensors = NULL;
             // T, H
-            sensors = data_sensor (data, asset, NULL);
+            sensors = data_get_assigned_sensors (data, asset, NULL);
             s_generate_and_start (data_cfgdir (data), NULL, asset, &sensors, metricsAvailable);
         }
         asset = (const char *) zlistx_next (assets);
