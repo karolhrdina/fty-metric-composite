@@ -199,13 +199,13 @@ s_generate_and_start (const char *path_to_dir, const char *sensor_function, cons
         temp_in += "\"temperature.";
         temp_in += bios_proto_ext_string (item, "port", "(unknown)");
         temp_in += "@";
-        temp_in += bios_proto_aux_string (item, "parent_name", "(unknown)");
+        temp_in += bios_proto_aux_string (item, "parent_name.1", "(unknown)");
         temp_in += "\"";
 
         hum_in += "\"humidity.";
         hum_in += bios_proto_ext_string (item, "port", "(unknown)");
         hum_in += "@";
-        hum_in += bios_proto_aux_string (item, "parent_name", "(unknown)");
+        hum_in += bios_proto_aux_string (item, "parent_name.1", "(unknown)");
         hum_in += "\"";
 
         temp_offset_total += s_bios_proto_ext_float (item, "calibration_offset_t", 0.0);
@@ -670,7 +670,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     printf ("TRACE CREATE Sensor01\n");
     asset = test_asset_new ("Sensor01", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
-    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -772,7 +772,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     printf ("TRACE CREATE Sensor02\n");
     asset = test_asset_new ("Sensor02", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
-    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -790,7 +790,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     printf ("TRACE CREATE Sensor03\n");
     asset = test_asset_new ("Sensor03", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
-    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -809,7 +809,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     printf ("TRACE CREATE Sensor04\n");
     asset = test_asset_new ("Sensor04", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
-    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -827,7 +827,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     printf ("TRACE CREATE Sensor05\n");
     asset = test_asset_new ("Sensor05", BIOS_PROTO_ASSET_OP_CREATE);
     // parent missing
-    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -845,7 +845,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     printf ("TRACE CREATE Sensor06\n");
     asset = test_asset_new ("Sensor06", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
-    // parent_name missing
+    // parent_name.1 missing
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -863,7 +863,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     printf ("TRACE CREATE Sensor07\n");
     asset = test_asset_new ("Sensor07", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
-    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -881,7 +881,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     printf ("TRACE CREATE Sensor08\n");
     asset = test_asset_new ("Sensor08", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
-    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -899,7 +899,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     printf ("TRACE CREATE Sensor09\n");
     asset = test_asset_new ("Sensor09", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
-    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -917,7 +917,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     printf ("TRACE CREATE Sensor10\n");
     asset = test_asset_new ("Sensor10", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
-    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -933,7 +933,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     printf ("TRACE CREATE Sensor11\n");
     asset = test_asset_new ("Sensor11", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
-    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -951,7 +951,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     printf ("TRACE CREATE Sensor12\n");
     asset = test_asset_new ("Sensor12", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
-    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -968,7 +968,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     printf ("TRACE CREATE Sensor13\n");
     asset = test_asset_new ("Sensor13", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
-    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -986,7 +986,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     printf ("TRACE CREATE Sensor14\n");
     asset = test_asset_new ("Sensor14", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
-    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -1001,7 +1001,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     printf ("TRACE CREATE Sensor15\n");
     asset = test_asset_new ("Sensor15", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
-    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -1055,7 +1055,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     printf ("TRACE UPDATE Sensor01\n");
     asset = test_asset_new ("Sensor01", BIOS_PROTO_ASSET_OP_UPDATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
-    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -1072,7 +1072,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     printf ("TRACE UPDATE Sensor02\n");
     asset = test_asset_new ("Sensor02", BIOS_PROTO_ASSET_OP_UPDATE);
     bios_proto_aux_insert (asset, "parent", "%s", "12");
-    bios_proto_aux_insert (asset, "parent_name", "%s", "ups2");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "ups2");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -1090,7 +1090,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     printf ("TRACE UPDATE Sensor03\n");
     asset = test_asset_new ("Sensor03", BIOS_PROTO_ASSET_OP_UPDATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
-    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -1105,7 +1105,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     printf ("TRACE UPDATE Sensor10\n");
     asset = test_asset_new ("Sensor10", BIOS_PROTO_ASSET_OP_UPDATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
-    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -1131,7 +1131,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     printf ("TRACE UPDATE Sensor08\n");
     asset = test_asset_new ("Sensor08", BIOS_PROTO_ASSET_OP_UPDATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
-    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -1149,7 +1149,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     printf ("TRACE UPDATE Sensor09\n");
     asset = test_asset_new ("Sensor09", BIOS_PROTO_ASSET_OP_UPDATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
-    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -1165,7 +1165,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     printf ("TRACE UPDATE Sensor04\n");
     asset = test_asset_new ("Sensor04", BIOS_PROTO_ASSET_OP_UPDATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
-    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -1181,7 +1181,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     printf ("TRACE UPDATE Sensor05\n");
     asset = test_asset_new ("Sensor05", BIOS_PROTO_ASSET_OP_UPDATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
-    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -1199,7 +1199,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     printf ("TRACE UPDATE Sensor06\n");
     asset = test_asset_new ("Sensor06", BIOS_PROTO_ASSET_OP_UPDATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
-    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -1216,7 +1216,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     printf ("TRACE UPDATE Sensor07\n");
     asset = test_asset_new ("Sensor07", BIOS_PROTO_ASSET_OP_UPDATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
-    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -1242,7 +1242,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     printf ("TRACE UPDATE Sensor14\n");
     asset = test_asset_new ("Sensor14", BIOS_PROTO_ASSET_OP_UPDATE);
     bios_proto_aux_insert (asset, "parent", "%s", "12");
-    bios_proto_aux_insert (asset, "parent_name", "%s", "ups2");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "ups2");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -1256,7 +1256,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     printf ("TRACE UPDATE Sensor15\n");
     asset = test_asset_new ("Sensor15", BIOS_PROTO_ASSET_OP_UPDATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
-    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01.ups1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -1362,7 +1362,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     printf ("TRACE CREATE Sensor16\n");
     asset = test_asset_new ("Sensor16", BIOS_PROTO_ASSET_OP_UPDATE);
     bios_proto_aux_insert (asset, "parent", "%s", "13");
-    bios_proto_aux_insert (asset, "parent_name", "%s", "nas rack controller");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "nas rack controller");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -1379,7 +1379,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "rack controller");
     bios_proto_aux_insert (asset, "parent", "%s", "5");
-    bios_proto_aux_insert (asset, "parent_name", "%s", "Rack01");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01");
     zmessage = bios_proto_encode (&asset);
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
