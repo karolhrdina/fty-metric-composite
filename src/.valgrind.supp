@@ -12,3 +12,138 @@
    fun:send
    ...
 }
+{
+   <CXXTOOLS_101>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:_Znwm
+   fun:_ZN8cxxtools10InitLocaleC1Ev
+   fun:__static_initialization_and_destruction_0
+   fun:_GLOBAL__sub_I_bios_composite_metrics_server.cc
+   fun:call_init
+   fun:_dl_init
+   obj:/usr/lib64/ld-2.17.so
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+}
+{
+   <CXXTOOLS_102>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:_Znwm
+   fun:_ZN8cxxtools10InitLocaleC1Ev
+   fun:__static_initialization_and_destruction_0
+   fun:_GLOBAL__sub_I_bios_composite_metrics_server.cc
+   fun:call_init
+   fun:_dl_init
+   obj:/usr/lib64/ld-2.17.so
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+}
+{
+   <CXXTOOLS_103>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:_Znwm
+   fun:_ZN8cxxtools10InitLocaleC1Ev
+   fun:__static_initialization_and_destruction_0
+   fun:_GLOBAL__sub_I_bios_composite_metrics_server.cc
+   fun:call_init
+   fun:_dl_init
+   obj:/usr/lib64/ld-2.17.so
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+}
+{
+   <CXXTOOLS_104>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:_Znwm
+   fun:_ZN8cxxtools10InitLocaleC1Ev
+   fun:__static_initialization_and_destruction_0
+   fun:_GLOBAL__sub_I_bios_composite_metrics_server.cc
+   fun:call_init
+   fun:_dl_init
+   obj:/usr/lib64/ld-2.17.so
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+}
+{
+   <CXXTOOLS_105>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:_Znwm
+   fun:_ZNSt6localeC1ISt7num_putIN8cxxtools4CharESt19ostreambuf_iteratorIS3_St11char_traitsIS3_EEEEERKS_PT_
+   fun:_ZN8cxxtools10InitLocaleC1Ev
+   fun:__static_initialization_and_destruction_0
+   fun:_GLOBAL__sub_I_bios_composite_metrics_server.cc
+   fun:call_init
+   fun:_dl_init
+   obj:/usr/lib64/ld-2.17.so
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+}
+{
+   <CXXTOOLS_106>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:_Znam
+   fun:_ZNSt6locale5_ImplC1ERKS0_m
+   fun:_ZNSt6localeC1ISt7num_putIN8cxxtools4CharESt19ostreambuf_iteratorIS3_St11char_traitsIS3_EEEEERKS_PT_
+   fun:_ZN8cxxtools10InitLocaleC1Ev
+   fun:__static_initialization_and_destruction_0
+   fun:_GLOBAL__sub_I_bios_composite_metrics_server.cc
+   fun:call_init
+   fun:_dl_init
+   obj:/usr/lib64/ld-2.17.so
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+}
+{
+   <CXXTOOLS_107>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:_Znam
+   fun:_ZNSt6locale5_ImplC1ERKS0_m
+   fun:_ZNSt6localeC1ISt7num_putIN8cxxtools4CharESt19ostreambuf_iteratorIS3_St11char_traitsIS3_EEEEERKS_PT_
+   fun:_ZN8cxxtools10InitLocaleC1Ev
+   fun:__static_initialization_and_destruction_0
+   fun:_GLOBAL__sub_I_bios_composite_metrics_server.cc
+   fun:call_init
+   fun:_dl_init
+   obj:/usr/lib64/ld-2.17.so
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+}
+{
+   <CXXTOOLS_108>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:_Znam
+   fun:_ZNSt6locale5_ImplC1ERKS0_m
+   fun:_ZNSt6localeC1ISt7num_putIN8cxxtools4CharESt19ostreambuf_iteratorIS3_St11char_traitsIS3_EEEEERKS_PT_
+   fun:_ZN8cxxtools10InitLocaleC1Ev
+   fun:__static_initialization_and_destruction_0
+   fun:_GLOBAL__sub_I_bios_composite_metrics_server.cc
+   fun:call_init
+   fun:_dl_init
+   obj:/usr/lib64/ld-2.17.so
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+}
