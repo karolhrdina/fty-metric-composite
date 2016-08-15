@@ -571,7 +571,9 @@ test_dir_contents (
     zlist_destroy (&files);
     zdir_destroy (&dir);
     if (expected.size () != 0) {
-        printf ("Some files were expected but were not present\n");
+        for ( const auto &file_name : expected ) {
+            log_error ("'%s' expected, but not found", file_name.c_str());
+        }
         return 1;
     }
     return 0;
