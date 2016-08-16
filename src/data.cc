@@ -29,13 +29,13 @@
 #include "composite_metrics_classes.h"
 #include <set>
 #include <string>
-//  Structure of our class
 
+//  Structure of our class
 struct _data_t {
-    // new approach
-    zhashx_t *all_assets; // asset_name -> its message definition
-    zhashx_t *last_configuration; // asset_name -> list of sensors
-    bool sensors_updated; // sensors data was change during last data_asset_put () call
+    // Information about all interesting assets for this daemon
+    zhashx_t *all_assets; // asset_name -> its message definition. Owns messages
+    zhashx_t *last_configuration; // asset_name -> list of sensors (each sensor is represented as message). Doesn't own messages
+    bool is_reconfig_needed; // sensors data was change during last data_asset_put () call
     std::set<std::string> produced_metrics; // list of metrics, that are now produced by composite_metric
     char *state_file;
     char *output_dir;
@@ -57,8 +57,8 @@ data_new (void)
     self->all_assets = zhashx_new ();
     zhashx_set_destructor (self->all_assets, (zhashx_destructor_fn *) bios_proto_destroy);
     zhashx_set_duplicator (self->all_assets, (czmq_duplicator *) bios_proto_dup);
-    //  sensors_updated
-    self->sensors_updated = false;
+    //  is_reconfig_needed
+    self->is_reconfig_needed = false;
     //  state_file
     self->state_file = strdup ("");
     //  output_dir
@@ -187,7 +187,7 @@ data_asset_put (data_t *self, bios_proto_t **message_p)
     const char *type = bios_proto_aux_string (message, "type", "");
     const char *subtype = bios_proto_aux_string (message, "subtype", "");
 
-    self->sensors_updated = false;
+    self->is_reconfig_needed = false;
 
     if (  (streq (type, "device")) &&
          !(streq (subtype, "sensor") )
@@ -209,14 +209,14 @@ data_asset_put (data_t *self, bios_proto_t **message_p)
             // Look for the asset
             bios_proto_t *asset = (bios_proto_t*) zhashx_lookup (self->all_assets, bios_proto_name (message));
             if ( asset == NULL ) { // if the asset was not known
-                self->sensors_updated = true;
+                self->is_reconfig_needed = true;
             }
             else {
                 // if asset is known we need to check, if physical topology changed
                 if ( streq (bios_proto_aux_string (asset, "parent_name.1", ""),
                             bios_proto_aux_string (message, "parent_name.1", "")) )
                 {
-                    self->sensors_updated = true;
+                    self->is_reconfig_needed = true;
                 }
             }
             zhashx_update (self->all_assets, bios_proto_name (message), (void *) message);
@@ -227,7 +227,7 @@ data_asset_put (data_t *self, bios_proto_t **message_p)
         {
             void *exists = zhashx_lookup (self->all_assets, bios_proto_name (message));
             if (exists)
-                self->sensors_updated = true;
+                self->is_reconfig_needed = true;
             zhashx_delete (self->all_assets, bios_proto_name (message));
             bios_proto_destroy (message_p);
         }
@@ -242,7 +242,7 @@ data_asset_put (data_t *self, bios_proto_t **message_p)
             streq (operation, BIOS_PROTO_ASSET_OP_RETIRE))
         {
             zhashx_delete (self->all_assets, bios_proto_name (message));
-            self->sensors_updated = true;
+            self->is_reconfig_needed = true;
             bios_proto_destroy (message_p);
             *message_p = NULL;
             return;
@@ -283,11 +283,11 @@ data_asset_put (data_t *self, bios_proto_t **message_p)
         zhashx_update (self->all_assets, bios_proto_name (message), (void *) message);
 
         if (streq (operation, BIOS_PROTO_ASSET_OP_CREATE)) {
-            self->sensors_updated = true;
+            self->is_reconfig_needed = true;
         }
         else
         if (streq (operation, BIOS_PROTO_ASSET_OP_UPDATE)) {
-            self->sensors_updated = true;
+            self->is_reconfig_needed = true;
         }
         else {
             bios_proto_destroy (message_p);
@@ -323,7 +323,7 @@ bool
 data_asset_sensors_changed (data_t *self)
 {
     assert (self);
-    return self->sensors_updated;
+    return self->is_reconfig_needed;
 }
 
 //  --------------------------------------------------------------------------
