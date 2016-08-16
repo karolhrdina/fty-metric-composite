@@ -360,17 +360,23 @@ s_regenerate (data_t *data, std::set <std::string> &metrics_unavailable)
             zlistx_t *sensors = NULL;
             // Ti, Hi
             sensors = data_get_assigned_sensors (data, asset, "input");
-            s_generate_and_start (data_cfgdir (data), "input", asset, &sensors, metricsAvailable);
+            if ( sensors ) {
+                s_generate_and_start (data_cfgdir (data), "input", asset, &sensors, metricsAvailable);
+            }
 
             // To, Ho
             sensors = data_get_assigned_sensors (data, asset, "output");
-            s_generate_and_start (data_cfgdir (data), "output", asset, &sensors, metricsAvailable);
+            if ( sensors ) {
+                s_generate_and_start (data_cfgdir (data), "output", asset, &sensors, metricsAvailable);
+            }
         }
         else {
             zlistx_t *sensors = NULL;
             // T, H
             sensors = data_get_assigned_sensors (data, asset, NULL);
-            s_generate_and_start (data_cfgdir (data), NULL, asset, &sensors, metricsAvailable);
+            if ( sensors ) {
+                s_generate_and_start (data_cfgdir (data), NULL, asset, &sensors, metricsAvailable);
+            }
         }
         asset = (const char *) zlistx_next (assets);
     }
