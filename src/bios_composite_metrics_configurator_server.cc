@@ -1295,13 +1295,13 @@ bios_composite_metrics_configurator_server_test (bool verbose)
             "Rack01-input-temperature.cfg",
             "Rack01-input-humidity.cfg",
             "Rack01-output-temperature.cfg",
-            "Rack01-output-humidity.cfg",
-            "DC-Rozskoky-temperature.cfg",
-            "DC-Rozskoky-humidity.cfg",
-            "Lazer game-temperature.cfg",
-            "Lazer game-humidity.cfg"
+            "Rack01-output-humidity.cfg"
             // BIOS-2484: sensors assigned to non-racks are ignored
 //,
+//            "DC-Rozskoky-temperature.cfg",
+//            "DC-Rozskoky-humidity.cfg",
+//            "Lazer game-temperature.cfg",
+//            "Lazer game-humidity.cfg"
 //            "Curie.Row02-temperature.cfg",
 //            "Curie.Row02-humidity.cfg",
 //            "Curie-temperature.cfg",
