@@ -102,9 +102,30 @@ void data_reassign_sensors (data_t *self)
         // first of all, take its logical asset (it is supposed to be NOT empty!!!)
         // because if it would have been empty it would not be placed in this map
         const char *logical_asset_name = bios_proto_ext_string (one_sensor, "logical_asset", "");
-        // TODO BIOS-2484: start - ignore sensors assigned to the NON-RACK asset
-        //
-        // TODO BIOS-2484: end
+
+        // BIOS-2484: start preparation for further usage
+        // find detailed information about logical asset
+        bios_proto_t *logical_asset = (bios_proto_t *) zhashx_lookup (self->all_assets, logical_asset_name);
+        if ( logical_asset == NULL ) {
+            log_error ("Inconsistent state: detailes about the logical asset are not known -> skip sensor");
+            // If detailed information about logical asset was not found
+            // It can happen if:
+            //  * reconfiguration started before detailed "logical_asset" message arrived
+            //  * something is really wrong!
+            self->is_reconfig_needed = true;
+            one_sensor_name = (char *) zlistx_next (asset_names);
+            continue;
+        }
+        // BIOS-2484: end
+
+        // BIOS-2484: start - ignore sensors assigned to the NON-RACK asset
+        const char *logical_asset_type = bios_proto_aux_string (logical_asset, "type", "");
+        if ( !streq (logical_asset_type, "rack") ) {
+            log_error ("Sensors assigned to non-'rack's are ignored");
+            one_sensor_name = (char *) zlistx_next (asset_names);
+            continue;
+        }
+        // BIOS-2484: end
 
         // So, now let us put our sensor to the right place
 
@@ -124,17 +145,7 @@ void data_reassign_sensors (data_t *self)
         // TODO BIOS-2484: start - propagate sensor in physical topology 
         // (need to add sensor to all "parents" of the logical asset)
         //
-        // find detailed information about logical asset
-        bios_proto_t *logical_asset = (bios_proto_t *) zhashx_lookup (self->all_assets, logical_asset_name);
-        // Check for errors
-        if ( logical_asset == NULL ) {
-            // If detailed information about logical asset was not found
-            // It can happen if:
-            //  * reconfiguration started before detailed "logical_asset" message arrived
-            //  * something is really wrong!
-            //  TODO
-            //  break return continue
-        }
+
 
         // TODO BIOS-2484: end
 
@@ -1781,7 +1792,9 @@ data_test (bool verbose)
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01");
     data_asset_store (self, &asset);
     data_reassign_sensors(self);
-    assert (data_asset_sensors_changed (self) == false);
+    // "true" is expected, because data_reassign_sensors also changes the "is_reconfiguration_needed"
+    // when detailed information about the asset is not known
+    assert (data_asset_sensors_changed (self) == true);
 
     printf ("TRACE ---===### (Test block -3-) ###===---\n");
     {
