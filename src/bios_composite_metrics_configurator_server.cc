@@ -1394,7 +1394,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
     zclock_sleep (50);
-
+/* BIOS-2484: sensors for NON racks are ignored -> this block is not relevant
     printf ("TRACE ---===### (Test block -3-) ###===---\n");
     {
         printf ("Sleeping 1m for configurator kick in and finish\n");
@@ -1449,7 +1449,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
         zlistx_destroy (&expected_unavailable);
 
         printf ("Test block -3- Ok\n");
-    }
+    }*/
 
     mlm_client_destroy (&producer);
     mlm_client_destroy (&alert_generator);
