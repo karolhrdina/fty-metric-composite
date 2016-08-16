@@ -486,7 +486,7 @@ bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
                         mlm_client_sender (client), mlm_client_subject (client));
                 continue;
             }
-            data_asset_put (data, &proto);
+            data_asset_store (data, &proto);
             assert (proto == NULL);
 
             is_reconfigure_pending |= data_asset_sensors_changed (data);
