@@ -56,7 +56,6 @@ data_new (void)
     //  all_assets
     self->all_assets = zhashx_new ();
     zhashx_set_destructor (self->all_assets, (zhashx_destructor_fn *) bios_proto_destroy);
-    zhashx_set_duplicator (self->all_assets, (czmq_duplicator *) bios_proto_dup);
     //  is_reconfig_needed
     self->is_reconfig_needed = false;
     //  state_file
