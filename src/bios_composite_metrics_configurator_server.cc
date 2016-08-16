@@ -351,7 +351,7 @@ s_regenerate (data_t *data, std::set <std::string> &metrics_unavailable)
         log_error ("data_asset_names () failed");
         return;
     }
-
+    data_reassign_sensors (data);
     const char *asset = (const char *) zlistx_first (assets);
     std::set <std::string> metricsAvailable;
     while (asset) {
@@ -359,17 +359,17 @@ s_regenerate (data_t *data, std::set <std::string> &metrics_unavailable)
         if (streq (bios_proto_aux_string (proto, "type", ""), "rack")) {
             zlistx_t *sensors = NULL;
             // Ti, Hi
-            sensors = data_sensor (data, asset, "input");
+            sensors = data_get_assigned_sensors (data, asset, "input");
             s_generate_and_start (data_cfgdir (data), "input", asset, &sensors, metricsAvailable);
 
             // To, Ho
-            sensors = data_sensor (data, asset, "output");
+            sensors = data_get_assigned_sensors (data, asset, "output");
             s_generate_and_start (data_cfgdir (data), "output", asset, &sensors, metricsAvailable);
         }
         else {
             zlistx_t *sensors = NULL;
             // T, H
-            sensors = data_sensor (data, asset, NULL);
+            sensors = data_get_assigned_sensors (data, asset, NULL);
             s_generate_and_start (data_cfgdir (data), NULL, asset, &sensors, metricsAvailable);
         }
         asset = (const char *) zlistx_next (assets);
@@ -571,7 +571,9 @@ test_dir_contents (
     zlist_destroy (&files);
     zdir_destroy (&dir);
     if (expected.size () != 0) {
-        printf ("Some files were expected but were not present\n");
+        for ( const auto &file_name : expected ) {
+            log_error ("'%s' expected, but not found", file_name.c_str());
+        }
         return 1;
     }
     return 0;
@@ -594,8 +596,6 @@ bios_composite_metrics_configurator_server_test (bool verbose)
 
     zactor_t *server = zactor_new (mlm_server, (void*) "Malamute");
     zstr_sendx (server, "BIND", endpoint, NULL);
-    if (verbose)
-        zstr_send (server, "VERBOSE");
     zclock_sleep (100);
 
     mlm_client_t *producer = mlm_client_new ();
