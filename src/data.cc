@@ -107,7 +107,7 @@ void data_reassign_sensors (data_t *self)
         // find detailed information about logical asset
         bios_proto_t *logical_asset = (bios_proto_t *) zhashx_lookup (self->all_assets, logical_asset_name);
         if ( logical_asset == NULL ) {
-            log_error ("Inconsistent state: detailes about the logical asset are not known -> skip sensor");
+            log_warning ("Inconsistent state for now: detailes about the logical asset are not known -> skip sensor");
             // If detailed information about logical asset was not found
             // It can happen if:
             //  * reconfiguration started before detailed "logical_asset" message arrived
@@ -121,7 +121,7 @@ void data_reassign_sensors (data_t *self)
         // BIOS-2484: start - ignore sensors assigned to the NON-RACK asset
         const char *logical_asset_type = bios_proto_aux_string (logical_asset, "type", "");
         if ( !streq (logical_asset_type, "rack") ) {
-            log_error ("Sensors assigned to non-'rack's are ignored");
+            log_warning ("Sensors assigned to non-'rack's are ignored");
             one_sensor_name = (char *) zlistx_next (asset_names);
             continue;
         }
