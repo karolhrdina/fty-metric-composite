@@ -142,6 +142,7 @@ void data_reassign_sensors (data_t *self)
         // and we can move to next one
         one_sensor_name = (char *) zlistx_next (asset_names);
     }
+    zlistx_destroy (&asset_names);
 }
 
 
