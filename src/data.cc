@@ -82,15 +82,19 @@ void data_reassign_sensors (data_t *self)
     zhashx_purge (self->last_configuration);
 
     // go through every known sensor (if it is not sensor, skip it)
-    bios_proto_t *one_sensor = (bios_proto_t *) zhashx_first (self->all_assets);
-    while (one_sensor) {
+    zlistx_t *asset_names = data_asset_names (self);
+
+    char *one_sensor_name = (char *) zlistx_first (asset_names);
+    while (one_sensor_name) {
+        // get an asset
+        bios_proto_t *one_sensor = (bios_proto_t *) zhashx_lookup (self->all_assets, one_sensor_name);
         // discover the sub-type of the asset
         const char *subtype = bios_proto_aux_string (one_sensor, "subtype", "");
         // check if it is sensor or not
         if ( !streq (subtype, "sensor") ) {
             // if it is NOT sensor -> do nothing!
             // and we can move to next one
-            one_sensor = (bios_proto_t *) zhashx_next (self->all_assets);
+            one_sensor_name = (char *) zlistx_next (asset_names);
             continue;
         }
         // if it is sensor, do CONFIGURATION
@@ -121,22 +125,22 @@ void data_reassign_sensors (data_t *self)
         // (need to add sensor to all "parents" of the logical asset)
         //
         // find detailed information about logical asset
-//        bios_proto_t *logical_asset = (bios_proto_t *) zhashx_lookup (self->all_assets, logical_asset_name);
+        bios_proto_t *logical_asset = (bios_proto_t *) zhashx_lookup (self->all_assets, logical_asset_name);
         // Check for errors
-//        if ( logical_asset == NULL ) {
+        if ( logical_asset == NULL ) {
             // If detailed information about logical asset was not found
             // It can happen if:
             //  * reconfiguration started before detailed "logical_asset" message arrived
             //  * something is really wrong!
             //  TODO
             //  break return continue
-//        }
+        }
 
         // TODO BIOS-2484: end
 
         // at this point configuration of this sensor is done
         // and we can move to next one
-        one_sensor = (bios_proto_t *) zhashx_next (self->all_assets);
+        one_sensor_name = (char *) zlistx_next (asset_names);
     }
 }
 
