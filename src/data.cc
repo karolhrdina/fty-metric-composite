@@ -34,8 +34,9 @@
 struct _data_t {
     // Information about all interesting assets for this daemon
     zhashx_t *all_assets; // asset_name -> its message definition. Owns messages
+    // Structure of sensors
     zhashx_t *last_configuration; // asset_name -> list of sensors (each sensor is represented as message). Doesn't own messages
-    bool is_reconfig_needed; // sensors data was change during last data_asset_put () call
+    bool is_reconfig_needed; // indicates, if recently added asset can change configuration
     std::set<std::string> produced_metrics; // list of metrics, that are now produced by composite_metric
     char *state_file;
     char *output_dir;
@@ -48,20 +49,26 @@ data_t *
 data_new (void)
 {
     data_t *self = (data_t *) zmalloc (sizeof (data_t));
-    assert (self);
-    //  Initialize class properties here
-    // last_configuration; // asset_name -> list of sensors
-    self->last_configuration = zhashx_new ();
-    zhashx_set_destructor (self->last_configuration, (zhashx_destructor_fn *) zlistx_destroy);
-    //  all_assets
-    self->all_assets = zhashx_new ();
-    zhashx_set_destructor (self->all_assets, (zhashx_destructor_fn *) bios_proto_destroy);
-    //  is_reconfig_needed
-    self->is_reconfig_needed = false;
-    //  state_file
-    self->state_file = strdup ("");
-    //  output_dir
-    self->output_dir = strdup ("");
+    if ( self ) {
+        self->last_configuration = zhashx_new ();
+        if ( self->last_configuration ) {
+            self->all_assets = zhashx_new ();
+        }
+        if ( self->all_assets ) {
+            self->state_file = strdup ("");
+        }
+        if ( self->state_file ) {
+            self->output_dir = strdup ("");
+        }
+        if ( self->output_dir ) {
+            zhashx_set_destructor (self->last_configuration, (zhashx_destructor_fn *) zlistx_destroy);
+            zhashx_set_destructor (self->all_assets, (zhashx_destructor_fn *) bios_proto_destroy);
+            self->is_reconfig_needed = false;
+        }
+        else {
+            data_destroy (&self);
+        }
+    }
     return self;
 }
 
