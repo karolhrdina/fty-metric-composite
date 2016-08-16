@@ -75,6 +75,7 @@ data_new (void)
 // ignores devision by function!!!! should be done on upper layer!!!
 void data_reassign_sensors (data_t *self)
 {
+    assert (self);
     // delete old configuration first
     zhashx_purge (self->last_configuration);
 
