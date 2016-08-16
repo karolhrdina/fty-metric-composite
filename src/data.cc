@@ -142,6 +142,7 @@ void data_reassign_sensors (data_t *self)
 //  You can limit the list of sensors returned to a certain 'sensor_function',
 //  NULL returns all sensors.
 //  Returns NULL when for 'asset_name' T&H sensors are not known or asset_name is not known at all
+//  or in case of memory issues
 //  The caller is responsible for destroying the return value when finished with it
 zlistx_t *
 data_get_assigned_sensors (
@@ -160,6 +161,10 @@ data_get_assigned_sensors (
         return NULL;
     }
     zlistx_t *return_sensor_list = zlistx_new ();
+    if ( !return_sensor_list ) {
+        log_error ("Memory allocation error");
+        return NULL;
+    }
     zlistx_set_destructor (return_sensor_list, (czmq_destructor *) bios_proto_destroy);
     zlistx_set_duplicator (return_sensor_list, (czmq_duplicator *) bios_proto_dup);
 
