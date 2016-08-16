@@ -72,6 +72,8 @@ data_new (void)
     return self;
 }
 
+//  --------------------------------------------------------------------------
+//  Create a new data
 // ignores devision by function!!!! should be done on upper layer!!!
 void data_reassign_sensors (data_t *self)
 {
@@ -107,6 +109,7 @@ void data_reassign_sensors (data_t *self)
         // if no sensors were assigned yet, create empty list
         if ( already_assigned_sensors == NULL ) {
             already_assigned_sensors = zlistx_new ();
+            // TODO: handle NULL-pointer
             zhashx_insert (self->last_configuration, logical_asset_name, (void *) already_assigned_sensors);
             // ATTENTION: zhashx_set_destructor is not called intentionally, as here we have only "links" on 
             // sensors, because "all_assets" owns this information!
@@ -185,6 +188,38 @@ data_get_assigned_sensors (
 }
 
 
+static bool
+is_sensor_correct (bios_proto_t *sensor)
+{
+    assert (sensor);
+    const char *logical_asset = bios_proto_ext_string (sensor, "logical_asset", NULL);
+    const char *port = bios_proto_ext_string (sensor, "port", NULL);
+    const char *parent_name = bios_proto_aux_string (sensor, "parent_name.1", NULL);
+
+    if (!logical_asset) {
+        log_error (
+                "Attribute '%s' is missing from '%s' field of message where asset name = '%s'. "
+                "This message is not stored.",
+                "logical_asset", "ext", bios_proto_name (sensor));
+        return false;
+    }
+    if (!parent_name) {
+        log_error (
+                "Attribute '%s' is missing from '%s' field of message where asset name = '%s'. "
+                "This message is not stored.",
+                "parent_name.1", "ext", bios_proto_name (sensor));
+        return false;
+    }
+    if (!port) {
+        log_error (
+                "Attribute '%s' is missing from '%s' field of message where asset name = '%s'. "
+                "This message is not stored.",
+                "port", "ext", bios_proto_name (sensor));
+        return false;
+    }
+    return true;
+}
+
 //  --------------------------------------------------------------------------
 //  Store asset
 
@@ -212,17 +247,36 @@ data_asset_store (data_t *self, bios_proto_t **message_p)
         *message_p = NULL;
         return;
     }
-    if (streq (type, "datacenter") ||
-        streq (type, "room") ||
-        streq (type, "row") ||
-        streq (type, "rack"))
-    {
-        if (streq (operation, BIOS_PROTO_ASSET_OP_CREATE) ||
-            streq (operation, BIOS_PROTO_ASSET_OP_UPDATE))
-        {
+
+    if (streq (operation, BIOS_PROTO_ASSET_OP_CREATE) ) {
+        if ( !streq (type, "device") ) {
+            // So, if NOT "device" is created -> always do reconfiguration
+            self->is_reconfig_needed = true;
+            zhashx_update (self->all_assets, bios_proto_name (message), (void *) message);
+            *message_p = NULL;
+            return;
+        }
+        // So, we have "device" and it is "sensor"!
+        // lets check, that sensor has all necessary information
+        if ( is_sensor_correct (message) ) {
+            // So, it is ok -> store it
+            self->is_reconfig_needed = true;
+            zhashx_update (self->all_assets, bios_proto_name (message), (void *) message);
+            *message_p = NULL;
+            return;
+        } else {
+            // no log message is here, as "is_sensor_correct" already wrote all detailed information
+            bios_proto_destroy (message_p);
+            *message_p = NULL;
+            return;
+        }
+    } else
+    if ( streq (operation, BIOS_PROTO_ASSET_OP_UPDATE) ) {
+        if ( !streq (type, "device") ) {
+            // So, if NOT "device" is UPDATED -> do reconfiguration only if TOPOLGY changed
             // Look for the asset
             bios_proto_t *asset = (bios_proto_t*) zhashx_lookup (self->all_assets, bios_proto_name (message));
-            if ( asset == NULL ) { // if the asset was not known
+            if ( asset == NULL ) { // if the asset was not known (for any reason)
                 self->is_reconfig_needed = true;
             }
             else {
@@ -234,83 +288,40 @@ data_asset_store (data_t *self, bios_proto_t **message_p)
                 }
             }
             zhashx_update (self->all_assets, bios_proto_name (message), (void *) message);
+            *message_p = NULL;
+            return;
         }
-        else
-        if (streq (operation, BIOS_PROTO_ASSET_OP_DELETE) ||
-            streq (operation, BIOS_PROTO_ASSET_OP_RETIRE))
-        {
-            void *exists = zhashx_lookup (self->all_assets, bios_proto_name (message));
-            if (exists)
-                self->is_reconfig_needed = true;
-            zhashx_delete (self->all_assets, bios_proto_name (message));
+        // So, we have "device" and it is "sensor"!
+        // lets check, that sensor has all necessary information
+        if ( is_sensor_correct (message) ) {
+            // So, it is ok -> store it
+            self->is_reconfig_needed = true;
+            zhashx_update (self->all_assets, bios_proto_name (message), (void *) message);
+            *message_p = NULL;
+            return;
+        } else {
+            // no log message is here, as "is_sensor_correct" already wrote all detailed information
             bios_proto_destroy (message_p);
+            *message_p = NULL;
+            return;
         }
-        else {
-            bios_proto_destroy (message_p);
-        }
-    }
-    else
-    if (streq (type, "device") && streq (subtype, "sensor"))
+    } else
+    if (streq (operation, BIOS_PROTO_ASSET_OP_DELETE) ||
+        streq (operation, BIOS_PROTO_ASSET_OP_RETIRE))
     {
-        if (streq (operation, BIOS_PROTO_ASSET_OP_DELETE) ||
-            streq (operation, BIOS_PROTO_ASSET_OP_RETIRE))
-        {
-            zhashx_delete (self->all_assets, bios_proto_name (message));
+        void *exists = zhashx_lookup (self->all_assets, bios_proto_name (message));
+        if (exists)
             self->is_reconfig_needed = true;
-            bios_proto_destroy (message_p);
-            *message_p = NULL;
-            return;
-        }
-
-        const char *logical_asset = bios_proto_ext_string (message, "logical_asset", NULL);
-        const char *port = bios_proto_ext_string (message, "port", NULL);
-        const char *parent_name = bios_proto_aux_string (message, "parent_name.1", NULL);
-
-        if (!logical_asset) {
-            log_error (
-                    "Attribute '%s' is missing from '%s' field of message where asset name = '%s'. "
-                    "This message is not stored.",
-                    "logical_asset", "ext", bios_proto_name (message));
-            bios_proto_destroy (message_p);
-            *message_p = NULL;
-            return;
-        }
-        if (!parent_name) {
-            log_error (
-                    "Attribute '%s' is missing from '%s' field of message where asset name = '%s'. "
-                    "This message is not stored.",
-                    "parent_name.1", "ext", bios_proto_name (message));
-            bios_proto_destroy (message_p);
-            *message_p = NULL;
-            return;
-        }
-        if (!port) {
-            log_error (
-                    "Attribute '%s' is missing from '%s' field of message where asset name = '%s'. "
-                    "This message is not stored.",
-                    "port", "ext", bios_proto_name (message));
-            bios_proto_destroy (message_p);
-            *message_p = NULL;
-            return;
-        }
-
-        zhashx_update (self->all_assets, bios_proto_name (message), (void *) message);
-
-        if (streq (operation, BIOS_PROTO_ASSET_OP_CREATE)) {
-            self->is_reconfig_needed = true;
-        }
-        else
-        if (streq (operation, BIOS_PROTO_ASSET_OP_UPDATE)) {
-            self->is_reconfig_needed = true;
-        }
-        else {
-            bios_proto_destroy (message_p);
-        }
+        zhashx_delete (self->all_assets, bios_proto_name (message));
+        bios_proto_destroy (message_p);
+        *message_p = NULL;
+        return;
     }
     else {
+        log_debug ("Msg: op='%s', asset_name='%s' is not interesting", operation, bios_proto_name (message));
         bios_proto_destroy (message_p);
+        *message_p = NULL;
     }
-    *message_p = NULL;
 }
 
 //  --------------------------------------------------------------------------
