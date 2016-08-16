@@ -360,17 +360,23 @@ s_regenerate (data_t *data, std::set <std::string> &metrics_unavailable)
             zlistx_t *sensors = NULL;
             // Ti, Hi
             sensors = data_get_assigned_sensors (data, asset, "input");
-            s_generate_and_start (data_cfgdir (data), "input", asset, &sensors, metricsAvailable);
+            if ( sensors ) {
+                s_generate_and_start (data_cfgdir (data), "input", asset, &sensors, metricsAvailable);
+            }
 
             // To, Ho
             sensors = data_get_assigned_sensors (data, asset, "output");
-            s_generate_and_start (data_cfgdir (data), "output", asset, &sensors, metricsAvailable);
+            if ( sensors ) {
+                s_generate_and_start (data_cfgdir (data), "output", asset, &sensors, metricsAvailable);
+            }
         }
         else {
             zlistx_t *sensors = NULL;
             // T, H
             sensors = data_get_assigned_sensors (data, asset, NULL);
-            s_generate_and_start (data_cfgdir (data), NULL, asset, &sensors, metricsAvailable);
+            if ( sensors ) {
+                s_generate_and_start (data_cfgdir (data), NULL, asset, &sensors, metricsAvailable);
+            }
         }
         asset = (const char *) zlistx_next (assets);
     }
@@ -1029,11 +1035,13 @@ bios_composite_metrics_configurator_server_test (bool verbose)
             "Rack02-input-temperature.cfg",
             "Rack02-input-humidity.cfg",
             "Rack02-output-temperature.cfg",
-            "Rack02-output-humidity.cfg",
-            "Curie.Row02-temperature.cfg",
-            "Curie.Row02-humidity.cfg",
-            "Curie-temperature.cfg",
-            "Curie-humidity.cfg"
+            "Rack02-output-humidity.cfg" 
+            // BIOS-2484: sensors assigned to non-racks are ignored
+//,
+//            "Curie.Row02-temperature.cfg",
+//            "Curie.Row02-humidity.cfg",
+//            "Curie-temperature.cfg",
+//            "Curie-humidity.cfg"
         };
 
         int rv = test_dir_contents ("./test_dir", expected_configs);
@@ -1287,15 +1295,17 @@ bios_composite_metrics_configurator_server_test (bool verbose)
             "Rack01-input-temperature.cfg",
             "Rack01-input-humidity.cfg",
             "Rack01-output-temperature.cfg",
-            "Rack01-output-humidity.cfg",
-            "DC-Rozskoky-temperature.cfg",
-            "DC-Rozskoky-humidity.cfg",
-            "Lazer game-temperature.cfg",
-            "Lazer game-humidity.cfg",
-            "Curie.Row02-temperature.cfg",
-            "Curie.Row02-humidity.cfg",
-            "Curie-temperature.cfg",
-            "Curie-humidity.cfg"
+            "Rack01-output-humidity.cfg"
+            // BIOS-2484: sensors assigned to non-racks are ignored
+//,
+//            "DC-Rozskoky-temperature.cfg",
+//            "DC-Rozskoky-humidity.cfg",
+//            "Lazer game-temperature.cfg",
+//            "Lazer game-humidity.cfg"
+//            "Curie.Row02-temperature.cfg",
+//            "Curie.Row02-humidity.cfg",
+//            "Curie-temperature.cfg",
+//            "Curie-humidity.cfg"
         };
 
         int rv = test_dir_contents ("./test_dir", expected_configs);
@@ -1384,7 +1394,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     rv = mlm_client_send (producer, "Nobody here cares about this.", &zmessage);
     assert (rv == 0);
     zclock_sleep (50);
-
+/* BIOS-2484: sensors for NON racks are ignored -> this block is not relevant
     printf ("TRACE ---===### (Test block -3-) ###===---\n");
     {
         printf ("Sleeping 1m for configurator kick in and finish\n");
@@ -1439,7 +1449,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
         zlistx_destroy (&expected_unavailable);
 
         printf ("Test block -3- Ok\n");
-    }
+    }*/
 
     mlm_client_destroy (&producer);
     mlm_client_destroy (&alert_generator);
