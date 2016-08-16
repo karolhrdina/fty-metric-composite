@@ -37,7 +37,7 @@ COMPOSITE_METRICS_EXPORT data_t *
 
 //  Store asset
 COMPOSITE_METRICS_EXPORT void
-    data_asset_put (data_t *self, bios_proto_t **message_p);
+    data_asset_store (data_t *self, bios_proto_t **message_p);
 
 // ignores devision by function!!!! should be done on upper layer!!!
 COMPOSITE_METRICS_EXPORT void
@@ -54,7 +54,7 @@ COMPOSITE_METRICS_EXPORT zlistx_t *
         const char *asset_name,
         const char *sensor_function);
 
-//  Last data_asset_put () call made changes to sensors data
+//  Last data_asset_store () call made changes to sensors data
 COMPOSITE_METRICS_EXPORT bool
     data_asset_sensors_changed (data_t *self);
 

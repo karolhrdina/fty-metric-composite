@@ -34,8 +34,9 @@
 struct _data_t {
     // Information about all interesting assets for this daemon
     zhashx_t *all_assets; // asset_name -> its message definition. Owns messages
+    // Structure of sensors
     zhashx_t *last_configuration; // asset_name -> list of sensors (each sensor is represented as message). Doesn't own messages
-    bool is_reconfig_needed; // sensors data was change during last data_asset_put () call
+    bool is_reconfig_needed; // indicates, if recently added asset can change configuration
     std::set<std::string> produced_metrics; // list of metrics, that are now produced by composite_metric
     char *state_file;
     char *output_dir;
@@ -48,26 +49,33 @@ data_t *
 data_new (void)
 {
     data_t *self = (data_t *) zmalloc (sizeof (data_t));
-    assert (self);
-    //  Initialize class properties here
-    // last_configuration; // asset_name -> list of sensors
-    self->last_configuration = zhashx_new ();
-    zhashx_set_destructor (self->last_configuration, (zhashx_destructor_fn *) zlistx_destroy);
-    //  all_assets
-    self->all_assets = zhashx_new ();
-    zhashx_set_destructor (self->all_assets, (zhashx_destructor_fn *) bios_proto_destroy);
-    //  is_reconfig_needed
-    self->is_reconfig_needed = false;
-    //  state_file
-    self->state_file = strdup ("");
-    //  output_dir
-    self->output_dir = strdup ("");
+    if ( self ) {
+        self->last_configuration = zhashx_new ();
+        if ( self->last_configuration ) {
+            self->all_assets = zhashx_new ();
+        }
+        if ( self->all_assets ) {
+            self->state_file = strdup ("");
+        }
+        if ( self->state_file ) {
+            self->output_dir = strdup ("");
+        }
+        if ( self->output_dir ) {
+            zhashx_set_destructor (self->last_configuration, (zhashx_destructor_fn *) zlistx_destroy);
+            zhashx_set_destructor (self->all_assets, (zhashx_destructor_fn *) bios_proto_destroy);
+            self->is_reconfig_needed = false;
+        }
+        else {
+            data_destroy (&self);
+        }
+    }
     return self;
 }
 
 // ignores devision by function!!!! should be done on upper layer!!!
 void data_reassign_sensors (data_t *self)
 {
+    assert (self);
     // delete old configuration first
     zhashx_purge (self->last_configuration);
 
@@ -131,10 +139,13 @@ void data_reassign_sensors (data_t *self)
 
 
 //  --------------------------------------------------------------------------
+//  Before using this functionality, sensors should be assigned to the right positions
+//  by calling 'data_reassign_sensors' function.
 //  Get list of sensors assigned to the asset
 //  You can limit the list of sensors returned to a certain 'sensor_function',
 //  NULL returns all sensors.
 //  Returns NULL when for 'asset_name' T&H sensors are not known or asset_name is not known at all
+//  or in case of memory issues
 //  The caller is responsible for destroying the return value when finished with it
 zlistx_t *
 data_get_assigned_sensors (
@@ -153,6 +164,10 @@ data_get_assigned_sensors (
         return NULL;
     }
     zlistx_t *return_sensor_list = zlistx_new ();
+    if ( !return_sensor_list ) {
+        log_error ("Memory allocation error");
+        return NULL;
+    }
     zlistx_set_destructor (return_sensor_list, (czmq_destructor *) bios_proto_destroy);
     zlistx_set_duplicator (return_sensor_list, (czmq_duplicator *) bios_proto_dup);
 
@@ -174,7 +189,7 @@ data_get_assigned_sensors (
 //  Store asset
 
 void
-data_asset_put (data_t *self, bios_proto_t **message_p)
+data_asset_store (data_t *self, bios_proto_t **message_p)
 {
     assert (self);
     assert (message_p);
@@ -316,7 +331,7 @@ data_get_produced_metrics (data_t *self)
 }
 
 //  --------------------------------------------------------------------------
-//  Last data_asset_put () call made changes to sensors data
+//  Last data_asset_store () call made changes to sensors data
 
 bool
 data_asset_sensors_changed (data_t *self)
@@ -609,7 +624,7 @@ data_test (bool verbose)
     bios_proto_aux_insert (asset, "type", "%s", "datacenter");
     bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
     bios_proto_ext_insert (asset, "max_power" , "%s",  "2");
-    data_asset_put (self, &asset);
+    data_asset_store (self, &asset);
     data_reassign_sensors(self);
     zlistx_add_end (assets_expected, (void *) "DC-Rozskoky");
     assert (data_asset_sensors_changed (self) == true);
@@ -620,7 +635,7 @@ data_test (bool verbose)
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "room");
     bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
-    data_asset_put (self, &asset);
+    data_asset_store (self, &asset);
     data_reassign_sensors(self);
     zlistx_add_end (assets_expected, (void *) "Lazer game");
     assert (data_asset_sensors_changed (self) == true);
@@ -631,7 +646,7 @@ data_test (bool verbose)
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "room");
     bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
-    data_asset_put (self, &asset);
+    data_asset_store (self, &asset);
     data_reassign_sensors(self);
     zlistx_add_end (assets_expected, (void *) "Curie");
     assert (data_asset_sensors_changed (self) == true);
@@ -642,7 +657,7 @@ data_test (bool verbose)
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "row");
     bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
-    data_asset_put (self, &asset);
+    data_asset_store (self, &asset);
     data_reassign_sensors(self);
     zlistx_add_end (assets_expected, (void *) "Lazer game.Row01");
     assert (data_asset_sensors_changed (self) == true);
@@ -661,7 +676,7 @@ data_test (bool verbose)
     bios_proto_ext_insert (asset, "vertical_position", "%s", "bottom");
     bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "Rack01");
-    data_asset_put (self, &asset);
+    data_asset_store (self, &asset);
     data_reassign_sensors(self);
     zlistx_add_end (assets_expected, (void *) "Sensor01");
     assert (data_asset_sensors_changed (self) == true);
@@ -682,7 +697,7 @@ data_test (bool verbose)
     bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
     bios_proto_ext_insert (asset, "u_size" , "%s",  "42");
     bios_proto_ext_insert (asset, "description" , "%s",  "Lorem ipsum asd asd asd asd asd asd asd");
-    data_asset_put (self, &asset);
+    data_asset_store (self, &asset);
     data_reassign_sensors(self);
     zlistx_add_end (assets_expected, (void *) "Rack01");
     assert (data_asset_sensors_changed (self) == true);
@@ -694,7 +709,7 @@ data_test (bool verbose)
     bios_proto_aux_insert (asset, "type", "%s", "rack");
     bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
     bios_proto_ext_insert (asset, "u_size" , "%s",  "42");
-    data_asset_put (self, &asset);
+    data_asset_store (self, &asset);
     data_reassign_sensors(self);
     zlistx_add_end (assets_expected, (void *) "Rack02");
     assert (data_asset_sensors_changed (self) == true);
@@ -706,7 +721,7 @@ data_test (bool verbose)
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "row");
     bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
-    data_asset_put (self, &asset);
+    data_asset_store (self, &asset);
     data_reassign_sensors(self);
     zlistx_add_end (assets_expected, (void *) "Curie.Row01");
     assert (data_asset_sensors_changed (self) == true);
@@ -717,7 +732,7 @@ data_test (bool verbose)
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "row");
     bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
-    data_asset_put (self, &asset);
+    data_asset_store (self, &asset);
     data_reassign_sensors(self);
     zlistx_add_end (assets_expected, (void *) "Curie.Row02");
     assert (data_asset_sensors_changed (self) == true);
@@ -730,7 +745,7 @@ data_test (bool verbose)
     bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
     bios_proto_ext_insert (asset, "u_size" , "%s",  "42");
     bios_proto_ext_insert (asset, "description" , "%s",  "Lorem ipsum asd asd asd asd asd asd asd");
-    data_asset_put (self, &asset);
+    data_asset_store (self, &asset);
     data_reassign_sensors(self);
     zlistx_add_end (assets_expected, (void *) "Rack03");
     assert (data_asset_sensors_changed (self) == true);
@@ -743,7 +758,7 @@ data_test (bool verbose)
     bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
     bios_proto_ext_insert (asset, "u_size" , "%s",  "42");
     bios_proto_ext_insert (asset, "description" , "%s",  "Lorem ipsum asd asd asd asd asd asd asd");
-    data_asset_put (self, &asset);
+    data_asset_store (self, &asset);
     data_reassign_sensors(self);
     zlistx_add_end (assets_expected, (void *) "Rack04");
     assert (data_asset_sensors_changed (self) == true);
@@ -754,7 +769,7 @@ data_test (bool verbose)
     bios_proto_aux_insert (asset, "subtype", "%s", "ups");
     bios_proto_aux_insert (asset, "parent", "%s", "5");
     bios_proto_ext_insert (asset, "abc.d", "%s", " ups string 1");
-    data_asset_put (self, &asset);
+    data_asset_store (self, &asset);
     data_reassign_sensors(self);
     assert (data_asset_sensors_changed (self) == false);
 
@@ -771,7 +786,7 @@ data_test (bool verbose)
     bios_proto_ext_insert (asset, "vertical_position", "%s", "bottom");
     bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "Rack01");
-    data_asset_put (self, &asset);
+    data_asset_store (self, &asset);
     data_reassign_sensors(self);
     zlistx_add_end (assets_expected, (void *) "Sensor02");
     assert (data_asset_sensors_changed (self) == true);
@@ -789,7 +804,7 @@ data_test (bool verbose)
     bios_proto_ext_insert (asset, "vertical_position", "%s", "middle");
     bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "Rack01");
-    data_asset_put (self, &asset);
+    data_asset_store (self, &asset);
     data_reassign_sensors(self);
     zlistx_add_end (assets_expected, (void *) "Sensor03");
     assert (data_asset_sensors_changed (self) == true);
@@ -808,7 +823,7 @@ data_test (bool verbose)
     bios_proto_ext_insert (asset, "vertical_position", "%s", "middle");
     bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
     // logical_asset missing
-    data_asset_put (self, &asset);
+    data_asset_store (self, &asset);
     data_reassign_sensors(self);
     assert (data_asset_sensors_changed (self) == false);
 
@@ -825,7 +840,7 @@ data_test (bool verbose)
     bios_proto_ext_insert (asset, "vertical_position", "%s", "middle");
     bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "Rack01");
-    data_asset_put (self, &asset);
+    data_asset_store (self, &asset);
     data_reassign_sensors(self);
     assert (data_asset_sensors_changed (self) == false);
 
@@ -842,7 +857,7 @@ data_test (bool verbose)
     bios_proto_ext_insert (asset, "vertical_position", "%s", "middle");
     bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "Rack01");
-    data_asset_put (self, &asset);
+    data_asset_store (self, &asset);
     data_reassign_sensors(self);
     assert (data_asset_sensors_changed (self) == false);
 
@@ -859,7 +874,7 @@ data_test (bool verbose)
     bios_proto_ext_insert (asset, "vertical_position", "%s", "bottom");
     bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "Rack02");
-    data_asset_put (self, &asset);
+    data_asset_store (self, &asset);
     data_reassign_sensors(self);
     zlistx_add_end (assets_expected, (void *) "Sensor08");
     assert (data_asset_sensors_changed (self) == true);
@@ -877,7 +892,7 @@ data_test (bool verbose)
     bios_proto_ext_insert (asset, "vertical_position", "%s", "top");
     bios_proto_ext_insert (asset, "sensor_function", "%s", "output");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "Rack02");
-    data_asset_put (self, &asset);
+    data_asset_store (self, &asset);
     data_reassign_sensors(self);
     zlistx_add_end (assets_expected, (void *) "Sensor09");
     assert (data_asset_sensors_changed (self) == true);
@@ -893,7 +908,7 @@ data_test (bool verbose)
     bios_proto_ext_insert (asset, "vertical_position", "%s", "top");
     bios_proto_ext_insert (asset, "sensor_function", "%s", "output");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "Rack01");
-    data_asset_put (self, &asset);
+    data_asset_store (self, &asset);
     data_reassign_sensors(self);
     zlistx_add_end (assets_expected, (void *) "Sensor10");
     assert (data_asset_sensors_changed (self) == true);
@@ -911,7 +926,7 @@ data_test (bool verbose)
     bios_proto_ext_insert (asset, "vertical_position", "%s", "top");
     bios_proto_ext_insert (asset, "sensor_function", "%s", "output");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "Rack01");
-    data_asset_put (self, &asset);
+    data_asset_store (self, &asset);
     data_reassign_sensors(self);
     zlistx_add_end (assets_expected, (void *) "Sensor11");
     assert (data_asset_sensors_changed (self) == true);
@@ -928,7 +943,7 @@ data_test (bool verbose)
     bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "0");
     bios_proto_ext_insert (asset, "sensor_function", "%s", "neuvedeno");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "Rack01");
-    data_asset_put (self, &asset);
+    data_asset_store (self, &asset);
     data_reassign_sensors(self);
     zlistx_add_end (assets_expected, (void *) "Sensor12");
     assert (data_asset_sensors_changed (self) == true);
@@ -946,7 +961,7 @@ data_test (bool verbose)
     bios_proto_ext_insert (asset, "vertical_position", "%s", "top");
     bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "Curie.Row02");
-    data_asset_put (self, &asset);
+    data_asset_store (self, &asset);
     data_reassign_sensors(self);
     zlistx_add_end (assets_expected, (void *) "Sensor13");
     assert (data_asset_sensors_changed (self) == true);
@@ -961,7 +976,7 @@ data_test (bool verbose)
     bios_proto_ext_insert (asset, "port", "%s", "TH10");
     bios_proto_ext_insert (asset, "vertical_position", "%s", "bottom");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "Curie");
-    data_asset_put (self, &asset);
+    data_asset_store (self, &asset);
     data_reassign_sensors(self);
     zlistx_add_end (assets_expected, (void *) "Sensor14");
     assert (data_asset_sensors_changed (self) == true);
@@ -979,7 +994,7 @@ data_test (bool verbose)
     bios_proto_ext_insert (asset, "vertical_position", "%s", "middle");
     bios_proto_ext_insert (asset, "sensor_function", "%s", "output");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "Curie.Row02");
-    data_asset_put (self, &asset);
+    data_asset_store (self, &asset);
     data_reassign_sensors(self);
     zlistx_add_end (assets_expected, (void *) "Sensor15");
     assert (data_asset_sensors_changed (self) == true);
@@ -1240,7 +1255,7 @@ data_test (bool verbose)
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "ups");
     bios_proto_aux_insert (asset, "parent", "%s", "10");
-    data_asset_put (self, &asset);
+    data_asset_store (self, &asset);
     data_reassign_sensors(self);
     assert (data_asset_sensors_changed (self) == false);
 
@@ -1256,7 +1271,7 @@ data_test (bool verbose)
     bios_proto_ext_insert (asset, "vertical_position", "%s", "bottom");
     bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "Rack01");
-    data_asset_put (self, &asset);
+    data_asset_store (self, &asset);
     data_reassign_sensors(self);
     assert (data_asset_sensors_changed (self) == true);
 
@@ -1273,7 +1288,7 @@ data_test (bool verbose)
     bios_proto_ext_insert (asset, "vertical_position", "%s", "middle");
     bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "Rack01");
-    data_asset_put (self, &asset);
+    data_asset_store (self, &asset);
     data_reassign_sensors(self);
     assert (data_asset_sensors_changed (self) == true);
 
@@ -1287,7 +1302,7 @@ data_test (bool verbose)
     bios_proto_ext_insert (asset, "port", "%s", "TH3");
     bios_proto_ext_insert (asset, "sensor_function", "%s", "output");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "Rack01");
-    data_asset_put (self, &asset);
+    data_asset_store (self, &asset);
     data_reassign_sensors(self);
     assert (data_asset_sensors_changed (self) == true);
 
@@ -1303,7 +1318,7 @@ data_test (bool verbose)
     bios_proto_ext_insert (asset, "vertical_position", "%s", "top");
     bios_proto_ext_insert (asset, "sensor_function", "%s", "output");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "Rack01");
-    data_asset_put (self, &asset);
+    data_asset_store (self, &asset);
     data_reassign_sensors(self);
     assert (data_asset_sensors_changed (self) == true);
 
@@ -1311,7 +1326,7 @@ data_test (bool verbose)
     asset = test_asset_new ("Sensor11", BIOS_PROTO_ASSET_OP_RETIRE);
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    data_asset_put (self, &asset);
+    data_asset_store (self, &asset);
     void *handle = zlistx_find (assets_expected, (void *) "Sensor11");
     zlistx_delete (assets_expected, handle);
     assert (data_asset_sensors_changed (self) == true);
@@ -1329,7 +1344,7 @@ data_test (bool verbose)
     bios_proto_ext_insert (asset, "vertical_position", "%s", "middle");
     bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "DC-Rozskoky");
-    data_asset_put (self, &asset);
+    data_asset_store (self, &asset);
     data_reassign_sensors(self);
     assert (data_asset_sensors_changed (self) == true);
 
@@ -1344,7 +1359,7 @@ data_test (bool verbose)
     bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "5");
     bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "50");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "Curie.Row02");
-    data_asset_put (self, &asset);
+    data_asset_store (self, &asset);
     data_reassign_sensors(self);
     assert (data_asset_sensors_changed (self) == true);
 
@@ -1359,7 +1374,7 @@ data_test (bool verbose)
     bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
     bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "1");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "Lazer game");
-    data_asset_put (self, &asset);
+    data_asset_store (self, &asset);
     data_reassign_sensors(self);
     zlistx_add_end (assets_expected, (void *) "Sensor04");
     assert (data_asset_sensors_changed (self) == true);
@@ -1377,7 +1392,7 @@ data_test (bool verbose)
     bios_proto_ext_insert (asset, "vertical_position", "%s", "top");
     bios_proto_ext_insert (asset, "sensor_function", "%s", "output");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "DC-Rozskoky");
-    data_asset_put (self, &asset);
+    data_asset_store (self, &asset);
     data_reassign_sensors(self);
     zlistx_add_end (assets_expected, (void *) "Sensor05");
     assert (data_asset_sensors_changed (self) == true);
@@ -1394,7 +1409,7 @@ data_test (bool verbose)
     bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "-1.4");
     bios_proto_ext_insert (asset, "sensor_function", "%s", "output");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "Lazer game");
-    data_asset_put (self, &asset);
+    data_asset_store (self, &asset);
     data_reassign_sensors(self);
     zlistx_add_end (assets_expected, (void *) "Sensor06");
     assert (data_asset_sensors_changed (self) == true);
@@ -1411,7 +1426,7 @@ data_test (bool verbose)
     bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "-25");
     bios_proto_ext_insert (asset, "sensor_function", "%s", "ambient");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "Curie.Row02");
-    data_asset_put (self, &asset);
+    data_asset_store (self, &asset);
     data_reassign_sensors(self);
     zlistx_add_end (assets_expected, (void *) "Sensor07");
     assert (data_asset_sensors_changed (self) == true);
@@ -1420,7 +1435,7 @@ data_test (bool verbose)
     asset = test_asset_new ("Sensor12", BIOS_PROTO_ASSET_OP_DELETE);
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    data_asset_put (self, &asset);
+    data_asset_store (self, &asset);
     data_reassign_sensors(self);
     handle = zlistx_find (assets_expected, (void *) "Sensor12");
     zlistx_delete (assets_expected, handle);
@@ -1435,7 +1450,7 @@ data_test (bool verbose)
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
     bios_proto_ext_insert (asset, "port", "%s", "TH10");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "This-asset-does-not-exist");
-    data_asset_put (self, &asset);
+    data_asset_store (self, &asset);
     data_reassign_sensors(self);
     assert (data_asset_sensors_changed (self) == true);
 
@@ -1450,7 +1465,7 @@ data_test (bool verbose)
     bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "2");
     bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "-3");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "Curie");
-    data_asset_put (self, &asset);
+    data_asset_store (self, &asset);
     data_reassign_sensors(self);
     assert (data_asset_sensors_changed (self) == true);
 
@@ -1458,7 +1473,7 @@ data_test (bool verbose)
     asset = test_asset_new ("Sensor13", BIOS_PROTO_ASSET_OP_DELETE);
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    data_asset_put (self, &asset);
+    data_asset_store (self, &asset);
     data_reassign_sensors(self);
     handle = zlistx_find (assets_expected, (void *) "Sensor13");
     zlistx_delete (assets_expected, handle);
@@ -1708,7 +1723,7 @@ data_test (bool verbose)
     asset = test_asset_new ("Sensor15", BIOS_PROTO_ASSET_OP_DELETE);
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    data_asset_put (self, &asset);
+    data_asset_store (self, &asset);
     data_reassign_sensors(self);
     handle = zlistx_find (assets_expected, (void *) "Sensor15");
     zlistx_delete (assets_expected, handle);
@@ -1718,7 +1733,7 @@ data_test (bool verbose)
     asset = test_asset_new ("Curie.Row02", BIOS_PROTO_ASSET_OP_DELETE);
     bios_proto_aux_insert (asset, "type", "%s", "row");
     bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
-    data_asset_put (self, &asset);
+    data_asset_store (self, &asset);
     data_reassign_sensors(self);
 
     void *to_delete = zlistx_find  (assets_expected, (void *) "Curie.Row02");
@@ -1737,7 +1752,7 @@ data_test (bool verbose)
     bios_proto_ext_insert (asset, "port", "%s", "TH2");
     bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "-3.51");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "DC-Rozskoky");
-    data_asset_put (self, &asset);
+    data_asset_store (self, &asset);
     data_reassign_sensors(self);
     zlistx_add_end (assets_expected, (void *) "Sensor16");
     assert (data_asset_sensors_changed (self) == true);
@@ -1748,7 +1763,7 @@ data_test (bool verbose)
     bios_proto_aux_insert (asset, "subtype", "%s", "rack controller");
     bios_proto_aux_insert (asset, "parent", "%s", "5");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01");
-    data_asset_put (self, &asset);
+    data_asset_store (self, &asset);
     data_reassign_sensors(self);
     assert (data_asset_sensors_changed (self) == false);
 
