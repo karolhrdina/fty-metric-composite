@@ -76,17 +76,6 @@ COMPOSITE_METRICS_EXPORT zlistx_t *
 COMPOSITE_METRICS_EXPORT bios_proto_t *
     data_asset (data_t *self, const char *name);
 
-//  Get list of sensors for asset
-//  You can limit the list of sensors returned to a certain 'sensor_function',
-//  NULL returns all sensors.
-//  Returns NULL when 'asset_name' is not among values returned by `data_asset_names ()`
-//  The caller is responsible for destroying the return value when finished with it
-COMPOSITE_METRICS_EXPORT zlistx_t *
-    data_sensor (
-            data_t *self,
-            const char *asset_name,
-            const char *sensor_function);
-
 //  Get state file fullpath or empty string if not set
 COMPOSITE_METRICS_EXPORT const char *
     data_statefile (data_t *self);
