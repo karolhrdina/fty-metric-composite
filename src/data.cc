@@ -390,6 +390,7 @@ data_asset_store (data_t *self, bios_proto_t **message_p)
 void
 data_set_produced_metrics (data_t *self,const std::set <std::string> &metrics)
 {
+    assert (self);
     self->produced_metrics.clear();
     self->produced_metrics = metrics;
 }
@@ -400,6 +401,7 @@ data_set_produced_metrics (data_t *self,const std::set <std::string> &metrics)
 std::set <std::string>
 data_get_produced_metrics (data_t *self)
 {
+    assert (self);
     return self->produced_metrics;
 }
 
