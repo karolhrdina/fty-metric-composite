@@ -636,7 +636,7 @@ data_test (bool verbose)
 
     //  =================================================================
     if ( verbose )
-        log_debug ("Test2: data_statefile ()/data_set_statefile () test");
+        log_debug ("Test2: data_statefile()/data_set_statefile()");
     {
     const char *state_file = data_statefile (self);
     assert (streq (state_file, ""));
@@ -668,8 +668,9 @@ data_test (bool verbose)
     assert (streq (state_file, "./test_dir/state_file"));
     }
 
-    // data_cfgdir
-    // data_set_cfgdir
+    //  =================================================================
+    if ( verbose )
+        log_debug ("Test3: data_cfgdir()/data_set_dir()");
     {
     const char *cfgdir = data_cfgdir (self);
     assert (streq (cfgdir, ""));

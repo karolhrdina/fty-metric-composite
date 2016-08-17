@@ -40,6 +40,8 @@ extern "C" {
 #include <bios_proto.h>
 #include <malamute.h>
 
+#include "composite_metrics_classes.h"
+
 struct value {
   double value;
   time_t valid_till;
@@ -229,7 +231,7 @@ exit:
 void
 bios_composite_metrics_server_test (bool verbose)
 {
-    if ( verbose ) 
+    if ( verbose )
         log_set_level (LOG_DEBUG);
     static const char* endpoint = "inproc://bios-cm-server-test";
 
