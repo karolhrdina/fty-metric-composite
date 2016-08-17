@@ -21,7 +21,9 @@
 
 /*
 @header
-    data - composite metrics data structure
+    data - composite metrics data structure, holds information about known
+           assets, configures sensors, stores information about metrics
+           that would be produced by the actual configuration.
 @discuss
 @end
 */
@@ -32,7 +34,7 @@
 
 //  Structure of our class
 struct _data_t {
-    // Information about all interesting assets for this daemon
+    // Information about all interesting assets for this agent
     zhashx_t *all_assets; // asset_name -> its message definition. Owns messages
     // Structure of sensors
     zhashx_t *last_configuration; // asset_name -> list of sensors (each sensor is represented as message). Doesn't own messages
@@ -72,6 +74,10 @@ data_new (void)
     return self;
 }
 
+//  --------------------------------------------------------------------------
+//  Get a list of sensors assigned to the specified asset, if for this asset
+//  there is no any record, creates empty one and returns it.
+
 static zlistx_t*
 s_get_assigned_sensors (data_t *self, const char *asset_name)
 {
@@ -88,9 +94,10 @@ s_get_assigned_sensors (data_t *self, const char *asset_name)
 }
 
 //  --------------------------------------------------------------------------
-//  According known information about assets, decided, where sensors logically belongs to
+//  According known information about assets, decide, where sensors logically belong to
 
-void data_reassign_sensors (data_t *self)
+void
+data_reassign_sensors (data_t *self)
 {
     assert (self);
     // delete old configuration first
@@ -122,8 +129,8 @@ void data_reassign_sensors (data_t *self)
         // find detailed information about logical asset
         bios_proto_t *logical_asset = (bios_proto_t *) zhashx_lookup (self->all_assets, logical_asset_name);
         if ( logical_asset == NULL ) {
-            log_warning ("Inconsistent state for now: detailes about the logical asset are not known -> skip sensor");
-            // If detailed information about logical asset was not found
+            log_warning ("Inconsistecy (yet): detailes about logical asset '%s' are not known -> skip sensor '%s'", logical_asset_name, one_sensor_name);
+            // Detailed information about logical asset was not found
             // It can happen if:
             //  * reconfiguration started before detailed "logical_asset" message arrived
             //  * something is really wrong!
@@ -136,7 +143,7 @@ void data_reassign_sensors (data_t *self)
         // BIOS-2484: start - ignore sensors assigned to the NON-RACK asset
         const char *logical_asset_type = bios_proto_aux_string (logical_asset, "type", "");
         if ( !streq (logical_asset_type, "rack") ) {
-            log_warning ("Sensors assigned to non-'rack's are ignored");
+            log_warning ("Sensor '%s' assigned to non-'rack' is ignored", one_sensor_name);
             one_sensor_name = (char *) zlistx_next (asset_names);
             continue;
         }
@@ -149,9 +156,9 @@ void data_reassign_sensors (data_t *self)
         // add sensor to the list
         zlistx_add_end (already_assigned_sensors, (void *) one_sensor);
 
-        // TODO BIOS-2484: start - propagate sensor in physical topology 
+        // BIOS-2484: start - propagate sensor in physical topology 
         // (need to add sensor to all "parents" of the logical asset)
-        // Aacrually, the chain is: dc-room-row-rack-device-device -> max 5 level parents can be
+        // Actually, the chain is: dc-room-row-rack-device-device -> max 5 level parents can be
         // But here, we start from rack -> only 3 level is available at maximum
         const char *l_parent_name = bios_proto_aux_string (logical_asset, "parent_name.1", NULL);
         if ( l_parent_name ) {
@@ -170,7 +177,7 @@ void data_reassign_sensors (data_t *self)
             already_assigned_sensors = s_get_assigned_sensors (self, l_parent_name);
             zlistx_add_end (already_assigned_sensors, (void *) one_sensor);
         }
-        // TODO BIOS-2484: end
+        // BIOS-2484: end
 
         // at this point configuration of this sensor is done
         // and we can move to next one
@@ -227,6 +234,11 @@ data_get_assigned_sensors (
     return return_sensor_list;
 }
 
+//  --------------------------------------------------------------------------
+//  Checks if sensors attributes are ok.
+//  Returns 'true' if we have all necessary information
+//  Returns 'false' if some must-have information is missing
+//  Writes to log detailed information "what is missing"
 
 static bool
 s_is_sensor_correct (bios_proto_t *sensor)
@@ -261,7 +273,7 @@ s_is_sensor_correct (bios_proto_t *sensor)
 }
 
 //  --------------------------------------------------------------------------
-//  Store asset
+//  Store asset, takes ownership of the message
 
 void
 data_asset_store (data_t *self, bios_proto_t **message_p)
@@ -282,7 +294,7 @@ data_asset_store (data_t *self, bios_proto_t **message_p)
          !(streq (subtype, "sensor") )
        )
     {
-        // We are not interested in the "devices" that are not sensors!
+        // We are not interested in the 'device's that are not 'sensor's!
         bios_proto_destroy (message_p);
         *message_p = NULL;
         return;
@@ -305,7 +317,7 @@ data_asset_store (data_t *self, bios_proto_t **message_p)
             *message_p = NULL;
             return;
         } else {
-            // no log message is here, as "is_sensor_correct" already wrote all detailed information
+            // no log message is here, as "s_is_sensor_correct" already wrote all detailed information
             bios_proto_destroy (message_p);
             *message_p = NULL;
             return;
@@ -313,16 +325,17 @@ data_asset_store (data_t *self, bios_proto_t **message_p)
     } else
     if ( streq (operation, BIOS_PROTO_ASSET_OP_UPDATE) ) {
         if ( !streq (type, "device") ) {
-            // So, if NOT "device" is UPDATED -> do reconfiguration only if TOPOLGY changed
+            // So, if NOT "device" is UPDATED -> do reconfiguration only if TOPOLGY had changed
             // Look for the asset
             bios_proto_t *asset = (bios_proto_t*) zhashx_lookup (self->all_assets, bios_proto_name (message));
             if ( asset == NULL ) { // if the asset was not known (for any reason)
                 self->is_reconfig_needed = true;
             }
             else {
-                // if asset is known we need to check, if physical topology changed
+                // if asset is known we need to check, if physical topology had changed
                 if ( streq (bios_proto_aux_string (asset, "parent_name.1", ""),
-                            bios_proto_aux_string (message, "parent_name.1", "")) )
+                            bios_proto_aux_string (message, "parent_name.1", ""))
+                   )
                 {
                     self->is_reconfig_needed = true;
                 }
@@ -340,7 +353,7 @@ data_asset_store (data_t *self, bios_proto_t **message_p)
             *message_p = NULL;
             return;
         } else {
-            // no log message is here, as "is_sensor_correct" already wrote all detailed information
+            // no log message is here, as "s_is_sensor_correct" already wrote all detailed information
             bios_proto_destroy (message_p);
             *message_p = NULL;
             return;
