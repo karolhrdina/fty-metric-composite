@@ -56,7 +56,7 @@ COMPOSITE_METRICS_EXPORT zlistx_t *
 
 //  Last data_asset_store () call made changes to sensors data
 COMPOSITE_METRICS_EXPORT bool
-    data_asset_sensors_changed (data_t *self);
+    data_is_reconfig_needed (data_t *self);
 
 //  Update list of metrics produced by composite_metrics
 COMPOSITE_METRICS_EXPORT void
