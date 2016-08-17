@@ -332,13 +332,21 @@ data_asset_store (data_t *self, bios_proto_t **message_p)
                 self->is_reconfig_needed = true;
             }
             else {
+                // BIOS-2484: start update of the asset should trigger reconfiguration if topology changed
                 // if asset is known we need to check, if physical topology had changed
+                // Actually, the chain is: dc-room-row-rack-device-device -> max 5 level parents can be
+                // But here, we start from rack -> only 3 level is available at maximum
                 if ( streq (bios_proto_aux_string (asset, "parent_name.1", ""),
-                            bios_proto_aux_string (message, "parent_name.1", ""))
+                            bios_proto_aux_string (message, "parent_name.1", "")) ||
+                     streq (bios_proto_aux_string (asset, "parent_name.2", ""),
+                            bios_proto_aux_string (message, "parent_name.2", "")) ||
+                     streq (bios_proto_aux_string (asset, "parent_name.3", ""),
+                            bios_proto_aux_string (message, "parent_name.3", ""))
                    )
                 {
                     self->is_reconfig_needed = true;
                 }
+                // BIOS-2484: end
             }
             zhashx_update (self->all_assets, bios_proto_name (message), (void *) message);
             *message_p = NULL;
