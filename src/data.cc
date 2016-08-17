@@ -404,7 +404,7 @@ data_get_produced_metrics (data_t *self)
 }
 
 //  --------------------------------------------------------------------------
-//  Returns 'true' if recently added asset requires the reconfiguration
+//  Returns 'true' if some of recently added asset requires the reconfiguration
 //                 or if reconfiguration was done in 'inconsistent' state 
 //                 and we MUST reconfigure one more time
 
