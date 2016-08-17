@@ -418,7 +418,6 @@ bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
     }
     zsock_signal (pipe, 0);
 
-    bool is_reconfigure_pending = false;
 
     uint64_t timestamp = (uint64_t) zclock_mono ();
     uint64_t timeout = (uint64_t) 30000;
@@ -434,13 +433,12 @@ bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
                 break;
             }
             if (zpoller_expired (poller)) {
-                if (is_reconfigure_pending) {
+                if (data_is_reconfig_needed (data)) {
                     std::set <std::string> metrics_unavailable;
                     s_regenerate (data, metrics_unavailable);
                     for ( const auto &one_metric : metrics_unavailable ) {
                         proto_metric_unavailable_send (client, one_metric.c_str());
                     }
-                    is_reconfigure_pending = false;
                 }
             }
             timestamp = (uint64_t) zclock_mono ();
@@ -461,13 +459,12 @@ bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
 
         uint64_t now = (uint64_t) zclock_mono ();
         if (now - timestamp >= timeout) {
-             if (is_reconfigure_pending) {
+             if (data_is_reconfig_needed (data)) {
                 std::set <std::string> metrics_unavailable;
                 s_regenerate (data, metrics_unavailable);
                 for ( const auto &one_metric : metrics_unavailable ) {
                     proto_metric_unavailable_send (client, one_metric.c_str());
                 }
-                is_reconfigure_pending = false;
             }
             timestamp = (uint64_t) zclock_mono ();
         }
@@ -494,8 +491,6 @@ bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
             }
             data_asset_store (data, &proto);
             assert (proto == NULL);
-
-            is_reconfigure_pending |= data_asset_sensors_changed (data);
         }
         else
         if (streq (command, "MAILBOX DELIVER") ||
