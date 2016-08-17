@@ -72,9 +72,24 @@ data_new (void)
     return self;
 }
 
+static zlistx_t*
+s_get_assigned_sensors (data_t *self, const char *asset_name)
+{
+    zlistx_t *already_assigned_sensors = (zlistx_t *) zhashx_lookup (self->last_configuration, asset_name);
+    // if no sensors were assigned yet, create empty list
+    if ( already_assigned_sensors == NULL ) {
+        already_assigned_sensors = zlistx_new ();
+        // TODO: handle NULL-pointer
+        zhashx_insert (self->last_configuration, asset_name, (void *) already_assigned_sensors);
+        // ATTENTION: zhashx_set_destructor is not called intentionally, as here we have only "links" on 
+        // sensors, because "all_assets" owns this information!
+    }
+    return already_assigned_sensors;
+}
+
 //  --------------------------------------------------------------------------
-//  Create a new data
-// ignores devision by function!!!! should be done on upper layer!!!
+//  According known information about assets, decided, where sensors logically belongs to
+
 void data_reassign_sensors (data_t *self)
 {
     assert (self);
@@ -130,23 +145,31 @@ void data_reassign_sensors (data_t *self)
         // So, now let us put our sensor to the right place
 
         // Find already assigned sensors
-        zlistx_t *already_assigned_sensors = (zlistx_t *) zhashx_lookup (self->last_configuration, logical_asset_name);
-        // if no sensors were assigned yet, create empty list
-        if ( already_assigned_sensors == NULL ) {
-            already_assigned_sensors = zlistx_new ();
-            // TODO: handle NULL-pointer
-            zhashx_insert (self->last_configuration, logical_asset_name, (void *) already_assigned_sensors);
-            // ATTENTION: zhashx_set_destructor is not called intentionally, as here we have only "links" on 
-            // sensors, because "all_assets" owns this information!
-        }
+        zlistx_t *already_assigned_sensors = s_get_assigned_sensors (self, logical_asset_name);
         // add sensor to the list
         zlistx_add_end (already_assigned_sensors, (void *) one_sensor);
 
         // TODO BIOS-2484: start - propagate sensor in physical topology 
         // (need to add sensor to all "parents" of the logical asset)
-        //
+        // Aacrually, the chain is: dc-room-row-rack-device-device -> max 5 level parents can be
+        // But here, we start from rack -> only 3 level is available at maximum
+        const char *l_parent_name = bios_proto_aux_string (logical_asset, "parent_name.1", NULL);
+        if ( l_parent_name ) {
+            already_assigned_sensors = s_get_assigned_sensors (self, l_parent_name);
+            zlistx_add_end (already_assigned_sensors, (void *) one_sensor);
+        }
 
+        l_parent_name = bios_proto_aux_string (logical_asset, "parent_name.2", NULL);
+        if ( l_parent_name ) {
+            already_assigned_sensors = s_get_assigned_sensors (self, l_parent_name);
+            zlistx_add_end (already_assigned_sensors, (void *) one_sensor);
+        }
 
+        l_parent_name = bios_proto_aux_string (logical_asset, "parent_name.3", NULL);
+        if ( l_parent_name ) {
+            already_assigned_sensors = s_get_assigned_sensors (self, l_parent_name);
+            zlistx_add_end (already_assigned_sensors, (void *) one_sensor);
+        }
         // TODO BIOS-2484: end
 
         // at this point configuration of this sensor is done
@@ -166,6 +189,7 @@ void data_reassign_sensors (data_t *self)
 //  Returns NULL when for 'asset_name' T&H sensors are not known or asset_name is not known at all
 //  or in case of memory issues
 //  The caller is responsible for destroying the return value when finished with it
+
 zlistx_t *
 data_get_assigned_sensors (
         data_t *self,
@@ -205,7 +229,7 @@ data_get_assigned_sensors (
 
 
 static bool
-is_sensor_correct (bios_proto_t *sensor)
+s_is_sensor_correct (bios_proto_t *sensor)
 {
     assert (sensor);
     const char *logical_asset = bios_proto_ext_string (sensor, "logical_asset", NULL);
@@ -274,7 +298,7 @@ data_asset_store (data_t *self, bios_proto_t **message_p)
         }
         // So, we have "device" and it is "sensor"!
         // lets check, that sensor has all necessary information
-        if ( is_sensor_correct (message) ) {
+        if ( s_is_sensor_correct (message) ) {
             // So, it is ok -> store it
             self->is_reconfig_needed = true;
             zhashx_update (self->all_assets, bios_proto_name (message), (void *) message);
@@ -309,7 +333,7 @@ data_asset_store (data_t *self, bios_proto_t **message_p)
         }
         // So, we have "device" and it is "sensor"!
         // lets check, that sensor has all necessary information
-        if ( is_sensor_correct (message) ) {
+        if ( s_is_sensor_correct (message) ) {
             // So, it is ok -> store it
             self->is_reconfig_needed = true;
             zhashx_update (self->all_assets, bios_proto_name (message), (void *) message);
