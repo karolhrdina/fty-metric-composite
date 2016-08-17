@@ -472,11 +472,6 @@ data_set_statefile (data_t *self, const char *fullpath)
         zfile_destroy (&file);
         return -1;
     }
-    if ( !zfile_is_writeable (file) ) {
-        log_error ("Specified argument '%s' is not writeable.", fullpath);
-        zfile_destroy (&file);
-        return -1;
-    }
     zfile_destroy (&file);
     zstr_free (&self->state_file);
     self->state_file = strdup (fullpath);
@@ -658,11 +653,6 @@ data_test (bool verbose)
 
     // directory
     rv = data_set_statefile (self, "/lib");
-    assert (rv == -1);
-    state_file = data_statefile (self);
-    assert (streq (state_file, "./test_dir/state_file"));
-
-    rv = data_set_statefile (self, "/dev/null/notwritablefile");
     assert (rv == -1);
     state_file = data_statefile (self);
     assert (streq (state_file, "./test_dir/state_file"));
