@@ -35,18 +35,21 @@ typedef struct _data_t data_t;
 COMPOSITE_METRICS_EXPORT data_t *
     data_new (void);
 
-//  Store asset
+//  Store asset, takes ownership of the message
 COMPOSITE_METRICS_EXPORT void
     data_asset_store (data_t *self, bios_proto_t **message_p);
 
-// ignores devision by function!!!! should be done on upper layer!!!
+//  According known information about assets, decide, where sensors logically belong to
 COMPOSITE_METRICS_EXPORT void
     data_reassign_sensors (data_t *self);
 
+//  Before using this functionality, sensors should be assigned to the right positions
+//  by calling 'data_reassign_sensors' function.
 //  Get list of sensors assigned to the asset
 //  You can limit the list of sensors returned to a certain 'sensor_function',
 //  NULL returns all sensors.
 //  Returns NULL when for 'asset_name' T&H sensors are not known or asset_name is not known at all
+//  or in case of memory issues
 //  The caller is responsible for destroying the return value when finished with it
 COMPOSITE_METRICS_EXPORT zlistx_t *
     data_get_assigned_sensors (
@@ -54,7 +57,9 @@ COMPOSITE_METRICS_EXPORT zlistx_t *
         const char *asset_name,
         const char *sensor_function);
 
-//  Last data_asset_store () call made changes to sensors data
+//  Returns 'true' if some of recently added asset requires the reconfiguration
+//                 or if reconfiguration was done in 'inconsistent' state
+//                 and we MUST reconfigure one more time
 COMPOSITE_METRICS_EXPORT bool
     data_is_reconfig_needed (data_t *self);
 
@@ -71,7 +76,7 @@ COMPOSITE_METRICS_EXPORT std::set <std::string>
 COMPOSITE_METRICS_EXPORT zlistx_t *
     data_asset_names (data_t *self);
 
-//  Get information for any given asset name returned by `data_asset_names ()` or NULL
+//  Get information for any given asset name if it is known or NULL otherwise
 //  Ownership is NOT transferred
 COMPOSITE_METRICS_EXPORT bios_proto_t *
     data_asset (data_t *self, const char *name);
