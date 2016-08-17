@@ -289,8 +289,6 @@ data_asset_store (data_t *self, bios_proto_t **message_p)
     const char *type = bios_proto_aux_string (message, "type", "");
     const char *subtype = bios_proto_aux_string (message, "subtype", "");
 
-    self->is_reconfig_needed = false;
-
     if (  (streq (type, "device")) &&
          !(streq (subtype, "sensor") )
        )
