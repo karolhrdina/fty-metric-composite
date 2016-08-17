@@ -575,7 +575,7 @@ test_asset_new (const char *name, const char *operation)
 //  Helper test function
 //  0 - same, 1 - different
 static int
-test_zlistx_compare (zlistx_t *expected, zlistx_t **received_p, int print = 0)
+test_zlistx_compare (zlistx_t *expected, zlistx_t **received_p, bool verbose = false)
 {
     assert (expected);
     assert (received_p && *received_p);
@@ -586,7 +586,7 @@ test_zlistx_compare (zlistx_t *expected, zlistx_t **received_p, int print = 0)
     while (cursor) {
         void *handle = zlistx_find (received, (void *) cursor);
         if (!handle) {
-            if ( print )
+            if ( verbose )
                 log_debug ("expected but not found: %s", cursor);
             zlistx_destroy (received_p);
             *received_p = NULL;
@@ -598,7 +598,7 @@ test_zlistx_compare (zlistx_t *expected, zlistx_t **received_p, int print = 0)
     if (zlistx_size (received) == 0) {
         rv = 0;
     } else {
-        if ( print ) {
+        if ( verbose ) {
             const char *element = (const char *) zlistx_first (received);
             log_debug ("received but not expected:");
             while (element) {
@@ -767,7 +767,7 @@ data_test (bool verbose)
         zlistx_t *received = data_asset_names (self);
         assert (received);
 
-        int rv = test_zlistx_compare (assets_expected, &received, 1);
+        int rv = test_zlistx_compare (assets_expected, &received, verbose);
         assert (rv == 0);
     }
 
@@ -1106,7 +1106,7 @@ data_test (bool verbose)
         zlistx_t *received = data_asset_names (self);
         assert (received);
 
-        int rv = test_zlistx_compare (assets_expected, &received, 1);
+        int rv = test_zlistx_compare (assets_expected, &received, verbose);
         assert (rv == 0);
 
         asset = data_asset (self, "DC-Rozskoky");
@@ -1599,7 +1599,7 @@ data_test (bool verbose)
     {
         zlistx_t *received = data_asset_names (self);
         assert (received);
-        int rv = test_zlistx_compare (assets_expected, &received, 1);
+        int rv = test_zlistx_compare (assets_expected, &received, verbose);
         assert (rv == 0);
 
         asset = data_asset (self, "ups2");
@@ -1890,7 +1890,7 @@ data_test (bool verbose)
     {
         zlistx_t *received = data_asset_names (self);
         assert (received);
-        int rv = test_zlistx_compare (assets_expected, &received, 1);
+        int rv = test_zlistx_compare (assets_expected, &received, verbose);
         assert (rv == 0);
 /*
         zlistx_t *sensors = data_sensor (self, "DC-Rozskoky", NULL);
