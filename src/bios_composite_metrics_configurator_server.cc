@@ -587,7 +587,8 @@ test_dir_contents (
 void
 bios_composite_metrics_configurator_server_test (bool verbose)
 {
-
+    if ( verbose ) 
+        log_set_level (LOG_DEBUG);
     static const char* endpoint = "inproc://bios-composite-configurator-server-test";
     printf (" * bios_composite_metrics_configurator_server: ");
     if (verbose)

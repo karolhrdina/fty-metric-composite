@@ -177,6 +177,8 @@ actor_commands (
 void
 actor_commands_test (bool verbose)
 {
+    if ( verbose ) 
+        log_set_level (LOG_DEBUG);
     printf (" * actor_commands: ");
     //  @selftest
 
