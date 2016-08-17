@@ -490,6 +490,7 @@ data_cfgdir (data_t *self)
 
 //  --------------------------------------------------------------------------
 //  Set configuration directory path
+//  Directory MUST exist! If directory doesn't exist -> error
 //  0 - success, -1 - error
 
 int
@@ -505,6 +506,7 @@ data_set_cfgdir (data_t *self, const char *path)
     zdir_destroy (&dir);
     zstr_free (&self->output_dir);
     self->output_dir = strdup (path);
+    log_debug ("Configuration dir is set: '%s'", path);
     return 0;
 }
 
@@ -660,7 +662,7 @@ data_test (bool verbose)
 
     //  =================================================================
     if ( verbose )
-        log_debug ("Test3: data_cfgdir()/data_set_dir()");
+        log_debug ("Test3: data_cfgdir()/data_set_cfgdir()");
     {
     const char *cfgdir = data_cfgdir (self);
     assert (streq (cfgdir, ""));
@@ -677,6 +679,9 @@ data_test (bool verbose)
     assert (streq (cfgdir, "/tmp"));
     }
 
+    //  =================================================================
+    if ( verbose )
+        log_debug ("Test4: data_asset_store()/data_reassign_needed()/data_is_reconfig_needed() for CREATE operation");
     // asset
     zlistx_t *assets_expected = zlistx_new ();
     zlistx_set_destructor (assets_expected, (czmq_destructor *) zstr_free);
@@ -685,7 +690,8 @@ data_test (bool verbose)
 
     bios_proto_t *asset = NULL;
 
-    printf ("TRACE CREATE DC-Rozskoky\n");
+    if ( verbose )
+        log_debug ("\tCREATE 'DC-Rozskoky' as datacenter");
     asset = test_asset_new ("DC-Rozskoky", BIOS_PROTO_ASSET_OP_CREATE); // 1
     bios_proto_aux_insert (asset, "parent", "%s", "0");
     bios_proto_aux_insert (asset, "status", "%s", "active");
@@ -698,7 +704,8 @@ data_test (bool verbose)
     assert (data_is_reconfig_needed (self) == false);
     zlistx_add_end (assets_expected, (void *) "DC-Rozskoky");
 
-    printf ("TRACE CREATE Lazer game\n");
+    if ( verbose )
+        log_debug ("\tCREATE 'Lazer game' as room");
     asset = test_asset_new ("Lazer game", BIOS_PROTO_ASSET_OP_CREATE); // 2
     bios_proto_aux_insert (asset, "parent", "%s", "1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
@@ -710,7 +717,8 @@ data_test (bool verbose)
     assert (data_is_reconfig_needed (self) == false);
     zlistx_add_end (assets_expected, (void *) "Lazer game");
 
-    printf ("TRACE CREATE Curie\n");
+    if ( verbose )
+        log_debug ("\tCREATE 'Curie' as room");
     asset = test_asset_new ("Curie", BIOS_PROTO_ASSET_OP_CREATE); // 3
     bios_proto_aux_insert (asset, "parent", "%s", "1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
@@ -722,7 +730,8 @@ data_test (bool verbose)
     assert (data_is_reconfig_needed (self) == false);
     zlistx_add_end (assets_expected, (void *) "Curie");
 
-    printf ("TRACE CREATE Lazer game.Row01\n");
+    if ( verbose )
+        log_debug ("\tCREATE 'Lazer game.Row01' as row");
     asset = test_asset_new ("Lazer game.Row01", BIOS_PROTO_ASSET_OP_CREATE); // 4
     bios_proto_aux_insert (asset, "parent", "%s", "2");
     bios_proto_aux_insert (asset, "status", "%s", "active");
