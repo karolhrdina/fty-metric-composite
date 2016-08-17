@@ -472,12 +472,12 @@ data_set_statefile (data_t *self, const char *fullpath)
         zfile_destroy (&file);
         return -1;
     }
-    int rv = zfile_output (file);
-    zfile_destroy (&file);
-    if (rv == -1) {
-        log_error ("Specified argument '%s' is not writable.", fullpath);
+    if ( !zfile_is_writeable (file) ) {
+        log_error ("Specified argument '%s' is not writeable.", fullpath);
+        zfile_destroy (&file);
         return -1;
     }
+    zfile_destroy (&file);
     zstr_free (&self->state_file);
     self->state_file = strdup (fullpath);
     return 0;
@@ -581,7 +581,6 @@ test_zlistx_compare (zlistx_t *expected, zlistx_t **received_p, bool verbose = f
     assert (received_p && *received_p);
     zlistx_t *received = *received_p;
 
-    int rv = 1;
     const char *cursor = (const char *) zlistx_first (expected);
     while (cursor) {
         void *handle = zlistx_find (received, (void *) cursor);
@@ -595,6 +594,7 @@ test_zlistx_compare (zlistx_t *expected, zlistx_t **received_p, bool verbose = f
         zlistx_delete (received, handle);
         cursor = (const char *) zlistx_next (expected);
     }
+    int rv = 1;
     if (zlistx_size (received) == 0) {
         rv = 0;
     } else {
@@ -618,7 +618,9 @@ data_test (bool verbose)
     printf (" * data: \n");
 
     //  @selftest
-    //  Simple create/destroy test
+    //  =================================================================
+    if ( verbose )
+        log_debug ("Test1: Simple create/destroy test");
     data_t *self = data_new ();
     assert (self);
 
@@ -630,8 +632,9 @@ data_test (bool verbose)
 
     self = data_new ();
 
-    // data_statefile ()
-    // data_set_statefile ()
+    //  =================================================================
+    if ( verbose )
+        log_debug ("Test2: data_statefile ()/data_set_statefile () test");
     {
     const char *state_file = data_statefile (self);
     assert (streq (state_file, ""));
@@ -657,15 +660,10 @@ data_test (bool verbose)
     state_file = data_statefile (self);
     assert (streq (state_file, "./test_dir/state_file"));
 
-    // non-existing file
-    // ACE: test is wrong!
-    // admin doesnt have right to write here! so -> error!
-    // but roo9t have such rights! and if file doesn't exists -> it is created!
-    /*
-    rv = data_set_statefile (self, "/lib/state_file");
+    rv = data_set_statefile (self, "/dev/null/notwritablefile");
     assert (rv == -1);
     state_file = data_statefile (self);
-    assert (streq (state_file, "./test_dir/state_file"));*/
+    assert (streq (state_file, "./test_dir/state_file"));
     }
 
     // data_cfgdir
