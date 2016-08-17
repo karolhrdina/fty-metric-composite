@@ -87,7 +87,7 @@ s_get_assigned_sensors (data_t *self, const char *asset_name)
         already_assigned_sensors = zlistx_new ();
         // TODO: handle NULL-pointer
         zhashx_insert (self->last_configuration, asset_name, (void *) already_assigned_sensors);
-        // ATTENTION: zhashx_set_destructor is not called intentionally, as here we have only "links" on 
+        // ATTENTION: zhashx_set_destructor is not called intentionally, as here we have only "links" on
         // sensors, because "all_assets" owns this information!
     }
     return already_assigned_sensors;
@@ -122,7 +122,7 @@ data_reassign_sensors (data_t *self)
             continue;
         }
         // if it is sensor, do CONFIGURATION
-        
+
         // first of all, take its logical asset (it is supposed to be NOT empty!!!)
         // because if it would have been empty it would not be placed in this map
         const char *logical_asset_name = bios_proto_ext_string (one_sensor, "logical_asset", "");
@@ -158,7 +158,7 @@ data_reassign_sensors (data_t *self)
         // add sensor to the list
         zlistx_add_end (already_assigned_sensors, (void *) one_sensor);
 
-        // BIOS-2484: start - propagate sensor in physical topology 
+        // BIOS-2484: start - propagate sensor in physical topology
         // (need to add sensor to all "parents" of the logical asset)
         // Actually, the chain is: dc-room-row-rack-device-device -> max 5 level parents can be
         // But here, we start from rack -> only 3 level is available at maximum
@@ -407,7 +407,7 @@ data_get_produced_metrics (data_t *self)
 
 //  --------------------------------------------------------------------------
 //  Returns 'true' if some of recently added asset requires the reconfiguration
-//                 or if reconfiguration was done in 'inconsistent' state 
+//                 or if reconfiguration was done in 'inconsistent' state
 //                 and we MUST reconfigure one more time
 
 bool
@@ -431,7 +431,7 @@ data_asset_names (data_t *self)
 }
 
 //  --------------------------------------------------------------------------
-//  Get information for any given asset name returned by `data_asset_names ()` or NULL
+//  Get information for any given asset name if it is known or NULL otherwise
 //  Ownership is NOT transferred
 
 bios_proto_t *
@@ -580,7 +580,7 @@ test_zlistx_compare (zlistx_t *expected, zlistx_t **received_p, int print = 0)
     assert (expected);
     assert (received_p && *received_p);
     zlistx_t *received = *received_p;
-    
+
     int rv = 1;
     const char *cursor = (const char *) zlistx_first (expected);
     while (cursor) {
