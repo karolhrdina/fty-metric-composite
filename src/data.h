@@ -95,6 +95,7 @@ COMPOSITE_METRICS_EXPORT const char *
     data_cfgdir (data_t *self);
 
 //  Set configuration directory path
+//  Directory MUST exist! If directory doesn't exist -> error
 //  0 - success, -1 - error
 COMPOSITE_METRICS_EXPORT int
     data_set_cfgdir (data_t *self, const char *path);

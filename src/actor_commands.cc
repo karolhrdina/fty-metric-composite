@@ -177,6 +177,8 @@ actor_commands (
 void
 actor_commands_test (bool verbose)
 {
+    if ( verbose ) 
+        log_set_level (LOG_DEBUG);
     printf (" * actor_commands: ");
     //  @selftest
 
@@ -243,42 +245,6 @@ actor_commands_test (bool verbose)
     assert (message);
     zmsg_addstr (message, "STATE_FILE");
     zmsg_addstr (message, "."); // supplied path is a directory
-    rv = actor_commands (client, &message, data);
-    assert (rv == 0);
-    assert (message == NULL);
-    assert (streq (data_statefile (data), ""));
-    assert (streq (data_cfgdir (data), ""));
-
-    // --------------------------------------------------------------
-    // STATE_FILE - expected fail
-    message = zmsg_new ();
-    assert (message);
-    zmsg_addstr (message, "STATE_FILE");
-    zmsg_addstr (message, "/dev/null/karolino"); // not writable
-    rv = actor_commands (client, &message, data);
-    assert (rv == 0);
-    assert (message == NULL);
-    assert (streq (data_statefile (data), ""));
-    assert (streq (data_cfgdir (data), ""));
-
-    // --------------------------------------------------------------
-    // STATE_FILE - expected fail
-    message = zmsg_new ();
-    assert (message);
-    zmsg_addstr (message, "STATE_FILE");
-    zmsg_addstr (message, "/lib/state_file"); // not writable
-    rv = actor_commands (client, &message, data);
-    assert (rv == 0);
-    assert (message == NULL);
-    assert (streq (data_statefile (data), ""));
-    assert (streq (data_cfgdir (data), ""));
-
-    // --------------------------------------------------------------
-    // STATE_FILE - expected fail
-    message = zmsg_new ();
-    assert (message);
-    zmsg_addstr (message, "STATE_FILE");
-    zmsg_addstr (message, "/root"); // not writable
     rv = actor_commands (client, &message, data);
     assert (rv == 0);
     assert (message == NULL);

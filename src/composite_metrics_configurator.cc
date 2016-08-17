@@ -43,7 +43,7 @@ void usage () {
     puts ("bios-agent-rt [options] ...\n"
           "  --log-level / -l       bios log level\n"
           "                         overrides setting in env. variable BIOS_LOG_LEVEL\n"
-          "  --output-dir / -s      TODO\n"
+          "  --output-dir / -s      directory, where configuration files would be created (directory MUST exist)\n"
           "  --state-file / -s      TODO\n"
           "  --help / -h            this information\n"
           );

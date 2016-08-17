@@ -521,6 +521,8 @@ static int s_output2(SubProcess& p, std::string& o, uint64_t timeout, size_t tim
 void
 subprocess_test (bool verbose)
 {
+    if ( verbose )
+        log_set_level (LOG_DEBUG);
     printf (" * subprocess: ");
 
     //  @selftest

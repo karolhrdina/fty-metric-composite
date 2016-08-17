@@ -56,6 +56,8 @@ proto_metric_unavailable_send (mlm_client_t *client, const char *topic)
 void
 proto_metric_unavailable_test (bool verbose)
 {
+    if ( verbose ) 
+        log_set_level (LOG_DEBUG);
     printf (" * proto_metric_unavailable: ");
 
     //  @selftest

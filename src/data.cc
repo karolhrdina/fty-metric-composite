@@ -472,12 +472,7 @@ data_set_statefile (data_t *self, const char *fullpath)
         zfile_destroy (&file);
         return -1;
     }
-    int rv = zfile_output (file);
     zfile_destroy (&file);
-    if (rv == -1) {
-        log_error ("Specified argument '%s' is not writable.", fullpath);
-        return -1;
-    }
     zstr_free (&self->state_file);
     self->state_file = strdup (fullpath);
     return 0;
@@ -495,6 +490,7 @@ data_cfgdir (data_t *self)
 
 //  --------------------------------------------------------------------------
 //  Set configuration directory path
+//  Directory MUST exist! If directory doesn't exist -> error
 //  0 - success, -1 - error
 
 int
@@ -510,6 +506,7 @@ data_set_cfgdir (data_t *self, const char *path)
     zdir_destroy (&dir);
     zstr_free (&self->output_dir);
     self->output_dir = strdup (path);
+    log_debug ("Configuration dir is set: '%s'", path);
     return 0;
 }
 
@@ -575,18 +572,17 @@ test_asset_new (const char *name, const char *operation)
 //  Helper test function
 //  0 - same, 1 - different
 static int
-test_zlistx_compare (zlistx_t *expected, zlistx_t **received_p, int print = 0)
+test_zlistx_compare (zlistx_t *expected, zlistx_t **received_p, bool verbose = false)
 {
     assert (expected);
     assert (received_p && *received_p);
     zlistx_t *received = *received_p;
 
-    int rv = 1;
     const char *cursor = (const char *) zlistx_first (expected);
     while (cursor) {
         void *handle = zlistx_find (received, (void *) cursor);
         if (!handle) {
-            if ( print )
+            if ( verbose )
                 log_debug ("expected but not found: %s", cursor);
             zlistx_destroy (received_p);
             *received_p = NULL;
@@ -595,10 +591,11 @@ test_zlistx_compare (zlistx_t *expected, zlistx_t **received_p, int print = 0)
         zlistx_delete (received, handle);
         cursor = (const char *) zlistx_next (expected);
     }
+    int rv = 1;
     if (zlistx_size (received) == 0) {
         rv = 0;
     } else {
-        if ( print ) {
+        if ( verbose ) {
             const char *element = (const char *) zlistx_first (received);
             log_debug ("received but not expected:");
             while (element) {
@@ -615,10 +612,14 @@ test_zlistx_compare (zlistx_t *expected, zlistx_t **received_p, int print = 0)
 void
 data_test (bool verbose)
 {
+    if ( verbose ) 
+        log_set_level (LOG_DEBUG);
+    
     printf (" * data: \n");
-
     //  @selftest
-    //  Simple create/destroy test
+    //  =================================================================
+    if ( verbose )
+        log_debug ("Test1: Simple create/destroy test");
     data_t *self = data_new ();
     assert (self);
 
@@ -630,8 +631,9 @@ data_test (bool verbose)
 
     self = data_new ();
 
-    // data_statefile ()
-    // data_set_statefile ()
+    //  =================================================================
+    if ( verbose )
+        log_debug ("Test2: data_statefile()/data_set_statefile()");
     {
     const char *state_file = data_statefile (self);
     assert (streq (state_file, ""));
@@ -656,20 +658,11 @@ data_test (bool verbose)
     assert (rv == -1);
     state_file = data_statefile (self);
     assert (streq (state_file, "./test_dir/state_file"));
-
-    // non-existing file
-    // ACE: test is wrong!
-    // admin doesnt have right to write here! so -> error!
-    // but roo9t have such rights! and if file doesn't exists -> it is created!
-    /*
-    rv = data_set_statefile (self, "/lib/state_file");
-    assert (rv == -1);
-    state_file = data_statefile (self);
-    assert (streq (state_file, "./test_dir/state_file"));*/
     }
 
-    // data_cfgdir
-    // data_set_cfgdir
+    //  =================================================================
+    if ( verbose )
+        log_debug ("Test3: data_cfgdir()/data_set_cfgdir()");
     {
     const char *cfgdir = data_cfgdir (self);
     assert (streq (cfgdir, ""));
@@ -686,6 +679,9 @@ data_test (bool verbose)
     assert (streq (cfgdir, "/tmp"));
     }
 
+    //  =================================================================
+    if ( verbose )
+        log_debug ("Test4: data_asset_store()/data_reassign_needed()/data_is_reconfig_needed() for CREATE operation");
     // asset
     zlistx_t *assets_expected = zlistx_new ();
     zlistx_set_destructor (assets_expected, (czmq_destructor *) zstr_free);
@@ -694,7 +690,8 @@ data_test (bool verbose)
 
     bios_proto_t *asset = NULL;
 
-    printf ("TRACE CREATE DC-Rozskoky\n");
+    if ( verbose )
+        log_debug ("\tCREATE 'DC-Rozskoky' as datacenter");
     asset = test_asset_new ("DC-Rozskoky", BIOS_PROTO_ASSET_OP_CREATE); // 1
     bios_proto_aux_insert (asset, "parent", "%s", "0");
     bios_proto_aux_insert (asset, "status", "%s", "active");
@@ -707,7 +704,8 @@ data_test (bool verbose)
     assert (data_is_reconfig_needed (self) == false);
     zlistx_add_end (assets_expected, (void *) "DC-Rozskoky");
 
-    printf ("TRACE CREATE Lazer game\n");
+    if ( verbose )
+        log_debug ("\tCREATE 'Lazer game' as room");
     asset = test_asset_new ("Lazer game", BIOS_PROTO_ASSET_OP_CREATE); // 2
     bios_proto_aux_insert (asset, "parent", "%s", "1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
@@ -719,7 +717,8 @@ data_test (bool verbose)
     assert (data_is_reconfig_needed (self) == false);
     zlistx_add_end (assets_expected, (void *) "Lazer game");
 
-    printf ("TRACE CREATE Curie\n");
+    if ( verbose )
+        log_debug ("\tCREATE 'Curie' as room");
     asset = test_asset_new ("Curie", BIOS_PROTO_ASSET_OP_CREATE); // 3
     bios_proto_aux_insert (asset, "parent", "%s", "1");
     bios_proto_aux_insert (asset, "status", "%s", "active");
@@ -731,7 +730,8 @@ data_test (bool verbose)
     assert (data_is_reconfig_needed (self) == false);
     zlistx_add_end (assets_expected, (void *) "Curie");
 
-    printf ("TRACE CREATE Lazer game.Row01\n");
+    if ( verbose )
+        log_debug ("\tCREATE 'Lazer game.Row01' as row");
     asset = test_asset_new ("Lazer game.Row01", BIOS_PROTO_ASSET_OP_CREATE); // 4
     bios_proto_aux_insert (asset, "parent", "%s", "2");
     bios_proto_aux_insert (asset, "status", "%s", "active");
@@ -767,7 +767,7 @@ data_test (bool verbose)
         zlistx_t *received = data_asset_names (self);
         assert (received);
 
-        int rv = test_zlistx_compare (assets_expected, &received, 1);
+        int rv = test_zlistx_compare (assets_expected, &received, verbose);
         assert (rv == 0);
     }
 
@@ -1106,7 +1106,7 @@ data_test (bool verbose)
         zlistx_t *received = data_asset_names (self);
         assert (received);
 
-        int rv = test_zlistx_compare (assets_expected, &received, 1);
+        int rv = test_zlistx_compare (assets_expected, &received, verbose);
         assert (rv == 0);
 
         asset = data_asset (self, "DC-Rozskoky");
@@ -1599,7 +1599,7 @@ data_test (bool verbose)
     {
         zlistx_t *received = data_asset_names (self);
         assert (received);
-        int rv = test_zlistx_compare (assets_expected, &received, 1);
+        int rv = test_zlistx_compare (assets_expected, &received, verbose);
         assert (rv == 0);
 
         asset = data_asset (self, "ups2");
@@ -1890,7 +1890,7 @@ data_test (bool verbose)
     {
         zlistx_t *received = data_asset_names (self);
         assert (received);
-        int rv = test_zlistx_compare (assets_expected, &received, 1);
+        int rv = test_zlistx_compare (assets_expected, &received, verbose);
         assert (rv == 0);
 /*
         zlistx_t *sensors = data_sensor (self, "DC-Rozskoky", NULL);

@@ -587,7 +587,8 @@ test_dir_contents (
 void
 bios_composite_metrics_configurator_server_test (bool verbose)
 {
-
+    if ( verbose ) 
+        log_set_level (LOG_DEBUG);
     static const char* endpoint = "inproc://bios-composite-configurator-server-test";
     printf (" * bios_composite_metrics_configurator_server: ");
     if (verbose)
@@ -612,7 +613,8 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     zactor_t *configurator = zactor_new (bios_composite_metrics_configurator_server, NULL);
     assert (configurator);
     zclock_sleep (100);
-
+    // As directory MUST exist -> create in advance!
+    system ("mkdir -p ./test_dir");
     zstr_sendx (configurator, "CFG_DIRECTORY", "./test_dir", NULL);
     zstr_sendx (configurator, "STATE_FILE", "./test_state_file", NULL);
     zstr_sendx (configurator, "CONNECT", endpoint, "configurator", NULL);
