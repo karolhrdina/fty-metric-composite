@@ -34,8 +34,8 @@ extern "C" {
 //  $TERM
 //      terminate
 //
-//  CONNECT/enpoint/name
-//      connect to malamute broker on 'endpoint' registering as 'name'
+//  CONNECT/enpoint/
+//      connect to malamute broker on 'endpoint'
 //
 //  PRODUCER/stream
 //      publish to specified 'stream'
@@ -57,7 +57,8 @@ COMPOSITE_METRICS_EXPORT int
     actor_commands (
             mlm_client_t *client,
             zmsg_t **message_p,
-            data_t *data);
+            data_t *data,
+            const char *name);
 
 //  Self test of this class
 COMPOSITE_METRICS_EXPORT void

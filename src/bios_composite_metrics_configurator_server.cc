@@ -86,8 +86,6 @@ c_metric_conf_new (const char* name)
     return self;
 }
 
-
-
 // Wrapper for bios_proto_ext_string
 static float
 s_bios_proto_ext_float (bios_proto_t *self, const char *key, float default_value)
@@ -450,8 +448,8 @@ s_regenerate (data_t *data, std::set <std::string> &metrics_unavailable)
 void
 bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
 {
+    char *myname = strdup ( (const char *) args);
     assert (pipe);
-
     mlm_client_t *client = mlm_client_new ();
     if (!client) {
         log_error ("mlm_client_new () failed");
@@ -507,7 +505,7 @@ bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
                 log_error ("Given `which == pipe`, function `zmsg_recv (pipe)` returned NULL");
                 continue;
             }
-            if (actor_commands (client, &message, data) == 1) {
+            if (actor_commands (client, &message, data, myname) == 1) {
                 break;
             }
             continue;
@@ -565,6 +563,7 @@ bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
     data_destroy (&data);
     zpoller_destroy (&poller);
     mlm_client_destroy (&client);
+    free (myname);
 }
 
 //  --------------------------------------------------------------------------
@@ -666,7 +665,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     mlm_client_set_consumer (alert_generator, "_METRICS_UNAVAILABLE", ".*");
     zclock_sleep (100);
 
-    zactor_t *configurator = zactor_new (bios_composite_metrics_configurator_server, NULL);
+    zactor_t *configurator = zactor_new (bios_composite_metrics_configurator_server, (void*) "configurator");
     assert (configurator);
     zclock_sleep (100);
     // As directory MUST exist -> create in advance!
@@ -674,7 +673,7 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     assert ( r != -1 ); // make debian g++ happy
     zstr_sendx (configurator, "CFG_DIRECTORY", "./test_dir", NULL);
     zstr_sendx (configurator, "STATE_FILE", "./test_state_file", NULL);
-    zstr_sendx (configurator, "CONNECT", endpoint, "configurator", NULL);
+    zstr_sendx (configurator, "CONNECT", endpoint, NULL);
     zstr_sendx (configurator, "CONSUMER", "ASSETS", ".*", NULL);
     zstr_sendx (configurator, "PRODUCER", "_METRICS_UNAVAILABLE", ".*", NULL);
     zclock_sleep (500);

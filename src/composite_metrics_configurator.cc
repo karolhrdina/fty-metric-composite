@@ -150,14 +150,14 @@ int main (int argc, char *argv [])
     log_debug ("state file == '%s'", state_file ? state_file : "(null)");
     log_debug ("output_dir == '%s'", output_dir ? output_dir : "(null)");
 
-    zactor_t *server = zactor_new (bios_composite_metrics_configurator_server, (void *) NULL);
+    zactor_t *server = zactor_new (bios_composite_metrics_configurator_server, (void *) AGENT_NAME);
     if (!server) {
         log_critical ("zactor_new (task = 'bios_composite_metrics_configurator_server', args = 'NULL') failed");
         return EXIT_FAILURE;
     }
     zstr_sendx (server,  "STATE_FILE", state_file, NULL);
     zstr_sendx (server,  "CFG_DIRECTORY", output_dir, NULL);
-    zstr_sendx (server,  "CONNECT", ENDPOINT, AGENT_NAME, NULL);
+    zstr_sendx (server,  "CONNECT", ENDPOINT, NULL);
     zstr_sendx (server,  "CONSUMER", BIOS_PROTO_STREAM_ASSETS, ".*", NULL);
     zstr_sendx (server,  "PRODUCER", "_METRICS_UNAVAILABLE", NULL);
 
