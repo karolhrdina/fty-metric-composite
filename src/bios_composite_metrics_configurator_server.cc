@@ -459,13 +459,6 @@ bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
         return;
     }
 
-    data_t *data = data_new ();
-    if (!data) {
-        log_error ("data_new () failed");
-        zpoller_destroy (&poller);
-        c_metric_conf_destroy (&cfg);
-        return;
-    }
     zsock_signal (pipe, 0);
 
 
@@ -483,9 +476,9 @@ bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
                 break;
             }
             if (zpoller_expired (poller)) {
-                if (data_is_reconfig_needed (data)) {
+                if (data_is_reconfig_needed (cfg->asset_data)) {
                     std::set <std::string> metrics_unavailable;
-                    s_regenerate (data, metrics_unavailable);
+                    s_regenerate (cfg->asset_data, metrics_unavailable);
                     for ( const auto &one_metric : metrics_unavailable ) {
                         proto_metric_unavailable_send (cfg->client, one_metric.c_str());
                     }
@@ -501,7 +494,7 @@ bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
                 log_error ("Given `which == pipe`, function `zmsg_recv (pipe)` returned NULL");
                 continue;
             }
-            if (actor_commands (cfg->client, &message, data, cfg->name) == 1) {
+            if (actor_commands (cfg->client, &message, cfg->asset_data, cfg->name) == 1) {
                 break;
             }
             continue;
@@ -509,9 +502,9 @@ bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
 
         uint64_t now = (uint64_t) zclock_mono ();
         if (now - timestamp >= timeout) {
-             if (data_is_reconfig_needed (data)) {
+             if (data_is_reconfig_needed (cfg->asset_data)) {
                 std::set <std::string> metrics_unavailable;
-                s_regenerate (data, metrics_unavailable);
+                s_regenerate (cfg->asset_data, metrics_unavailable);
                 for ( const auto &one_metric : metrics_unavailable ) {
                     proto_metric_unavailable_send (cfg->client, one_metric.c_str());
                 }
@@ -539,7 +532,7 @@ bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
                         mlm_client_sender (cfg->client), mlm_client_subject (cfg->client));
                 continue;
             }
-            data_asset_store (data, &proto);
+            data_asset_store (cfg->asset_data, &proto);
             assert (proto == NULL);
         }
         else
@@ -555,8 +548,7 @@ bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
         }
         zmsg_destroy (&message);
     }
-    data_save (data);
-    data_destroy (&data);
+    data_save (cfg->asset_data);
     zpoller_destroy (&poller);
     c_metric_conf_destroy (&cfg);
 }
