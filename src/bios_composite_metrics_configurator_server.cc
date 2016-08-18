@@ -32,60 +32,6 @@
 
 #include "composite_metrics_classes.h"
 
-// TODO: move to class sometime
-// It is a configurator entiry entity
-typedef struct _c_metric_conf_t {
-    bool verbose;           // is server verbose or not
-    char *name;             // server name
-    data_t *asset_data;     // asset data
-    mlm_client_t *client;   // malamute client
-    char *statefile_name;   // state file name
-    char *configuration_dir;// directory, where all configuration file would be stored
-} c_metric_conf_t;
-
-/*
- * \brief Destroy the configurator entity
- */
-void
-c_metric_conf_destroy (c_metric_conf_t **self_p)
-{
-    if (*self_p)
-    {
-        c_metric_conf_t *self = *self_p;
-        // free structure items
-        free (&self->name);
-        data_destroy (&self->asset_data);
-        mlm_client_destroy (&self->client);
-        free (&self->statefile_name);
-        free (&self->configuration_dir);
-        // free structure itself
-        free (self);
-        *self_p = NULL;
-    }
-}
-
-/*
- * \brief Create new empty not verbose configurator entity
- */
-c_metric_conf_t*
-c_metric_conf_new (const char* name)
-{
-    assert (name);
-    c_metric_conf_t *self = (c_metric_conf_t*) zmalloc (sizeof (c_metric_conf_t));
-    if ( self ) {
-        self->name = strdup (name);
-        if ( self->name )
-            self->asset_data = data_new ();
-        if ( self->asset_data )
-            self->client = mlm_client_new ();
-        if ( self->client )
-            self->verbose = false;
-        else
-            c_metric_conf_destroy (&self);
-    }
-    return self;
-}
-
 // Wrapper for bios_proto_ext_string
 static float
 s_bios_proto_ext_float (bios_proto_t *self, const char *key, float default_value)
@@ -448,9 +394,10 @@ s_regenerate (data_t *data, std::set <std::string> &metrics_unavailable)
 void
 bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
 {
+    assert (pipe);
+    assert (args);
     c_metric_conf_t *cfg = c_metric_conf_new ((const char *) args);
     assert (cfg);
-    assert (pipe);
 
     zpoller_t *poller = zpoller_new (pipe, mlm_client_msgpipe (cfg->client), NULL);
     if (!poller) {
@@ -494,7 +441,7 @@ bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
                 log_error ("Given `which == pipe`, function `zmsg_recv (pipe)` returned NULL");
                 continue;
             }
-            if (actor_commands (cfg->client, &message, cfg->asset_data, cfg->name) == 1) {
+            if (actor_commands (cfg, &message) == 1) {
                 break;
             }
             continue;

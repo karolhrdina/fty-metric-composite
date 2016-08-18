@@ -22,8 +22,6 @@
 #ifndef ACTOR_COMMANDS_H_INCLUDED
 #define ACTOR_COMMANDS_H_INCLUDED
 
-#include "data.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -55,10 +53,8 @@ extern "C" {
 // Returns 1 for $TERM (means exit), 0 otherwise
 COMPOSITE_METRICS_EXPORT int
     actor_commands (
-            mlm_client_t *client,
-            zmsg_t **message_p,
-            data_t *data,
-            const char *name);
+        c_metric_conf_t *cfg,
+        zmsg_t **message_p);
 
 //  Self test of this class
 COMPOSITE_METRICS_EXPORT void

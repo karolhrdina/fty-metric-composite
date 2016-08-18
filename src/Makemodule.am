@@ -27,6 +27,7 @@ src_libcomposite_metrics_la_SOURCES = \
     src/subprocess.cc \
     src/actor_commands.cc \
     src/data.cc \
+    src/c_metric_conf.cc \
     src/proto_metric_unavailable.cc \
     src/platform.h
 
