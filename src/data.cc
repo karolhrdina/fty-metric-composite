@@ -744,8 +744,8 @@ data_test (bool verbose)
     zlistx_add_end (assets_expected, (void *) "Lazer game.Row01");
 
     if ( verbose ) {
-        log_debug ("situation: sensor asset message arrives before asset specified in logical_asset");
         log_debug ("\tCREATE 'Sensor01' as sensor");
+        log_debug ("\t\tSituation: sensor asset message arrives before asset specified in logical_asset");
     }
     asset = test_asset_new ("Sensor01", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
@@ -912,7 +912,7 @@ data_test (bool verbose)
 
     if ( verbose ) {
         log_debug ("\tCREATE 'Sensor04' as sensor");
-        log_debug ("Important info is missing");
+        log_debug ("\t\tImportant info is missing");
     }
     asset = test_asset_new ("Sensor04", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
@@ -933,7 +933,7 @@ data_test (bool verbose)
 
     if ( verbose ) {
         log_debug ("\tCREATE 'Sensor06' as sensor");
-        log_debug ("Important info is missing");
+        log_debug ("\t\tImportant info is missing");
     }
     asset = test_asset_new ("Sensor06", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
@@ -954,7 +954,7 @@ data_test (bool verbose)
 
     if ( verbose ) {
         log_debug ("\tCREATE 'Sensor07' as sensor");
-        log_debug ("Important info is missing");
+        log_debug ("\t\tImportant info is missing");
     }
     asset = test_asset_new ("Sensor07", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
@@ -973,10 +973,8 @@ data_test (bool verbose)
     data_reassign_sensors(self);
     assert (data_is_reconfig_needed (self) == false);
 
-    if ( verbose ) {
+    if ( verbose )
         log_debug ("\tCREATE 'Sensor08' as sensor");
-        log_debug ("Important info is missing");
-    }
     asset = test_asset_new ("Sensor08", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
@@ -995,10 +993,8 @@ data_test (bool verbose)
     assert (data_is_reconfig_needed (self) == false);
     zlistx_add_end (assets_expected, (void *) "Sensor08");
 
-    if ( verbose ) {
+    if ( verbose )
         log_debug ("\tCREATE 'Sensor09' as sensor");
-        log_debug ("Important info is missing");
-    }
     asset = test_asset_new ("Sensor09", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
