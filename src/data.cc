@@ -52,6 +52,7 @@ data_new (void)
 {
     data_t *self = (data_t *) zmalloc (sizeof (data_t));
     if ( self ) {
+        self->produced_metrics = {};
         self->last_configuration = zhashx_new ();
         if ( self->last_configuration ) {
             self->all_assets = zhashx_new ();
@@ -517,7 +518,53 @@ data_set_cfgdir (data_t *self, const char *path)
 int
 data_save (data_t *self)
 {
-    return 0;
+    assert (self);
+    zconfig_t *root = zconfig_new ("nobody_cares", NULL);
+    zconfig_t *assets = zconfig_new ("assets", root);
+    for (bios_proto_t *bmsg = (bios_proto_t*) zhashx_first (self->all_assets);
+                       bmsg != NULL;
+                       bmsg = (bios_proto_t*) zhashx_next (self->all_assets))
+    {
+        const char* key = (const char*) zhashx_cursor (self->all_assets);
+
+        zconfig_t *item = zconfig_new (key, assets);
+        zconfig_put (item, "name", bios_proto_name (bmsg));
+        zconfig_put (item, "operation", bios_proto_operation (bmsg));
+
+        zhash_t *aux = bios_proto_aux (bmsg);
+        for (const char *aux_value = (const char*) zhash_first (aux);
+                         aux_value != NULL;
+                         aux_value = (const char*) zhash_next (aux))
+        {
+            const char *aux_key = (const char*) zhash_cursor (aux);
+            char *item_key;
+            int r = asprintf (&item_key, "aux.%s", aux_key);
+            assert (r != -1);   // make gcc @ rhel happy
+            zconfig_put (item, item_key, aux_value);
+            zstr_free (&item_key);
+        }
+        zhash_t *ext = bios_proto_ext (bmsg);
+        for (const char *value = (const char*) zhash_first (ext);
+                         value != NULL;
+                         value = (const char*) zhash_next (ext))
+        {
+            const char *key = (const char*) zhash_cursor (ext);
+            char *item_key;
+            int r = asprintf (&item_key, "ext.%s", key);
+            assert (r != -1);   // make gcc @ rhel happy
+            zconfig_put (item, item_key, value);
+            zstr_free (&item_key);
+        }
+    }
+    zconfig_t *metrics = zconfig_new ("produced_metrics", root);
+    int i = 1;
+    for ( const auto &metric_topic : self->produced_metrics ) {
+        zconfig_put (metrics, std::to_string (i).c_str(), metric_topic.c_str() );
+        i++;
+    }
+    int r = zconfig_save (root, self->state_file);
+    zconfig_destroy (&root);
+    return r;
 }
 
 //  --------------------------------------------------------------------------
@@ -527,6 +574,7 @@ data_save (data_t *self)
 int
 data_load (data_t *self)
 {
+    assert (self);
     return 0;
 }
 
@@ -703,7 +751,7 @@ data_test (bool verbose)
     data_reassign_sensors(self);
     assert (data_is_reconfig_needed (self) == false);
     zlistx_add_end (assets_expected, (void *) "DC-Rozskoky");
-
+    data_save (self);
     if ( verbose )
         log_debug ("\tCREATE 'Lazer game' as room");
     asset = test_asset_new ("Lazer game", BIOS_PROTO_ASSET_OP_CREATE); // 2
