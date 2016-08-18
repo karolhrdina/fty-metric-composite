@@ -574,6 +574,7 @@ data_save (data_t *self)
 int
 data_load (data_t *self)
 {
+    assert (self);
     return 0;
 }
 
