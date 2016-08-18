@@ -670,7 +670,8 @@ bios_composite_metrics_configurator_server_test (bool verbose)
     assert (configurator);
     zclock_sleep (100);
     // As directory MUST exist -> create in advance!
-    system ("mkdir -p ./test_dir");
+    int r = system ("mkdir -p ./test_dir");
+    assert ( r != -1 ); // make debian g++ happy
     zstr_sendx (configurator, "CFG_DIRECTORY", "./test_dir", NULL);
     zstr_sendx (configurator, "STATE_FILE", "./test_state_file", NULL);
     zstr_sendx (configurator, "CONNECT", endpoint, "configurator", NULL);
