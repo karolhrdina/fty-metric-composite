@@ -660,9 +660,9 @@ test_zlistx_compare (zlistx_t *expected, zlistx_t **received_p, bool verbose = f
 void
 data_test (bool verbose)
 {
-    if ( verbose ) 
+    if ( verbose )
         log_set_level (LOG_DEBUG);
-    
+
     printf (" * data: \n");
     //  @selftest
     //  =================================================================
