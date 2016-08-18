@@ -448,18 +448,14 @@ s_regenerate (data_t *data, std::set <std::string> &metrics_unavailable)
 void
 bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
 {
-    char *myname = strdup ( (const char *) args);
+    c_metric_conf_t *cfg = c_metric_conf_new ((const char *) args);
+    assert (cfg);
     assert (pipe);
-    mlm_client_t *client = mlm_client_new ();
-    if (!client) {
-        log_error ("mlm_client_new () failed");
-        return;
-    }
 
-    zpoller_t *poller = zpoller_new (pipe, mlm_client_msgpipe (client), NULL);
+    zpoller_t *poller = zpoller_new (pipe, mlm_client_msgpipe (cfg->client), NULL);
     if (!poller) {
         log_error ("zpoller_new () failed");
-        mlm_client_destroy (&client);
+        c_metric_conf_destroy (&cfg);
         return;
     }
 
@@ -467,7 +463,7 @@ bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
     if (!data) {
         log_error ("data_new () failed");
         zpoller_destroy (&poller);
-        mlm_client_destroy (&client);
+        c_metric_conf_destroy (&cfg);
         return;
     }
     zsock_signal (pipe, 0);
@@ -491,7 +487,7 @@ bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
                     std::set <std::string> metrics_unavailable;
                     s_regenerate (data, metrics_unavailable);
                     for ( const auto &one_metric : metrics_unavailable ) {
-                        proto_metric_unavailable_send (client, one_metric.c_str());
+                        proto_metric_unavailable_send (cfg->client, one_metric.c_str());
                     }
                 }
             }
@@ -505,7 +501,7 @@ bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
                 log_error ("Given `which == pipe`, function `zmsg_recv (pipe)` returned NULL");
                 continue;
             }
-            if (actor_commands (client, &message, data, myname) == 1) {
+            if (actor_commands (cfg->client, &message, data, cfg->name) == 1) {
                 break;
             }
             continue;
@@ -517,30 +513,30 @@ bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
                 std::set <std::string> metrics_unavailable;
                 s_regenerate (data, metrics_unavailable);
                 for ( const auto &one_metric : metrics_unavailable ) {
-                    proto_metric_unavailable_send (client, one_metric.c_str());
+                    proto_metric_unavailable_send (cfg->client, one_metric.c_str());
                 }
             }
             timestamp = (uint64_t) zclock_mono ();
         }
 
-        if (which != mlm_client_msgpipe (client)) {
-            log_error ("which was checked for NULL, pipe and now should have been `mlm_client_msgpipe (client)` but is not.");
+        if (which != mlm_client_msgpipe (cfg->client)) {
+            log_error ("which was checked for NULL, pipe and now should have been `mlm_client_msgpipe (cfg->client)` but is not.");
             continue;
         }
 
-        zmsg_t *message = mlm_client_recv (client);
+        zmsg_t *message = mlm_client_recv (cfg->client);
         if (!message) {
-            log_error ("Given `which == mlm_client_msgpipe (client)`, function `mlm_client_recv ()` returned NULL");
+            log_error ("Given `which == mlm_client_msgpipe (cfg->client)`, function `mlm_client_recv ()` returned NULL");
             continue;
         }
 
-        const char *command = mlm_client_command (client);
+        const char *command = mlm_client_command (cfg->client);
         if (streq (command, "STREAM DELIVER")) {
             bios_proto_t *proto = bios_proto_decode (&message);
             if (!proto) {
                 log_error (
                         "bios_proto_decode () failed; sender = '%s', subject = '%s'",
-                        mlm_client_sender (client), mlm_client_subject (client));
+                        mlm_client_sender (cfg->client), mlm_client_subject (cfg->client));
                 continue;
             }
             data_asset_store (data, &proto);
@@ -551,7 +547,7 @@ bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
             streq (command, "SERVICE DELIVER")) {
             log_warning (
                     "Received a message from sender = '%s', command = '%s', subject = '%s'. Throwing away.",
-                    mlm_client_sender (client), mlm_client_command (client), mlm_client_subject (client));
+                    mlm_client_sender (cfg->client), mlm_client_command (cfg->client), mlm_client_subject (cfg->client));
             continue;
         }
         else {
@@ -562,8 +558,7 @@ bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
     data_save (data);
     data_destroy (&data);
     zpoller_destroy (&poller);
-    mlm_client_destroy (&client);
-    free (myname);
+    c_metric_conf_destroy (&cfg);
 }
 
 //  --------------------------------------------------------------------------
