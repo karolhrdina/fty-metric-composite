@@ -743,8 +743,10 @@ data_test (bool verbose)
     assert (data_is_reconfig_needed (self) == false);
     zlistx_add_end (assets_expected, (void *) "Lazer game.Row01");
 
-    // testing situation when sensor asset message arrives before asset specified in logical_asset
-    printf ("TRACE CREATE Sensor01\n");
+    if ( verbose ) {
+        log_debug ("\tCREATE 'Sensor01' as sensor");
+        log_debug ("\t\tSituation: sensor asset message arrives before asset specified in logical_asset");
+    }
     asset = test_asset_new ("Sensor01", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
@@ -771,7 +773,8 @@ data_test (bool verbose)
         assert (rv == 0);
     }
 
-    printf ("TRACE CREATE Rack01\n");
+    if ( verbose )
+        log_debug ("\tCREATE 'Rack01' as rack");
     asset = test_asset_new ("Rack01", BIOS_PROTO_ASSET_OP_CREATE); // 5
     bios_proto_aux_insert (asset, "parent", "%s", "4");
     bios_proto_aux_insert (asset, "status", "%s", "active");
@@ -785,7 +788,8 @@ data_test (bool verbose)
     assert (data_is_reconfig_needed (self) == false);
     zlistx_add_end (assets_expected, (void *) "Rack01");
 
-    printf ("TRACE CREATE Rack02\n");
+    if ( verbose )
+        log_debug ("\tCREATE 'Rack02' as rack");
     asset = test_asset_new ("Rack02", BIOS_PROTO_ASSET_OP_CREATE); // 6
     bios_proto_aux_insert (asset, "parent", "%s", "4");
     bios_proto_aux_insert (asset, "status", "%s", "active");
@@ -798,8 +802,8 @@ data_test (bool verbose)
     assert (data_is_reconfig_needed (self) == false);
     zlistx_add_end (assets_expected, (void *) "Rack02");
 
-    // Row + Racks for Curie
-    printf ("TRACE CREATE Curie.Row01\n");
+    if ( verbose )
+        log_debug ("\tCREATE 'Curie.Row01' as row");
     asset = test_asset_new ("Curie.Row01", BIOS_PROTO_ASSET_OP_CREATE); // 7
     bios_proto_aux_insert (asset, "parent", "%s", "3");
     bios_proto_aux_insert (asset, "status", "%s", "active");
@@ -811,7 +815,8 @@ data_test (bool verbose)
     assert (data_is_reconfig_needed (self) == false);
     zlistx_add_end (assets_expected, (void *) "Curie.Row01");
 
-    printf ("TRACE CREATE Curie.Row02\n");
+    if ( verbose )
+        log_debug ("\tCREATE 'Curie.Row02' as row");
     asset = test_asset_new ("Curie.Row02", BIOS_PROTO_ASSET_OP_CREATE); // 8
     bios_proto_aux_insert (asset, "parent", "%s", "3");
     bios_proto_aux_insert (asset, "status", "%s", "active");
@@ -823,7 +828,8 @@ data_test (bool verbose)
     assert (data_is_reconfig_needed (self) == false);
     zlistx_add_end (assets_expected, (void *) "Curie.Row02");
 
-    printf ("TRACE CREATE Rack03\n");
+    if ( verbose )
+        log_debug ("\tCREATE 'Rack03' as rack");
     asset = test_asset_new ("Rack03", BIOS_PROTO_ASSET_OP_CREATE); // 9
     bios_proto_aux_insert (asset, "parent", "%s", "7");
     bios_proto_aux_insert (asset, "status", "%s", "active");
@@ -837,7 +843,8 @@ data_test (bool verbose)
     assert (data_is_reconfig_needed (self) == false);
     zlistx_add_end (assets_expected, (void *) "Rack03");
 
-    printf ("TRACE CREATE Rack04\n");
+    if ( verbose )
+        log_debug ("\tCREATE 'Rack04' as rack");
     asset = test_asset_new ("Rack04", BIOS_PROTO_ASSET_OP_CREATE); // 10
     bios_proto_aux_insert (asset, "parent", "%s", "8");
     bios_proto_aux_insert (asset, "status", "%s", "active");
@@ -851,7 +858,8 @@ data_test (bool verbose)
     assert (data_is_reconfig_needed (self) == false);
     zlistx_add_end (assets_expected, (void *) "Rack04");
 
-    printf ("TRACE CREATE Rack01.ups1\n");
+    if ( verbose )
+        log_debug ("\tCREATE 'Rack01.ups1' as ups");
     asset = test_asset_new ("Rack01.ups1", BIOS_PROTO_ASSET_OP_CREATE); // 11
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "ups");
@@ -862,7 +870,8 @@ data_test (bool verbose)
     data_reassign_sensors(self);
     assert (data_is_reconfig_needed (self) == false);
 
-    printf ("TRACE CREATE Sensor02\n");
+    if ( verbose )
+        log_debug ("\tCREATE 'Sensor02' as sensor");
     asset = test_asset_new ("Sensor02", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
@@ -881,7 +890,8 @@ data_test (bool verbose)
     assert (data_is_reconfig_needed (self) == false);
     zlistx_add_end (assets_expected, (void *) "Sensor02");
 
-    printf ("TRACE CREATE Sensor03\n");
+    if ( verbose )
+        log_debug ("\tCREATE 'Sensor03' as sensor");
     asset = test_asset_new ("Sensor03", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
@@ -900,8 +910,10 @@ data_test (bool verbose)
     assert (data_is_reconfig_needed (self) == false);
     zlistx_add_end (assets_expected, (void *) "Sensor03");
 
-    // The following 4 sensors have important info missing
-    printf ("TRACE CREATE Sensor04\n");
+    if ( verbose ) {
+        log_debug ("\tCREATE 'Sensor04' as sensor");
+        log_debug ("\t\tImportant info is missing");
+    }
     asset = test_asset_new ("Sensor04", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
@@ -919,7 +931,10 @@ data_test (bool verbose)
     data_reassign_sensors(self);
     assert (data_is_reconfig_needed (self) == false);
 
-    printf ("TRACE CREATE Sensor06\n");
+    if ( verbose ) {
+        log_debug ("\tCREATE 'Sensor06' as sensor");
+        log_debug ("\t\tImportant info is missing");
+    }
     asset = test_asset_new ("Sensor06", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
     // parent_name.1 missing
@@ -937,7 +952,10 @@ data_test (bool verbose)
     data_reassign_sensors(self);
     assert (data_is_reconfig_needed (self) == false);
 
-    printf ("TRACE CREATE Sensor07\n");
+    if ( verbose ) {
+        log_debug ("\tCREATE 'Sensor07' as sensor");
+        log_debug ("\t\tImportant info is missing");
+    }
     asset = test_asset_new ("Sensor07", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
@@ -955,7 +973,8 @@ data_test (bool verbose)
     data_reassign_sensors(self);
     assert (data_is_reconfig_needed (self) == false);
 
-    printf ("TRACE CREATE Sensor08\n");
+    if ( verbose )
+        log_debug ("\tCREATE 'Sensor08' as sensor");
     asset = test_asset_new ("Sensor08", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
@@ -974,7 +993,8 @@ data_test (bool verbose)
     assert (data_is_reconfig_needed (self) == false);
     zlistx_add_end (assets_expected, (void *) "Sensor08");
 
-    printf ("TRACE CREATE Sensor09\n");
+    if ( verbose )
+        log_debug ("\tCREATE 'Sensor09' as sensor");
     asset = test_asset_new ("Sensor09", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
@@ -993,7 +1013,8 @@ data_test (bool verbose)
     assert (data_is_reconfig_needed (self) == false);
     zlistx_add_end (assets_expected, (void *) "Sensor09");
 
-    printf ("TRACE CREATE Sensor10\n");
+    if ( verbose )
+        log_debug ("\tCREATE 'Sensor10' as sensor");
     asset = test_asset_new ("Sensor10", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
@@ -1010,7 +1031,8 @@ data_test (bool verbose)
     assert (data_is_reconfig_needed (self) == false);
     zlistx_add_end (assets_expected, (void *) "Sensor10");
 
-    printf ("TRACE CREATE Sensor11\n");
+    if ( verbose )
+        log_debug ("\tCREATE 'Sensor11' as sensor");
     asset = test_asset_new ("Sensor11", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
@@ -1029,7 +1051,8 @@ data_test (bool verbose)
     assert (data_is_reconfig_needed (self) == false);
     zlistx_add_end (assets_expected, (void *) "Sensor11");
 
-    printf ("TRACE CREATE Sensor12\n");
+    if ( verbose )
+        log_debug ("\tCREATE 'Sensor12' as sensor");
     asset = test_asset_new ("Sensor12", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
@@ -1047,7 +1070,8 @@ data_test (bool verbose)
     assert (data_is_reconfig_needed (self) == false);
     zlistx_add_end (assets_expected, (void *) "Sensor12");
 
-    printf ("TRACE CREATE Sensor13\n");
+    if ( verbose )
+        log_debug ("\tCREATE 'Sensor13' as sensor");
     asset = test_asset_new ("Sensor13", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
@@ -1066,7 +1090,8 @@ data_test (bool verbose)
     assert (data_is_reconfig_needed (self) == false);
     zlistx_add_end (assets_expected, (void *) "Sensor13");
 
-    printf ("TRACE CREATE Sensor14\n");
+    if ( verbose )
+        log_debug ("\tCREATE 'Sensor14' as sensor");
     asset = test_asset_new ("Sensor14", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
@@ -1082,7 +1107,8 @@ data_test (bool verbose)
     assert (data_is_reconfig_needed (self) == false);
     zlistx_add_end (assets_expected, (void *) "Sensor14");
 
-    printf ("TRACE CREATE Sensor15\n");
+    if ( verbose )
+        log_debug ("\tCREATE 'Sensor15' as sensor");
     asset = test_asset_new ("Sensor15", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
@@ -1352,7 +1378,8 @@ data_test (bool verbose)
 */
     }
 
-    printf ("TRACE CREATE ups2\n");
+    if ( verbose )
+        log_debug ("\tCREATE 'ups2' as ups");
     asset = test_asset_new ("ups2", BIOS_PROTO_ASSET_OP_CREATE); // 12
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "ups");
@@ -1362,7 +1389,8 @@ data_test (bool verbose)
     data_reassign_sensors(self);
     assert (data_is_reconfig_needed (self) == false);
 
-    printf ("TRACE UPDATE Sensor01\n");
+    if ( verbose )
+        log_debug ("\tUPDATE 'Sensor01'");
     asset = test_asset_new ("Sensor01", BIOS_PROTO_ASSET_OP_UPDATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
@@ -1379,7 +1407,8 @@ data_test (bool verbose)
     data_reassign_sensors(self);
     assert (data_is_reconfig_needed (self) == false);
 
-    printf ("TRACE UPDATE Sensor02\n");
+    if ( verbose )
+        log_debug ("\tUPDATE 'Sensor02'");
     asset = test_asset_new ("Sensor02", BIOS_PROTO_ASSET_OP_UPDATE);
     bios_proto_aux_insert (asset, "parent", "%s", "12");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "ups2");
@@ -1397,7 +1426,8 @@ data_test (bool verbose)
     data_reassign_sensors(self);
     assert (data_is_reconfig_needed (self) == false);
 
-    printf ("TRACE UPDATE Sensor03\n");
+    if ( verbose )
+        log_debug ("\tUPDATE 'Sensor03'");
     asset = test_asset_new ("Sensor03", BIOS_PROTO_ASSET_OP_UPDATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
@@ -1412,7 +1442,8 @@ data_test (bool verbose)
     data_reassign_sensors(self);
     assert (data_is_reconfig_needed (self) == false);
 
-    printf ("TRACE UPDATE Sensor10\n");
+    if ( verbose )
+        log_debug ("\tUPDATE 'Sensor10'");
     asset = test_asset_new ("Sensor10", BIOS_PROTO_ASSET_OP_UPDATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
@@ -1429,7 +1460,8 @@ data_test (bool verbose)
     data_reassign_sensors(self);
     assert (data_is_reconfig_needed (self) == false);
 
-    printf ("TRACE RETIRE Sensor11\n");
+    if ( verbose )
+        log_debug ("\tRETIRE 'Sensor11'");
     asset = test_asset_new ("Sensor11", BIOS_PROTO_ASSET_OP_RETIRE);
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -1440,7 +1472,8 @@ data_test (bool verbose)
     void *handle = zlistx_find (assets_expected, (void *) "Sensor11");
     zlistx_delete (assets_expected, handle);
 
-    printf ("TRACE UPDATE Sensor08\n");
+    if ( verbose )
+        log_debug ("\tUPDATE 'Sensor08'");
     asset = test_asset_new ("Sensor08", BIOS_PROTO_ASSET_OP_UPDATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
@@ -1458,7 +1491,8 @@ data_test (bool verbose)
     data_reassign_sensors(self);
     assert (data_is_reconfig_needed (self) == false);
 
-    printf ("TRACE UPDATE Sensor09\n");
+    if ( verbose )
+        log_debug ("\tUPDATE 'Sensor09'");
     asset = test_asset_new ("Sensor09", BIOS_PROTO_ASSET_OP_UPDATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
@@ -1474,7 +1508,8 @@ data_test (bool verbose)
     data_reassign_sensors(self);
     assert (data_is_reconfig_needed (self) == false);
 
-    printf ("TRACE UPDATE Sensor04\n");
+    if ( verbose )
+        log_debug ("\tUPDATE 'Sensor04'");
     asset = test_asset_new ("Sensor04", BIOS_PROTO_ASSET_OP_UPDATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
@@ -1491,7 +1526,8 @@ data_test (bool verbose)
     assert (data_is_reconfig_needed (self) == false);
     zlistx_add_end (assets_expected, (void *) "Sensor04");
 
-    printf ("TRACE UPDATE Sensor05\n");
+    if ( verbose )
+        log_debug ("\tUPDATE 'Sensor05'");
     asset = test_asset_new ("Sensor05", BIOS_PROTO_ASSET_OP_UPDATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
@@ -1510,7 +1546,8 @@ data_test (bool verbose)
     assert (data_is_reconfig_needed (self) == false);
     zlistx_add_end (assets_expected, (void *) "Sensor05");
 
-    printf ("TRACE UPDATE Sensor06\n");
+    if ( verbose )
+        log_debug ("\tUPDATE 'Sensor06'");
     asset = test_asset_new ("Sensor06", BIOS_PROTO_ASSET_OP_UPDATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
@@ -1528,7 +1565,8 @@ data_test (bool verbose)
     assert (data_is_reconfig_needed (self) == false);
     zlistx_add_end (assets_expected, (void *) "Sensor06");
 
-    printf ("TRACE UPDATE Sensor07\n");
+    if ( verbose )
+        log_debug ("\tUPDATE 'Sensor07'");
     asset = test_asset_new ("Sensor07", BIOS_PROTO_ASSET_OP_UPDATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
@@ -1546,7 +1584,8 @@ data_test (bool verbose)
     assert (data_is_reconfig_needed (self) == false);
     zlistx_add_end (assets_expected, (void *) "Sensor07");
 
-    printf ("TRACE DELETE Sensor12\n");
+    if ( verbose )
+        log_debug ("\tDELETE 'Sensor12'");
     asset = test_asset_new ("Sensor12", BIOS_PROTO_ASSET_OP_DELETE);
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -1557,7 +1596,8 @@ data_test (bool verbose)
     handle = zlistx_find (assets_expected, (void *) "Sensor12");
     zlistx_delete (assets_expected, handle);
 
-    printf ("TRACE UPDATE Sensor14\n");
+    if ( verbose )
+        log_debug ("\tUPDATE 'Sensor14'");
     asset = test_asset_new ("Sensor14", BIOS_PROTO_ASSET_OP_UPDATE);
     bios_proto_aux_insert (asset, "parent", "%s", "12");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "ups2");
@@ -1571,7 +1611,8 @@ data_test (bool verbose)
     data_reassign_sensors(self);
     assert (data_is_reconfig_needed (self) == true);
 
-    printf ("TRACE UPDATE Sensor15\n");
+    if ( verbose )
+        log_debug ("\tUPDATE 'Sensor15'");
     asset = test_asset_new ("Sensor15", BIOS_PROTO_ASSET_OP_UPDATE);
     bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01.ups1");
@@ -1586,7 +1627,8 @@ data_test (bool verbose)
     data_reassign_sensors(self);
     assert (data_is_reconfig_needed (self) == true);
 
-    printf ("TRACE DELETE Sensor13\n");
+    if ( verbose )
+        log_debug ("\tDELETE 'Sensor13'");
     asset = test_asset_new ("Sensor13", BIOS_PROTO_ASSET_OP_DELETE);
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -1836,7 +1878,8 @@ data_test (bool verbose)
         */
     }
 
-    printf ("TRACE DELETE Sensor15\n");
+    if ( verbose )
+        log_debug ("\tDELETE 'Sensor15'");
     asset = test_asset_new ("Sensor15", BIOS_PROTO_ASSET_OP_DELETE);
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -1846,7 +1889,8 @@ data_test (bool verbose)
     zlistx_delete (assets_expected, handle);
     assert (data_is_reconfig_needed (self) == true);
 
-    printf ("TRACE DELETE Curie.Row02\n");
+    if ( verbose )
+        log_debug ("\tDELETE 'Curie.Row02'");
     asset = test_asset_new ("Curie.Row02", BIOS_PROTO_ASSET_OP_DELETE);
     bios_proto_aux_insert (asset, "type", "%s", "row");
     bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
@@ -1859,7 +1903,8 @@ data_test (bool verbose)
     assert (rv == 0);
     assert (data_is_reconfig_needed (self) == true);
 
-    printf ("TRACE CREATE Sensor16\n");
+    if ( verbose )
+        log_debug ("\tCREATE 'Sensor16' as sensor");
     asset = test_asset_new ("Sensor16", BIOS_PROTO_ASSET_OP_UPDATE);
     bios_proto_aux_insert (asset, "parent", "%s", "13");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "nas rack controller");
@@ -1874,7 +1919,8 @@ data_test (bool verbose)
     zlistx_add_end (assets_expected, (void *) "Sensor16");
     assert (data_is_reconfig_needed (self) == true);
 
-    printf ("TRACE CREATE nas rack constroller\n");
+    if ( verbose )
+        log_debug ("\tCREATE 'nas rack constroller' as rack controller");
     asset = test_asset_new ("nas rack controller", BIOS_PROTO_ASSET_OP_CREATE); // 12
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "rack controller");
