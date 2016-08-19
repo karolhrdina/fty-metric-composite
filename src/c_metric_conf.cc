@@ -22,7 +22,7 @@
 
 /*
 @header
-    c_metric_conf - structure that represents current start of 
+    c_metric_conf - structure that represents current start of
             composite-metrics-configurator
 @discuss
 @end
@@ -168,7 +168,7 @@ c_metric_conf_test (bool verbose)
     //  =================================================================
     if ( verbose )
         log_debug ("Test2: statefile set/get test");
-    {
+
     const char *state_file = c_metric_conf_statefile (self);
     assert (streq (state_file, ""));
 
@@ -192,7 +192,6 @@ c_metric_conf_test (bool verbose)
     assert (rv == -1);
     state_file = c_metric_conf_statefile (self);
     assert (streq (state_file, "./test_dir/state_file"));
-    }
 
     //  =================================================================
     if ( verbose )
@@ -215,5 +214,5 @@ c_metric_conf_test (bool verbose)
 
     c_metric_conf_destroy (&self);
     //  @end
-    printf (" * data: OK\n");
+    printf (" * c_metric_conf: OK\n");
 }
