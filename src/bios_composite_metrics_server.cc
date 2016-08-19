@@ -281,13 +281,12 @@ bios_composite_metrics_server_test (bool verbose)
 
     zmsg_t *msg_out;
     bios_proto_t *m;
-    msg_out = mlm_client_recv (consumer);
-    m = bios_proto_decode (&msg_out);
-    bios_proto_print (m);
-    assert ( streq (mlm_client_sender (consumer), "composite-metrics-sd") );
-    assert (m);
-    assert (streq (bios_proto_value (m), "40.00"));    // <<< 40 / 1
-    bios_proto_destroy (&m);
+    
+    // musn't receive anything until we have all values
+    zpoller_t *consumerp = zpoller_new (mlm_client_msgpipe(consumer), NULL);
+    void *who = zpoller_wait (consumerp, 1000);
+    assert (who == NULL);
+    zpoller_destroy (&consumerp);
 
     // send another value
     msg_in = bios_proto_encode_metric(
@@ -298,6 +297,7 @@ bios_composite_metrics_server_test (bool verbose)
     msg_out = mlm_client_recv (consumer);
     m = bios_proto_decode (&msg_out);
     assert (m);
+    zsys_error("value %s", bios_proto_value (m));    // <<< (100 + 40) / 2
     assert (streq (bios_proto_value (m), "70.00"));    // <<< (100 + 40) / 2
     bios_proto_destroy (&m);
 
