@@ -54,7 +54,7 @@ std::string escape_regex (const std::string notregex)
 
     for (char c: notregex) {
         if (strchr (to_be_escaped,c)) {
-            result += "\\";
+            result += '\\';
         }
         result += c;
     }
