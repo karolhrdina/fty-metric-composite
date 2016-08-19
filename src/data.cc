@@ -445,43 +445,46 @@ data_save (data_t *self, const char * filename)
     assert (self);
     zconfig_t *root = zconfig_new ("nobody_cares", NULL);
     zconfig_t *assets = zconfig_new ("assets", root);
+    int i = 1;
     for (bios_proto_t *bmsg = (bios_proto_t*) zhashx_first (self->all_assets);
                        bmsg != NULL;
                        bmsg = (bios_proto_t*) zhashx_next (self->all_assets))
     {
-        const char* key = (const char*) zhashx_cursor (self->all_assets);
-
-        zconfig_t *item = zconfig_new (key, assets);
+        zconfig_t *item = zconfig_new (std::to_string (i).c_str(), assets);
         zconfig_put (item, "name", bios_proto_name (bmsg));
         zconfig_put (item, "operation", bios_proto_operation (bmsg));
 
         zhash_t *aux = bios_proto_aux (bmsg);
-        for (const char *aux_value = (const char*) zhash_first (aux);
-                         aux_value != NULL;
-                         aux_value = (const char*) zhash_next (aux))
-        {
-            const char *aux_key = (const char*) zhash_cursor (aux);
-            char *item_key;
-            int r = asprintf (&item_key, "aux.%s", aux_key);
-            assert (r != -1);   // make gcc @ rhel happy
-            zconfig_put (item, item_key, aux_value);
-            zstr_free (&item_key);
+        if ( aux ) {
+            for (const char *aux_value = (const char*) zhash_first (aux);
+                    aux_value != NULL;
+                    aux_value = (const char*) zhash_next (aux))
+            {
+                const char *aux_key = (const char*) zhash_cursor (aux);
+                char *item_key;
+                int r = asprintf (&item_key, "aux.%s", aux_key);
+                assert (r != -1);   // make gcc @ rhel happy
+                zconfig_put (item, item_key, aux_value);
+                zstr_free (&item_key);
+            }
         }
         zhash_t *ext = bios_proto_ext (bmsg);
-        for (const char *value = (const char*) zhash_first (ext);
-                         value != NULL;
-                         value = (const char*) zhash_next (ext))
-        {
-            const char *key = (const char*) zhash_cursor (ext);
-            char *item_key;
-            int r = asprintf (&item_key, "ext.%s", key);
-            assert (r != -1);   // make gcc @ rhel happy
-            zconfig_put (item, item_key, value);
-            zstr_free (&item_key);
+        if ( ext ) {
+            for (const char *value = (const char*) zhash_first (ext);
+                    value != NULL;
+                    value = (const char*) zhash_next (ext))
+            {
+                const char *key = (const char*) zhash_cursor (ext);
+                char *item_key;
+                int r = asprintf (&item_key, "ext.%s", key);
+                assert (r != -1);   // make gcc @ rhel happy
+                zconfig_put (item, item_key, value);
+                zstr_free (&item_key);
+            }
         }
     }
     zconfig_t *metrics = zconfig_new ("produced_metrics", root);
-    int i = 1;
+    i = 1;
     for ( const auto &metric_topic : self->produced_metrics ) {
         zconfig_put (metrics, std::to_string (i).c_str(), metric_topic.c_str() );
         i++;
@@ -495,11 +498,59 @@ data_save (data_t *self, const char * filename)
 //  Load data from disk
 //  0 - success, -1 - error
 
-int
-data_load (data_t *self)
+data_t *
+data_load (const char *filename)
 {
-    assert (self);
-    return 0;
+    if ( !filename )
+        return NULL;
+
+    zconfig_t *root = zconfig_load (filename);
+    if (!root)
+        return NULL;
+
+    data_t *self = data_new ();
+    if (!self) {
+        zconfig_destroy (&root);
+        return NULL;
+    }
+    zconfig_t *sub_config = zconfig_child (root); // first child
+    for ( ; sub_config != NULL; sub_config = zconfig_next (sub_config) ) { // next child
+        const char *sub_key = zconfig_name (sub_config);
+        if ( strncmp (sub_key, "assets", 6) == 0 ) {
+            zconfig_t *key_config = zconfig_child (sub_config); // actually represents one asset
+            for ( ; key_config != NULL; key_config = zconfig_next (key_config))
+            {
+                // 1. create bmsg
+                bios_proto_t *bmsg = bios_proto_new (BIOS_PROTO_ASSET);
+                bios_proto_set_name (bmsg, zconfig_get (key_config, "name", ""));
+                bios_proto_set_operation (bmsg, zconfig_get (key_config, "operation", ""));
+
+                // 2. put aux things
+                zconfig_t *bmsg_config = zconfig_child (key_config);
+                for (; bmsg_config != NULL; bmsg_config = zconfig_next (bmsg_config))
+                {
+                    const char *bmsg_key = zconfig_name (bmsg_config);
+                    if (strncmp (bmsg_key, "aux.", 4) == 0)
+                        bios_proto_aux_insert (bmsg, (bmsg_key+4), zconfig_value (bmsg_config));
+                    if (strncmp (bmsg_key, "ext.", 4) == 0)
+                        bios_proto_ext_insert (bmsg, (bmsg_key+4), zconfig_value (bmsg_config));
+                }
+                zhashx_update (self->all_assets, zconfig_get (key_config, "name", ""), bmsg);
+            }
+            continue;
+        }
+        if ( strncmp (sub_key, "produced_metrics", 16) ) {
+            zconfig_t *key_config = zconfig_child (sub_config); // actually represents one metric
+            for ( ; key_config != NULL; key_config = zconfig_next (key_config))
+            {
+                self->produced_metrics.insert (zconfig_value (key_config));
+            }
+            continue;
+        }
+        // if we are here, then unexpected config subtree found
+        log_info ("key '%s' is not supported", sub_key);
+    }
+    return self;
 }
 
 //  --------------------------------------------------------------------------
@@ -625,7 +676,7 @@ data_test (bool verbose)
     data_reassign_sensors(self);
     assert (data_is_reconfig_needed (self) == false);
     zlistx_add_end (assets_expected, (void *) "DC-Rozskoky");
-    data_save (self, "state_file");
+
     if ( verbose )
         log_debug ("\tCREATE 'Lazer game' as room");
     asset = test_asset_new ("Lazer game", BIOS_PROTO_ASSET_OP_CREATE); // 2
@@ -686,6 +737,11 @@ data_test (bool verbose)
     data_reassign_sensors(self);
     assert (data_is_reconfig_needed (self) == true);
     zlistx_add_end (assets_expected, (void *) "Sensor01");
+    data_save (self, "state_file");
+    data_t *ndata = data_load ("state_file");
+    assert (ndata);
+    data_save (ndata, "state_file2");
+    data_destroy (&ndata);
 
     {
         zlistx_t *received = data_asset_names (self);
