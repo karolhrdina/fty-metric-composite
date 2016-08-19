@@ -451,6 +451,7 @@ data_save (data_t *self, const char * filename)
                        bmsg = (bios_proto_t*) zhashx_next (self->all_assets))
     {
         zconfig_t *item = zconfig_new (std::to_string (i).c_str(), assets);
+        i++;
         zconfig_put (item, "name", bios_proto_name (bmsg));
         zconfig_put (item, "operation", bios_proto_operation (bmsg));
 
@@ -484,11 +485,16 @@ data_save (data_t *self, const char * filename)
         }
     }
     zconfig_t *metrics = zconfig_new ("produced_metrics", root);
-    i = 1;
+    int j = 1;
     for ( const auto &metric_topic : self->produced_metrics ) {
-        zconfig_put (metrics, std::to_string (i).c_str(), metric_topic.c_str() );
-        i++;
+        zconfig_put (metrics, std::to_string (j).c_str(), metric_topic.c_str() );
+        j++;
     }
+    if ( self->is_reconfig_needed ) {
+        zconfig_t *reconfig = zconfig_new ("is_reconfig_needed", root);
+        assert (reconfig); // make compiler happy!!
+    }
+
     int r = zconfig_save (root, filename);
     zconfig_destroy (&root);
     return r;
@@ -539,12 +545,16 @@ data_load (const char *filename)
             }
             continue;
         }
-        if ( strncmp (sub_key, "produced_metrics", 16) ) {
+        if ( strncmp (sub_key, "produced_metrics", 16) == 0 ) {
             zconfig_t *key_config = zconfig_child (sub_config); // actually represents one metric
             for ( ; key_config != NULL; key_config = zconfig_next (key_config))
             {
                 self->produced_metrics.insert (zconfig_value (key_config));
             }
+            continue;
+        }
+        if ( strncmp (sub_key, "is_reconfig_needed", 18) == 0 ) {
+            self->is_reconfig_needed = true;
             continue;
         }
         // if we are here, then unexpected config subtree found
@@ -629,6 +639,177 @@ test_zlistx_compare (zlistx_t *expected, zlistx_t **received_p, bool verbose = f
     zlistx_destroy (received_p);
     *received_p = NULL;
     return rv;
+}
+
+static void
+data_compare (data_t *source, data_t *target, bool verbose) {
+    if ( source == NULL )
+        assert ( target == NULL );
+    else {
+        assert ( target != NULL );
+        // test all_assets
+        assert ( source-> all_assets != NULL ); // by design, it should be not NULL!
+        assert ( target-> all_assets != NULL ); // by design, it should be not NULL!
+        for ( bios_proto_t *source_asset = (bios_proto_t *) zhashx_first (source->all_assets);
+              source_asset != NULL;
+              source_asset = (bios_proto_t *) zhashx_next (source->all_assets)
+            )
+        {
+            void *handle = zhashx_lookup (target->all_assets, bios_proto_name (source_asset));
+            if ( handle == NULL ) {
+                if ( verbose )
+                    log_debug ("asset='%s' is NOT in target, but expected", bios_proto_name (source_asset));
+                assert ( false );
+            }
+        }
+        for ( bios_proto_t *target_asset = (bios_proto_t *) zhashx_first (target->all_assets);
+              target_asset != NULL;
+              target_asset = (bios_proto_t *) zhashx_next (target->all_assets)
+            )
+        {
+            void *handle = zhashx_lookup (source->all_assets, bios_proto_name (target_asset));
+            if ( handle == NULL ) {
+                if ( verbose )
+                    log_debug ("asset='%s' is in target, but NOT expected", bios_proto_name (target_asset));
+                assert ( false );
+            }
+        }
+        // test is_reconfig_needed
+        assert ( source->is_reconfig_needed == target->is_reconfig_needed );
+        // test last_configuration
+        assert ( zhashx_size (target->last_configuration) == 0 );
+        // test produced_metrics
+        for ( const auto &source_metric : source->produced_metrics) {
+            if ( target->produced_metrics.count (source_metric) != 1 ) {
+                if ( verbose )
+                    log_debug ("produced_topic='%s' is NOT in target, but expected", source_metric.c_str());
+                assert ( false );
+            }
+        }
+        for ( const auto &target_metric : target->produced_metrics) {
+            if ( source->produced_metrics.count (target_metric) != 1 ) {
+                if ( verbose )
+                    log_debug ("produced_topic='%s' is in target, but NOT expected", target_metric.c_str());
+                assert ( false );
+            }
+        }
+    }
+}
+
+static void
+test4 (bool verbose)
+{
+    if ( verbose )
+        log_debug ("Test4: save/load test");
+         
+    data_t *self = NULL;
+    data_t *self_load = NULL;
+    bios_proto_t *asset = NULL;
+    
+    // empty
+    self = data_new ();
+    
+    data_save (self, "state_file");
+
+    self_load = data_load ("state_file");
+
+    data_compare (self, self_load, verbose);
+    data_destroy (&self);
+    data_destroy (&self_load);
+
+    // one asset without AUX without EXT
+    asset = test_asset_new ("DC-Rozskoky", BIOS_PROTO_ASSET_OP_CREATE);
+    self = data_new ();
+    data_asset_store (self, &asset);
+    
+    data_save (self, "state_file");
+
+    self_load = data_load ("state_file");
+    
+    data_compare (self, self_load, verbose);
+    data_destroy (&self);
+    data_destroy (&self_load);
+
+    // one asset without EXT
+    asset = test_asset_new ("DC-Rozskoky", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_aux_insert (asset, "parent", "%s", "0");
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "datacenter");
+    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    self = data_new ();
+
+    data_asset_store (self, &asset);
+
+    data_save (self, "state_file");
+
+    self_load = data_load ("state_file");
+    
+    data_compare (self, self_load, verbose);
+    data_destroy (&self);
+    data_destroy (&self_load);
+
+    // one asset without AUX
+    asset = test_asset_new ("DC-Rozskoky", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_ext_insert (asset, "parent", "%s", "0");
+    bios_proto_ext_insert (asset, "status", "%s", "active");
+    bios_proto_ext_insert (asset, "type", "%s", "datacenter");
+    bios_proto_ext_insert (asset, "subtype", "%s", "unknown");
+    bios_proto_ext_insert (asset, "max_power" , "%s",  "2");
+    self = data_new ();
+
+    data_asset_store (self, &asset);
+
+    data_save (self, "state_file");
+
+    self_load = data_load ("state_file");
+    
+    data_compare (self, self_load, verbose);
+    data_destroy (&self);
+    data_destroy (&self_load);
+
+    // three assets + reassign + metrics
+    self = data_new ();
+    
+    asset = test_asset_new ("DC-Rozskoky", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_ext_insert (asset, "parent", "%s", "0");
+    bios_proto_ext_insert (asset, "status", "%s", "active");
+    bios_proto_ext_insert (asset, "type", "%s", "datacenter");
+    bios_proto_ext_insert (asset, "subtype", "%s", "unknown");
+    bios_proto_ext_insert (asset, "max_power" , "%s",  "2");
+    data_asset_store (self, &asset);
+
+    asset = test_asset_new ("Rack01", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "DC-Rozskoky");
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "rack");
+    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    bios_proto_ext_insert (asset, "max_power" , "%s",  "2");
+    data_asset_store (self, &asset);
+
+    asset = test_asset_new ("Sensor02", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "rc");
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH2");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "2");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "20");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "Rack01");
+    data_asset_store (self, &asset);
+    
+    data_reassign_sensors (self);
+    std::set <std::string> metrics {"topic1", "topic2"};
+    data_set_produced_metrics (self, metrics);
+
+    data_save (self, "state_file");
+
+    self_load = data_load ("state_file");
+    data_save (self_load, "state_file1");
+    
+    data_compare (self, self_load, verbose);
+    data_destroy (&self);
+    data_destroy (&self_load);
 }
 
 void
@@ -738,11 +919,6 @@ data_test (bool verbose)
     data_reassign_sensors(self);
     assert (data_is_reconfig_needed (self) == true);
     zlistx_add_end (assets_expected, (void *) "Sensor01");
-    data_save (self, "state_file");
-    data_t *ndata = data_load ("state_file");
-    assert (ndata);
-    data_save (ndata, "state_file2");
-    data_destroy (&ndata);
 
     {
         zlistx_t *received = data_asset_names (self);
@@ -1907,7 +2083,7 @@ data_test (bool verbose)
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01");
     data_asset_store (self, &asset);
     data_reassign_sensors(self);
-    // "true" is expected, because data_reassign_sensors also changes the "is_reconfiguration_needed"
+    // "true" is expected, because data_reassign_sensors also changes the "is_reconfig_needed"
     // when detailed information about the asset is not known
     assert (data_is_reconfig_needed (self) == true);
 
@@ -1969,6 +2145,7 @@ data_test (bool verbose)
         */
     }
 
+    test4 (verbose);
 
     data_t *newdata = data_new();
     std::set <std::string> newset{"sdlkfj"};
