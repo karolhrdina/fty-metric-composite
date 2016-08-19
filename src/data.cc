@@ -490,6 +490,11 @@ data_save (data_t *self, const char * filename)
         zconfig_put (metrics, std::to_string (j).c_str(), metric_topic.c_str() );
         j++;
     }
+    if ( self->is_reconfig_needed ) {
+        zconfig_t *reconfig = zconfig_new ("is_reconfig_needed", root);
+        assert (reconfig); // make compiler happy!!
+    }
+
     int r = zconfig_save (root, filename);
     zconfig_destroy (&root);
     return r;
@@ -546,6 +551,10 @@ data_load (const char *filename)
             {
                 self->produced_metrics.insert (zconfig_value (key_config));
             }
+            continue;
+        }
+        if ( strncmp (sub_key, "is_reconfig_needed", 18) == 0 ) {
+            self->is_reconfig_needed = true;
             continue;
         }
         // if we are here, then unexpected config subtree found
@@ -664,6 +673,7 @@ data_compare (data_t *source, data_t *target, bool verbose) {
                 assert ( false );
             }
         }
+        assert ( source->is_reconfig_needed == target->is_reconfig_needed );
     }
 }
 
@@ -2054,7 +2064,7 @@ data_test (bool verbose)
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "Rack01");
     data_asset_store (self, &asset);
     data_reassign_sensors(self);
-    // "true" is expected, because data_reassign_sensors also changes the "is_reconfiguration_needed"
+    // "true" is expected, because data_reassign_sensors also changes the "is_reconfig_needed"
     // when detailed information about the asset is not known
     assert (data_is_reconfig_needed (self) == true);
 
