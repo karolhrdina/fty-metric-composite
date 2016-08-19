@@ -1,5 +1,6 @@
 /*  =========================================================================
-    data - composite metrics data structure
+    c_metric_conf - structure that represents current start of
+            composite-metrics-configurator
 
     Copyright (C) 2014 - 2016 Eaton
 
