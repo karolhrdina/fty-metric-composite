@@ -647,6 +647,7 @@ data_compare (data_t *source, data_t *target, bool verbose) {
         assert ( target == NULL );
     else {
         assert ( target != NULL );
+        // test all_assets
         assert ( source-> all_assets != NULL ); // by design, it should be not NULL!
         assert ( target-> all_assets != NULL ); // by design, it should be not NULL!
         for ( bios_proto_t *source_asset = (bios_proto_t *) zhashx_first (source->all_assets);
@@ -657,7 +658,7 @@ data_compare (data_t *source, data_t *target, bool verbose) {
             void *handle = zhashx_lookup (target->all_assets, bios_proto_name (source_asset));
             if ( handle == NULL ) {
                 if ( verbose )
-                    log_debug ("asset='%s' is missing in target, but expected", bios_proto_name (source_asset));
+                    log_debug ("asset='%s' is NOT in target, but expected", bios_proto_name (source_asset));
                 assert ( false );
             }
         }
@@ -673,7 +674,25 @@ data_compare (data_t *source, data_t *target, bool verbose) {
                 assert ( false );
             }
         }
+        // test is_reconfig_needed
         assert ( source->is_reconfig_needed == target->is_reconfig_needed );
+        // test last_configuration
+        assert ( zhashx_size (target->last_configuration) == 0 );
+        // test produced_metrics
+        for ( const auto &source_metric : source->produced_metrics) {
+            if ( target->produced_metrics.count (source_metric) != 1 ) {
+                if ( verbose )
+                    log_debug ("produced_topic='%s' is NOT in target, but expected", source_metric.c_str());
+                assert ( false );
+            }
+        }
+        for ( const auto &target_metric : target->produced_metrics) {
+            if ( source->produced_metrics.count (target_metric) != 1 ) {
+                if ( verbose )
+                    log_debug ("produced_topic='%s' is in target, but NOT expected", target_metric.c_str());
+                assert ( false );
+            }
+        }
     }
 }
 
