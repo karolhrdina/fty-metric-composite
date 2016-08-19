@@ -189,9 +189,9 @@ actor_commands_test (bool verbose)
     int rv = actor_commands (cfg, &message);
     assert (rv == 0);
     assert (message == NULL);
+    
     assert (streq (c_metric_conf_statefile (cfg), ""));
     assert (streq (c_metric_conf_cfgdir (cfg), ""));
-
     // --------------------------------------------------------------
     // empty string - expected fail
     message = zmsg_new ();
@@ -392,7 +392,7 @@ actor_commands_test (bool verbose)
     assert (rv == 0);
     assert (message == NULL);
     assert (streq (c_metric_conf_statefile (cfg), "./test_state_file"));
-    assert (streq (c_metric_conf_cfgdir (cfg), ""));
+    assert (streq (c_metric_conf_cfgdir (cfg), "./"));
 
     // CFG_DIRECTORY
     message = zmsg_new ();
@@ -403,8 +403,7 @@ actor_commands_test (bool verbose)
     assert (rv == 0);
     assert (message == NULL);
     assert (streq (c_metric_conf_statefile (cfg), "./test_state_file"));
-    assert (streq (c_metric_conf_cfgdir (cfg), ""));
-
+    assert (streq (c_metric_conf_cfgdir (cfg), "../"));
 
     zmsg_destroy (&message);
     c_metric_conf_destroy (&cfg);

@@ -39,11 +39,11 @@ c_metric_conf_destroy (c_metric_conf_t **self_p)
     {
         c_metric_conf_t *self = *self_p;
         // free structure items
-        free (&self->name);
+        zstr_free (&self->name);
         data_destroy (&self->asset_data);
         mlm_client_destroy (&self->client);
-        free (&self->statefile_name);
-        free (&self->configuration_dir);
+        zstr_free (&self->statefile_name);
+        zstr_free (&self->configuration_dir);
         // free structure itself
         free (self);
         *self_p = NULL;
@@ -62,6 +62,10 @@ c_metric_conf_new (const char* name)
         if ( self->asset_data )
             self->client = mlm_client_new ();
         if ( self->client )
+            self->statefile_name = strdup ("");
+        if ( self->statefile_name )
+            self->configuration_dir = strdup ("");
+        if ( self->configuration_dir )
             self->verbose = false;
         else
             c_metric_conf_destroy (&self);
