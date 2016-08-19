@@ -47,6 +47,20 @@ struct value {
   time_t valid_till;
 };
 
+std::string escape_regex (const std::string notregex)
+{
+    static const char *to_be_escaped = ".^$|()[]{}*+?\\";
+    std::string result;
+
+    for (char c: notregex) {
+        if (strchr (to_be_escaped,c)) {
+            result += "\\";
+        }
+        result += c;
+    }
+    return result;
+}
+
 void bios_composite_metrics_server (zsock_t *pipe, void* args) {
     static const uint64_t TTL = 5*60;
     std::map<std::string, value> cache;
@@ -118,6 +132,7 @@ void bios_composite_metrics_server (zsock_t *pipe, void* args) {
                     std::string buff;
                     it >>= buff;
                     cache[buff] = expired;
+                    buff = "^" + escape_regex (buff) + "$";
                     mlm_client_set_consumer(client, "_METRICS_SENSOR", buff.c_str());
                     if (verbose)
                         zsys_debug("%s: Registered to receive '%s' from stream '%s'", name, buff.c_str(), "_METRICS_SENSOR");
