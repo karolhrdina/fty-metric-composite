@@ -30,13 +30,11 @@
 
 int
 actor_commands (
-        mlm_client_t *client,
-        zmsg_t **message_p,
-        data_t *data,
-        const char *myname)
+        c_metric_conf_t *cfg,
+        zmsg_t **message_p)
 {
     assert (message_p && *message_p);
-    assert (data);
+    assert (cfg);
 
     zmsg_t *message = *message_p;
 
@@ -66,11 +64,11 @@ actor_commands (
             zmsg_destroy (message_p);
             return 0;
         }
-        int rv = mlm_client_connect (client, endpoint, 1000, myname);
+        int rv = mlm_client_connect (cfg->client, endpoint, 1000, cfg->name);
         if (rv == -1) {
             log_error (
                     "mlm_client_connect (endpoint = '%s', timeout = '%d', address = '%s') failed",
-                    endpoint, 1000, myname);
+                    endpoint, 1000, cfg->name);
         }
 
         zstr_free (&endpoint);
@@ -87,7 +85,7 @@ actor_commands (
             zmsg_destroy (message_p);
             return 0;
         }
-        int rv = mlm_client_set_producer (client, stream);
+        int rv = mlm_client_set_producer (cfg->client, stream);
         if (rv == -1) {
             log_error ("mlm_client_set_producer (stream = '%s') failed", stream);
         }
@@ -114,7 +112,7 @@ actor_commands (
             zmsg_destroy (message_p);
             return 0;
         }
-        int rv = mlm_client_set_consumer (client, stream, pattern);
+        int rv = mlm_client_set_consumer (cfg->client, stream, pattern);
         if (rv == -1) {
             log_error (
                     "mlm_client_set_consumer (stream = '%s', pattern = '%s') failed",
@@ -134,7 +132,7 @@ actor_commands (
             zmsg_destroy (message_p);
             return 0;
         }
-        data_set_statefile (data, state_file);
+        c_metric_conf_set_statefile (cfg, state_file);
         zstr_free (&state_file);
     }
     else
@@ -148,7 +146,7 @@ actor_commands (
             zmsg_destroy (message_p);
             return 0;
         }
-        data_set_cfgdir (data, cfgdir);
+        c_metric_conf_set_cfgdir (cfg, cfgdir);
         zstr_free (&cfgdir);
     }
     else {
@@ -171,7 +169,8 @@ actor_commands_test (bool verbose)
         log_set_level (LOG_DEBUG);
     printf (" * actor_commands: ");
     //  @selftest
-    const char *myname = "here nobody cares";
+    char *statefile = strdup ("file");
+    char *confdir = strdup("./test_dir");
     static const char* endpoint = "ipc://bios-actor-commands-test";
     // malamute broker
     zactor_t *malamute = zactor_new (mlm_server, (void*) "Malamute");
@@ -180,42 +179,40 @@ actor_commands_test (bool verbose)
         zstr_send (malamute, "VERBOSE");
     zstr_sendx (malamute, "BIND", endpoint, NULL);
 
-    mlm_client_t *client = mlm_client_new ();
-    assert (client);
+    c_metric_conf_t *cfg = c_metric_conf_new ("mlm_name_is_I_AM_REACH");
+    assert (cfg);
 
     zmsg_t *message = NULL;
-    data_t *data = data_new ();
-
     // empty message - expected fail
     message = zmsg_new ();
     assert (message);
-    int rv = actor_commands (client, &message, data, myname);
+    int rv = actor_commands (cfg, &message);
     assert (rv == 0);
     assert (message == NULL);
-    assert (streq (data_statefile (data), ""));
-    assert (streq (data_cfgdir (data), ""));
-
+    
+    assert (streq (c_metric_conf_statefile (cfg), ""));
+    assert (streq (c_metric_conf_cfgdir (cfg), ""));
     // --------------------------------------------------------------
     // empty string - expected fail
     message = zmsg_new ();
     assert (message);
     zmsg_addstr (message, "");
-    rv = actor_commands (client, &message, data, myname);
+    rv = actor_commands (cfg, &message);
     assert (rv == 0);
     assert (message == NULL);
-    assert (streq (data_statefile (data), ""));
-    assert (streq (data_cfgdir (data), ""));
+    assert (streq (c_metric_conf_statefile (cfg), ""));
+    assert (streq (c_metric_conf_cfgdir (cfg), ""));
 
     // --------------------------------------------------------------
     // unknown command - expected fail
     message = zmsg_new ();
     assert (message);
     zmsg_addstr (message, "MAGIC!");
-    rv = actor_commands (client, &message, data, myname);
+    rv = actor_commands (cfg, &message);
     assert (rv == 0);
     assert (message == NULL);
-    assert (streq (data_statefile (data), ""));
-    assert (streq (data_cfgdir (data), ""));
+    assert (streq (c_metric_conf_statefile (cfg), ""));
+    assert (streq (c_metric_conf_cfgdir (cfg), ""));
 
     // --------------------------------------------------------------
     // STATE_FILE - expected fail
@@ -223,11 +220,11 @@ actor_commands_test (bool verbose)
     assert (message);
     zmsg_addstr (message, "STATE_FILE");
     // missing config_file here
-    rv = actor_commands (client, &message, data, myname);
+    rv = actor_commands (cfg, &message);
     assert (rv == 0);
     assert (message == NULL);
-    assert (streq (data_statefile (data), ""));
-    assert (streq (data_cfgdir (data), ""));
+    assert (streq (c_metric_conf_statefile (cfg), ""));
+    assert (streq (c_metric_conf_cfgdir (cfg), ""));
 
     // --------------------------------------------------------------
     // STATE_FILE - expected fail
@@ -235,11 +232,11 @@ actor_commands_test (bool verbose)
     assert (message);
     zmsg_addstr (message, "STATE_FILE");
     zmsg_addstr (message, "."); // supplied path is a directory
-    rv = actor_commands (client, &message, data, myname);
+    rv = actor_commands (cfg, &message);
     assert (rv == 0);
     assert (message == NULL);
-    assert (streq (data_statefile (data), ""));
-    assert (streq (data_cfgdir (data), ""));
+    assert (streq (c_metric_conf_statefile (cfg), ""));
+    assert (streq (c_metric_conf_cfgdir (cfg), ""));
 
     // --------------------------------------------------------------
     // CFG_DIRECTORY - expected fail
@@ -247,11 +244,11 @@ actor_commands_test (bool verbose)
     assert (message);
     zmsg_addstr (message, "CFG_DIRECTORY");
     // missing config_file here
-    rv = actor_commands (client, &message, data, myname);
+    rv = actor_commands (cfg, &message);
     assert (rv == 0);
     assert (message == NULL);
-    assert (streq (data_statefile (data), ""));
-    assert (streq (data_cfgdir (data), ""));
+    assert (streq (c_metric_conf_statefile (cfg), ""));
+    assert (streq (c_metric_conf_cfgdir (cfg), ""));
 
     // --------------------------------------------------------------
     // CFG_DIRECTORY - expected fail
@@ -259,11 +256,11 @@ actor_commands_test (bool verbose)
     assert (message);
     zmsg_addstr (message, "CFG_DIRECTORY");
     zmsg_addstr (message, "/etc/passwd"); // supplied path is not a directory
-    rv = actor_commands (client, &message, data, myname);
+    rv = actor_commands (cfg, &message);
     assert (rv == 0);
     assert (message == NULL);
-    assert (streq (data_statefile (data), ""));
-    assert (streq (data_cfgdir (data), ""));
+    assert (streq (c_metric_conf_statefile (cfg), ""));
+    assert (streq (c_metric_conf_cfgdir (cfg), ""));
 
     // --------------------------------------------------------------
     // CFG_DIRECTORY - expected fail
@@ -271,11 +268,11 @@ actor_commands_test (bool verbose)
     assert (message);
     zmsg_addstr (message, "CFG_DIRECTORY");
     zmsg_addstr (message, "/sdssdf/sfef//sdfe"); // non-existing path
-    rv = actor_commands (client, &message, data, myname);
+    rv = actor_commands (cfg, &message);
     assert (rv == 0);
     assert (message == NULL);
-    assert (streq (data_statefile (data), ""));
-    assert (streq (data_cfgdir (data), ""));
+    assert (streq (c_metric_conf_statefile (cfg), ""));
+    assert (streq (c_metric_conf_cfgdir (cfg), ""));
 
     // --------------------------------------------------------------
     // CONNECT - expected fail
@@ -284,10 +281,9 @@ actor_commands_test (bool verbose)
     zmsg_addstr (message, "CONNECT");
     // missing endpoint here
     // missing name here
-    rv = actor_commands (client, &message, data, myname);
+    rv = actor_commands (cfg, &message);
     assert (rv == 0);
     assert (message == NULL);
-    assert (streq (data_statefile (data), ""));
 
     // --------------------------------------------------------------
     // CONNECT - expected fail; bad endpoint
@@ -295,11 +291,9 @@ actor_commands_test (bool verbose)
     assert (message);
     zmsg_addstr (message, "CONNECT");
     zmsg_addstr (message, "ipc://bios-smtp-server-BAD");
-    zmsg_addstr (message, "test-agent");
-    rv = actor_commands (client, &message, data, myname);
+    rv = actor_commands (cfg, &message);
     assert (rv == 0);
     assert (message == NULL);
-    assert (streq (data_statefile (data), ""));
 
     // --------------------------------------------------------------
     // CONSUMER - expected fail
@@ -308,10 +302,9 @@ actor_commands_test (bool verbose)
     zmsg_addstr (message, "CONSUMER");
     zmsg_addstr (message, "some-stream");
     // missing pattern here
-    rv = actor_commands (client, &message, data, myname);
+    rv = actor_commands (cfg, &message);
     assert (rv == 0);
     assert (message == NULL);
-    assert (streq (data_statefile (data), ""));
 
     // --------------------------------------------------------------
     // CONSUMER - expected fail
@@ -320,10 +313,9 @@ actor_commands_test (bool verbose)
     zmsg_addstr (message, "CONSUMER");
     // missing stream here
     // missing pattern here
-    rv = actor_commands (client, &message, data, myname);
+    rv = actor_commands (cfg, &message);
     assert (rv == 0);
     assert (message == NULL);
-    assert (streq (data_statefile (data), ""));
 
     // --------------------------------------------------------------
     // PRODUCER - expected fail
@@ -331,39 +323,31 @@ actor_commands_test (bool verbose)
     assert (message);
     zmsg_addstr (message, "PRODUCER");
     // missing stream here
-    rv = actor_commands (client, &message, data, myname);
+    rv = actor_commands (cfg, &message);
     assert (rv == 0);
     assert (message == NULL);
-    assert (streq (data_statefile (data), ""));
-
-    // The original client still waiting on the bad endpoint for malamute
-    // server to show up. Therefore we must destroy and create it again.
-    mlm_client_destroy (&client);
-
-    mlm_client_t *client2 = mlm_client_new ();
-    assert (client2);
 
     // --------------------------------------------------------------
     // $TERM
     message = zmsg_new ();
     assert (message);
     zmsg_addstr (message, "$TERM");
-    rv = actor_commands (client2, &message, data, myname);
+    rv = actor_commands (cfg, &message);
     assert (rv == 1);
     assert (message == NULL);
-    assert (streq (data_statefile (data), ""));
-    assert (streq (data_cfgdir (data), ""));
+    assert (streq (c_metric_conf_statefile (cfg), ""));
+    assert (streq (c_metric_conf_cfgdir (cfg), ""));
 
     // CONNECT
     message = zmsg_new ();
     assert (message);
     zmsg_addstr (message, "CONNECT");
     zmsg_addstr (message, endpoint);
-    rv = actor_commands (client2, &message, data, myname);
+    rv = actor_commands (cfg, &message);
     assert (rv == 0);
     assert (message == NULL);
-    assert (streq (data_statefile (data), ""));
-    assert (streq (data_cfgdir (data), ""));
+    assert (streq (c_metric_conf_statefile (cfg), ""));
+    assert (streq (c_metric_conf_cfgdir (cfg), ""));
 
     // CONSUMER
     message = zmsg_new ();
@@ -371,61 +355,61 @@ actor_commands_test (bool verbose)
     zmsg_addstr (message, "CONSUMER");
     zmsg_addstr (message, "some-stream");
     zmsg_addstr (message, ".+@.+");
-    rv = actor_commands (client2, &message, data, myname);
+    rv = actor_commands (cfg, &message);
     assert (rv == 0);
     assert (message == NULL);
-    assert (streq (data_statefile (data), ""));
-    assert (streq (data_cfgdir (data), ""));
+    assert (streq (c_metric_conf_statefile (cfg), ""));
+    assert (streq (c_metric_conf_cfgdir (cfg), ""));
 
     // PRODUCER
     message = zmsg_new ();
     assert (message);
     zmsg_addstr (message, "PRODUCER");
     zmsg_addstr (message, "some-stream");
-    rv = actor_commands (client2, &message, data, myname);
+    rv = actor_commands (cfg, &message);
     assert (rv == 0);
     assert (message == NULL);
-    assert (streq (data_statefile (data), ""));
-    assert (streq (data_cfgdir (data), ""));
+    assert (streq (c_metric_conf_statefile (cfg), ""));
+    assert (streq (c_metric_conf_cfgdir (cfg), ""));
 
     // STATE_FILE
     message = zmsg_new ();
     assert (message);
     zmsg_addstr (message, "STATE_FILE");
     zmsg_addstr (message, "./test_state_file");
-    rv = actor_commands (client2, &message, data, myname);
+    rv = actor_commands (cfg, &message);
     assert (rv == 0);
     assert (message == NULL);
-    assert (streq (data_statefile (data), "./test_state_file"));
-    assert (streq (data_cfgdir (data), ""));
+    assert (streq (c_metric_conf_statefile (cfg), "./test_state_file"));
+    assert (streq (c_metric_conf_cfgdir (cfg), ""));
 
     // CFG_DIRECTORY
     message = zmsg_new ();
     assert (message);
     zmsg_addstr (message, "CFG_DIRECTORY");
     zmsg_addstr (message, "./");
-    rv = actor_commands (client2, &message, data, myname);
+    rv = actor_commands (cfg, &message);
     assert (rv == 0);
     assert (message == NULL);
-    assert (streq (data_statefile (data), "./test_state_file"));
-    assert (streq (data_cfgdir (data), "./"));
+    assert (streq (c_metric_conf_statefile (cfg), "./test_state_file"));
+    assert (streq (c_metric_conf_cfgdir (cfg), "./"));
 
     // CFG_DIRECTORY
     message = zmsg_new ();
     assert (message);
     zmsg_addstr (message, "CFG_DIRECTORY");
     zmsg_addstr (message, "../");
-    rv = actor_commands (client2, &message, data, myname);
+    rv = actor_commands (cfg, &message);
     assert (rv == 0);
     assert (message == NULL);
-    assert (streq (data_statefile (data), "./test_state_file"));
-    assert (streq (data_cfgdir (data), "../"));
-
+    assert (streq (c_metric_conf_statefile (cfg), "./test_state_file"));
+    assert (streq (c_metric_conf_cfgdir (cfg), "../"));
 
     zmsg_destroy (&message);
-    data_destroy (&data);
-    mlm_client_destroy (&client2);
+    c_metric_conf_destroy (&cfg);
     zactor_destroy (&malamute);
+    free (statefile);
+    free (confdir);
     //  @end
     printf ("OK\n");
 }

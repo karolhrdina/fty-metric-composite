@@ -40,6 +40,7 @@ all_tests [] = {
     { "subprocess", subprocess_test },
     { "actor_commands", actor_commands_test },
     { "data", data_test },
+    { "c_metric_conf", c_metric_conf_test },
     { "proto_metric_unavailable", proto_metric_unavailable_test },
 #ifdef COMPOSITE_METRICS_BUILD_DRAFT_API
     { "bios_composite_metrics_server", bios_composite_metrics_server_test },
@@ -102,7 +103,7 @@ main (int argc, char **argv)
         else
         if (streq (argv [argn], "--number")
         ||  streq (argv [argn], "-n")) {
-            puts ("7");
+            puts ("8");
             return 0;
         }
         else
@@ -113,6 +114,7 @@ main (int argc, char **argv)
             puts ("    subprocess");
             puts ("    actor_commands");
             puts ("    data");
+            puts ("    c_metric_conf");
             puts ("    proto_metric_unavailable");
             puts ("    bios_composite_metrics_server");
             puts ("    bios_composite_metrics_configurator_server");

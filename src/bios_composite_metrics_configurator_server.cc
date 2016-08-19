@@ -32,60 +32,6 @@
 
 #include "composite_metrics_classes.h"
 
-// TODO: move to class sometime
-// It is a configurator entiry entity
-typedef struct _c_metric_conf_t {
-    bool verbose;           // is server verbose or not
-    char *name;             // server name
-    data_t *asset_data;     // asset data
-    mlm_client_t *client;   // malamute client
-    char *statefile_name;   // state file name
-    char *configuration_dir;// directory, where all configuration file would be stored
-} c_metric_conf_t;
-
-/*
- * \brief Destroy the configurator entity
- */
-void
-c_metric_conf_destroy (c_metric_conf_t **self_p)
-{
-    if (*self_p)
-    {
-        c_metric_conf_t *self = *self_p;
-        // free structure items
-        free (&self->name);
-        data_destroy (&self->asset_data);
-        mlm_client_destroy (&self->client);
-        free (&self->statefile_name);
-        free (&self->configuration_dir);
-        // free structure itself
-        free (self);
-        *self_p = NULL;
-    }
-}
-
-/*
- * \brief Create new empty not verbose configurator entity
- */
-c_metric_conf_t*
-c_metric_conf_new (const char* name)
-{
-    assert (name);
-    c_metric_conf_t *self = (c_metric_conf_t*) zmalloc (sizeof (c_metric_conf_t));
-    if ( self ) {
-        self->name = strdup (name);
-        if ( self->name )
-            self->asset_data = data_new ();
-        if ( self->asset_data )
-            self->client = mlm_client_new ();
-        if ( self->client )
-            self->verbose = false;
-        else
-            c_metric_conf_destroy (&self);
-    }
-    return self;
-}
-
 // Wrapper for bios_proto_ext_string
 static float
 s_bios_proto_ext_float (bios_proto_t *self, const char *key, float default_value)
@@ -385,17 +331,18 @@ s_generate_and_start (const char *path_to_dir, const char *sensor_function, cons
 }
 
 static void
-s_regenerate (data_t *data, std::set <std::string> &metrics_unavailable)
+s_regenerate (c_metric_conf_t *cfg, std::set <std::string> &metrics_unavailable)
 {
-    assert (data);
+    assert (cfg);
+    data_t *data = cfg->asset_data;
     // potential unavailable metrics are those, what are now still available
     metrics_unavailable = data_get_produced_metrics (data);
     // 1. Delete all files in output dir and stop/disable services
-    int rv = s_remove_and_stop (data_cfgdir (data));
+    int rv = s_remove_and_stop (cfg->configuration_dir);
     if (rv != 0) {
         log_error (
                 "Error removing old config files from directory '%s'. New config "
-                "files were NOT generated and services were NOT started.", data_cfgdir (data));
+                "files were NOT generated and services were NOT started.", cfg->configuration_dir);
         return;
     }
 
@@ -415,13 +362,13 @@ s_regenerate (data_t *data, std::set <std::string> &metrics_unavailable)
             // Ti, Hi
             sensors = data_get_assigned_sensors (data, asset, "input");
             if ( sensors ) {
-                s_generate_and_start (data_cfgdir (data), "input", asset, &sensors, metricsAvailable);
+                s_generate_and_start (cfg->configuration_dir, "input", asset, &sensors, metricsAvailable);
             }
 
             // To, Ho
             sensors = data_get_assigned_sensors (data, asset, "output");
             if ( sensors ) {
-                s_generate_and_start (data_cfgdir (data), "output", asset, &sensors, metricsAvailable);
+                s_generate_and_start (cfg->configuration_dir, "output", asset, &sensors, metricsAvailable);
             }
         }
         else {
@@ -429,7 +376,7 @@ s_regenerate (data_t *data, std::set <std::string> &metrics_unavailable)
             // T, H
             sensors = data_get_assigned_sensors (data, asset, NULL);
             if ( sensors ) {
-                s_generate_and_start (data_cfgdir (data), NULL, asset, &sensors, metricsAvailable);
+                s_generate_and_start (cfg->configuration_dir, NULL, asset, &sensors, metricsAvailable);
             }
         }
         asset = (const char *) zlistx_next (assets);
@@ -448,28 +395,18 @@ s_regenerate (data_t *data, std::set <std::string> &metrics_unavailable)
 void
 bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
 {
-    char *myname = strdup ( (const char *) args);
     assert (pipe);
-    mlm_client_t *client = mlm_client_new ();
-    if (!client) {
-        log_error ("mlm_client_new () failed");
-        return;
-    }
+    assert (args);
+    c_metric_conf_t *cfg = c_metric_conf_new ((const char *) args);
+    assert (cfg);
 
-    zpoller_t *poller = zpoller_new (pipe, mlm_client_msgpipe (client), NULL);
+    zpoller_t *poller = zpoller_new (pipe, mlm_client_msgpipe (cfg->client), NULL);
     if (!poller) {
         log_error ("zpoller_new () failed");
-        mlm_client_destroy (&client);
+        c_metric_conf_destroy (&cfg);
         return;
     }
 
-    data_t *data = data_new ();
-    if (!data) {
-        log_error ("data_new () failed");
-        zpoller_destroy (&poller);
-        mlm_client_destroy (&client);
-        return;
-    }
     zsock_signal (pipe, 0);
 
 
@@ -487,11 +424,11 @@ bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
                 break;
             }
             if (zpoller_expired (poller)) {
-                if (data_is_reconfig_needed (data)) {
+                if (data_is_reconfig_needed (cfg->asset_data)) {
                     std::set <std::string> metrics_unavailable;
-                    s_regenerate (data, metrics_unavailable);
+                    s_regenerate (cfg, metrics_unavailable);
                     for ( const auto &one_metric : metrics_unavailable ) {
-                        proto_metric_unavailable_send (client, one_metric.c_str());
+                        proto_metric_unavailable_send (cfg->client, one_metric.c_str());
                     }
                 }
             }
@@ -505,7 +442,7 @@ bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
                 log_error ("Given `which == pipe`, function `zmsg_recv (pipe)` returned NULL");
                 continue;
             }
-            if (actor_commands (client, &message, data, myname) == 1) {
+            if (actor_commands (cfg, &message) == 1) {
                 break;
             }
             continue;
@@ -513,37 +450,37 @@ bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
 
         uint64_t now = (uint64_t) zclock_mono ();
         if (now - timestamp >= timeout) {
-             if (data_is_reconfig_needed (data)) {
+             if (data_is_reconfig_needed (cfg->asset_data)) {
                 std::set <std::string> metrics_unavailable;
-                s_regenerate (data, metrics_unavailable);
+                s_regenerate (cfg, metrics_unavailable);
                 for ( const auto &one_metric : metrics_unavailable ) {
-                    proto_metric_unavailable_send (client, one_metric.c_str());
+                    proto_metric_unavailable_send (cfg->client, one_metric.c_str());
                 }
             }
             timestamp = (uint64_t) zclock_mono ();
         }
 
-        if (which != mlm_client_msgpipe (client)) {
-            log_error ("which was checked for NULL, pipe and now should have been `mlm_client_msgpipe (client)` but is not.");
+        if (which != mlm_client_msgpipe (cfg->client)) {
+            log_error ("which was checked for NULL, pipe and now should have been `mlm_client_msgpipe (cfg->client)` but is not.");
             continue;
         }
 
-        zmsg_t *message = mlm_client_recv (client);
+        zmsg_t *message = mlm_client_recv (cfg->client);
         if (!message) {
-            log_error ("Given `which == mlm_client_msgpipe (client)`, function `mlm_client_recv ()` returned NULL");
+            log_error ("Given `which == mlm_client_msgpipe (cfg->client)`, function `mlm_client_recv ()` returned NULL");
             continue;
         }
 
-        const char *command = mlm_client_command (client);
+        const char *command = mlm_client_command (cfg->client);
         if (streq (command, "STREAM DELIVER")) {
             bios_proto_t *proto = bios_proto_decode (&message);
             if (!proto) {
                 log_error (
                         "bios_proto_decode () failed; sender = '%s', subject = '%s'",
-                        mlm_client_sender (client), mlm_client_subject (client));
+                        mlm_client_sender (cfg->client), mlm_client_subject (cfg->client));
                 continue;
             }
-            data_asset_store (data, &proto);
+            data_asset_store (cfg->asset_data, &proto);
             assert (proto == NULL);
         }
         else
@@ -551,7 +488,7 @@ bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
             streq (command, "SERVICE DELIVER")) {
             log_warning (
                     "Received a message from sender = '%s', command = '%s', subject = '%s'. Throwing away.",
-                    mlm_client_sender (client), mlm_client_command (client), mlm_client_subject (client));
+                    mlm_client_sender (cfg->client), mlm_client_command (cfg->client), mlm_client_subject (cfg->client));
             continue;
         }
         else {
@@ -559,11 +496,9 @@ bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
         }
         zmsg_destroy (&message);
     }
-    data_save (data);
-    data_destroy (&data);
+    data_save (cfg->asset_data, cfg->statefile_name);
     zpoller_destroy (&poller);
-    mlm_client_destroy (&client);
-    free (myname);
+    c_metric_conf_destroy (&cfg);
 }
 
 //  --------------------------------------------------------------------------
