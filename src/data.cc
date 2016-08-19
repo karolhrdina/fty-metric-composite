@@ -40,8 +40,6 @@ struct _data_t {
     zhashx_t *last_configuration; // asset_name -> list of sensors (each sensor is represented as message). Doesn't own messages
     bool is_reconfig_needed; // indicates, if recently added asset can change configuration
     std::set<std::string> produced_metrics; // list of metrics, that are now produced by composite_metric
-    char *state_file;
-    char *output_dir;
 };
 
 //  --------------------------------------------------------------------------
@@ -58,12 +56,6 @@ data_new (void)
             self->all_assets = zhashx_new ();
         }
         if ( self->all_assets ) {
-            self->state_file = strdup ("");
-        }
-        if ( self->state_file ) {
-            self->output_dir = strdup ("");
-        }
-        if ( self->output_dir ) {
             zhashx_set_destructor (self->last_configuration, (zhashx_destructor_fn *) zlistx_destroy);
             zhashx_set_destructor (self->all_assets, (zhashx_destructor_fn *) bios_proto_destroy);
             self->is_reconfig_needed = false;
@@ -444,79 +436,11 @@ data_asset (data_t *self, const char *name)
 }
 
 //  --------------------------------------------------------------------------
-//  Get state file fullpath or empty string if not set
-
-const char *
-data_statefile (data_t *self)
-{
-    assert (self);
-    return self->state_file;
-}
-
-//  --------------------------------------------------------------------------
-//  Set state file fullpath
-//  0 - success, -1 - error
-
-int
-data_set_statefile (data_t *self, const char *fullpath)
-{
-    assert (self);
-    assert (fullpath);
-    zfile_t *file = zfile_new (NULL, fullpath);
-    if (!file) {
-        log_error ("zfile_new (NULL, '%s') failed.", fullpath);
-        return -1;
-    }
-    bool is_dir = zfile_is_directory (file);
-    if (is_dir) {
-        log_error ("Specified argument '%s' is a directory.", fullpath);
-        zfile_destroy (&file);
-        return -1;
-    }
-    zfile_destroy (&file);
-    zstr_free (&self->state_file);
-    self->state_file = strdup (fullpath);
-    return 0;
-}
-
-//  --------------------------------------------------------------------------
-//  Get path to configuration directory
-
-const char *
-data_cfgdir (data_t *self)
-{
-    assert (self);
-    return self->output_dir;
-}
-
-//  --------------------------------------------------------------------------
-//  Set configuration directory path
-//  Directory MUST exist! If directory doesn't exist -> error
-//  0 - success, -1 - error
-
-int
-data_set_cfgdir (data_t *self, const char *path)
-{
-    assert (self);
-    assert (path);
-    zdir_t *dir = zdir_new (path, "-");
-    if (!dir) {
-        log_error ("zdir_new ('%s', \"-\") failed.", path);
-        return -1;
-    }
-    zdir_destroy (&dir);
-    zstr_free (&self->output_dir);
-    self->output_dir = strdup (path);
-    log_debug ("Configuration dir is set: '%s'", path);
-    return 0;
-}
-
-//  --------------------------------------------------------------------------
 //  Save data to disk
 //  0 - success, -1 - error
 
 int
-data_save (data_t *self)
+data_save (data_t *self, const char * filename)
 {
     assert (self);
     zconfig_t *root = zconfig_new ("nobody_cares", NULL);
@@ -562,7 +486,7 @@ data_save (data_t *self)
         zconfig_put (metrics, std::to_string (i).c_str(), metric_topic.c_str() );
         i++;
     }
-    int r = zconfig_save (root, self->state_file);
+    int r = zconfig_save (root, filename);
     zconfig_destroy (&root);
     return r;
 }
@@ -591,8 +515,6 @@ data_destroy (data_t **self_p)
         //  Free class properties here
         zhashx_destroy (&self->all_assets);
         zhashx_destroy (&self->last_configuration);
-        zstr_free (&self->state_file);
-        zstr_free (&self->output_dir);
         self->produced_metrics.clear();
         //  Free object itself
         free (self);
@@ -681,55 +603,7 @@ data_test (bool verbose)
 
     //  =================================================================
     if ( verbose )
-        log_debug ("Test2: data_statefile()/data_set_statefile()");
-    {
-    const char *state_file = data_statefile (self);
-    assert (streq (state_file, ""));
-
-    int rv = data_set_statefile (self, "./state_file");
-    assert (rv == 0);
-    state_file = data_statefile (self);
-    assert (streq (state_file, "./state_file"));
-
-    rv = data_set_statefile (self, "/tmp/composite-metrics/state_file");
-    assert (rv == 0);
-    state_file = data_statefile (self);
-    assert (streq (state_file, "/tmp/composite-metrics/state_file"));
-
-    rv = data_set_statefile (self, "./test_dir/state_file");
-    assert (rv == 0);
-    state_file = data_statefile (self);
-    assert (streq (state_file, "./test_dir/state_file"));
-
-    // directory
-    rv = data_set_statefile (self, "/lib");
-    assert (rv == -1);
-    state_file = data_statefile (self);
-    assert (streq (state_file, "./test_dir/state_file"));
-    }
-
-    //  =================================================================
-    if ( verbose )
-        log_debug ("Test3: data_cfgdir()/data_set_cfgdir()");
-    {
-    const char *cfgdir = data_cfgdir (self);
-    assert (streq (cfgdir, ""));
-
-    int rv = data_set_cfgdir (self, "/tmp");
-    assert (rv == 0);
-    cfgdir = data_cfgdir (self);
-    assert (streq (cfgdir, "/tmp"));
-
-    // non-writable directory
-    rv = data_set_cfgdir (self, "/root");
-    assert (rv == -1);
-    cfgdir = data_cfgdir (self);
-    assert (streq (cfgdir, "/tmp"));
-    }
-
-    //  =================================================================
-    if ( verbose )
-        log_debug ("Test4: data_asset_store()/data_reassign_needed()/data_is_reconfig_needed() for CREATE operation");
+        log_debug ("Test2: data_asset_store()/data_reassign_needed()/data_is_reconfig_needed() for CREATE operation");
     // asset
     zlistx_t *assets_expected = zlistx_new ();
     zlistx_set_destructor (assets_expected, (czmq_destructor *) zstr_free);
@@ -751,7 +625,7 @@ data_test (bool verbose)
     data_reassign_sensors(self);
     assert (data_is_reconfig_needed (self) == false);
     zlistx_add_end (assets_expected, (void *) "DC-Rozskoky");
-    data_save (self);
+    data_save (self, "state_file");
     if ( verbose )
         log_debug ("\tCREATE 'Lazer game' as room");
     asset = test_asset_new ("Lazer game", BIOS_PROTO_ASSET_OP_CREATE); // 2

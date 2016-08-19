@@ -331,17 +331,18 @@ s_generate_and_start (const char *path_to_dir, const char *sensor_function, cons
 }
 
 static void
-s_regenerate (data_t *data, std::set <std::string> &metrics_unavailable)
+s_regenerate (c_metric_conf_t *cfg, std::set <std::string> &metrics_unavailable)
 {
-    assert (data);
+    assert (cfg);
+    data_t *data = cfg->asset_data;
     // potential unavailable metrics are those, what are now still available
     metrics_unavailable = data_get_produced_metrics (data);
     // 1. Delete all files in output dir and stop/disable services
-    int rv = s_remove_and_stop (data_cfgdir (data));
+    int rv = s_remove_and_stop (cfg->configuration_dir);
     if (rv != 0) {
         log_error (
                 "Error removing old config files from directory '%s'. New config "
-                "files were NOT generated and services were NOT started.", data_cfgdir (data));
+                "files were NOT generated and services were NOT started.", cfg->configuration_dir);
         return;
     }
 
@@ -361,13 +362,13 @@ s_regenerate (data_t *data, std::set <std::string> &metrics_unavailable)
             // Ti, Hi
             sensors = data_get_assigned_sensors (data, asset, "input");
             if ( sensors ) {
-                s_generate_and_start (data_cfgdir (data), "input", asset, &sensors, metricsAvailable);
+                s_generate_and_start (cfg->configuration_dir, "input", asset, &sensors, metricsAvailable);
             }
 
             // To, Ho
             sensors = data_get_assigned_sensors (data, asset, "output");
             if ( sensors ) {
-                s_generate_and_start (data_cfgdir (data), "output", asset, &sensors, metricsAvailable);
+                s_generate_and_start (cfg->configuration_dir, "output", asset, &sensors, metricsAvailable);
             }
         }
         else {
@@ -375,7 +376,7 @@ s_regenerate (data_t *data, std::set <std::string> &metrics_unavailable)
             // T, H
             sensors = data_get_assigned_sensors (data, asset, NULL);
             if ( sensors ) {
-                s_generate_and_start (data_cfgdir (data), NULL, asset, &sensors, metricsAvailable);
+                s_generate_and_start (cfg->configuration_dir, NULL, asset, &sensors, metricsAvailable);
             }
         }
         asset = (const char *) zlistx_next (assets);
@@ -425,7 +426,7 @@ bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
             if (zpoller_expired (poller)) {
                 if (data_is_reconfig_needed (cfg->asset_data)) {
                     std::set <std::string> metrics_unavailable;
-                    s_regenerate (cfg->asset_data, metrics_unavailable);
+                    s_regenerate (cfg, metrics_unavailable);
                     for ( const auto &one_metric : metrics_unavailable ) {
                         proto_metric_unavailable_send (cfg->client, one_metric.c_str());
                     }
@@ -451,7 +452,7 @@ bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
         if (now - timestamp >= timeout) {
              if (data_is_reconfig_needed (cfg->asset_data)) {
                 std::set <std::string> metrics_unavailable;
-                s_regenerate (cfg->asset_data, metrics_unavailable);
+                s_regenerate (cfg, metrics_unavailable);
                 for ( const auto &one_metric : metrics_unavailable ) {
                     proto_metric_unavailable_send (cfg->client, one_metric.c_str());
                 }
@@ -495,7 +496,7 @@ bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
         }
         zmsg_destroy (&message);
     }
-    data_save (cfg->asset_data);
+    data_save (cfg->asset_data, cfg->statefile_name);
     zpoller_destroy (&poller);
     c_metric_conf_destroy (&cfg);
 }
