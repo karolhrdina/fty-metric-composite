@@ -111,10 +111,13 @@ void bios_composite_metrics_server (zsock_t *pipe, void* args) {
                 const cxxtools::SerializationInfo *si = json.si();
                 si->getMember("evaluation") >>= lua_code;
 
-                // Subscribe to all streams
+                // Subscribe to all streams, create expired values in cache
+                value expired;
+                expired.valid_till = 0;
                 for(auto it : si->getMember("in")) {
                     std::string buff;
                     it >>= buff;
+                    cache[buff] = expired;
                     mlm_client_set_consumer(client, "_METRICS_SENSOR", buff.c_str());
                     if (verbose)
                         zsys_debug("%s: Registered to receive '%s' from stream '%s'", name, buff.c_str(), "_METRICS_SENSOR");
@@ -172,9 +175,13 @@ void bios_composite_metrics_server (zsock_t *pipe, void* args) {
         luaL_openlibs(L);
         lua_newtable(L);
         time_t tme = time(NULL);
+        int error;
         for(auto i : cache) {
-            if(tme > i.second.valid_till)
-                continue;
+            if(tme > i.second.valid_till) {
+                // can't count average, missing measurements from sensor
+                zsys_error ("%s is unknown/expired", i.first.c_str ());
+                goto next_iter;
+            }
             if (verbose)
                 zsys_debug ("%s - %s, %f", name, i.first.c_str(), i.second.value);
             lua_pushstring(L, i.first.c_str());
@@ -184,7 +191,7 @@ void bios_composite_metrics_server (zsock_t *pipe, void* args) {
         lua_setglobal(L, "mt");
 
         // Do the real processing
-        auto error = luaL_loadbuffer(L, lua_code.c_str(), lua_code.length(), "line") ||
+        error = luaL_loadbuffer(L, lua_code.c_str(), lua_code.length(), "line") ||
             lua_pcall(L, 0, 3, 0);
         if(error) {
             zsys_error("%s", lua_tostring(L, -1));
