@@ -550,6 +550,7 @@ data_load (const char *filename)
         // if we are here, then unexpected config subtree found
         log_info ("key '%s' is not supported", sub_key);
     }
+    zconfig_destroy (&root);
     return self;
 }
 
