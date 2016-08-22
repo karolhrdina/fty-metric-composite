@@ -339,6 +339,7 @@ s_regenerate (c_metric_conf_t *cfg, std::set <std::string> &metrics_unavailable)
     metrics_unavailable = data_get_produced_metrics (data);
     // 1. Delete all files in output dir and stop/disable services
     int rv = s_remove_and_stop (cfg->configuration_dir);
+    log_info ("Old configuration was removed");
     if (rv != 0) {
         log_error (
                 "Error removing old config files from directory '%s'. New config "
@@ -353,6 +354,7 @@ s_regenerate (c_metric_conf_t *cfg, std::set <std::string> &metrics_unavailable)
         return;
     }
     data_reassign_sensors (data);
+    log_info ("New configuration was deduced");
     const char *asset = (const char *) zlistx_first (assets);
     std::set <std::string> metricsAvailable;
     while (asset) {
@@ -386,6 +388,7 @@ s_regenerate (c_metric_conf_t *cfg, std::set <std::string> &metrics_unavailable)
     }
     data_set_produced_metrics (data, metricsAvailable);
     zlistx_destroy (&assets);
+    log_info ("Sensors were reconfigured");
 }
 
 

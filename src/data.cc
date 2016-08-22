@@ -279,6 +279,7 @@ data_asset_store (data_t *self, bios_proto_t **message_p)
     bios_proto_t *message = *message_p;
 
     const char *operation = bios_proto_operation (message);
+    log_debug ("Process message: op='%s', asset_name='%s'", operation, bios_proto_name (message));
     const char *type = bios_proto_aux_string (message, "type", "");
     const char *subtype = bios_proto_aux_string (message, "subtype", "");
 
