@@ -203,8 +203,8 @@ data_get_assigned_sensors (
     zlistx_t *sensors = (zlistx_t *) zhashx_lookup (self->last_configuration, asset_name);
     if (!sensors) {
         log_info (
-                "Asset '%s' has no sensors assigned -> no T&H would be computed",
-                asset_name);
+                "Asset '%s' has no sensors assigned -> no T&H would be computed (function='%s')",
+                asset_name, ( sensor_function == NULL ) ? "(null)": sensor_function);
         return NULL;
     }
     zlistx_t *return_sensor_list = zlistx_new ();
