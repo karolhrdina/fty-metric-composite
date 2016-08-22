@@ -36,7 +36,10 @@ COMPOSITE_METRICS_EXPORT data_t *
     data_new (void);
 
 //  Store asset, takes ownership of the message
-COMPOSITE_METRICS_EXPORT void
+//  Return:
+//      true - if metric was stores
+//      false - if metric was ignored
+COMPOSITE_METRICS_EXPORT bool
     data_asset_store (data_t *self, bios_proto_t **message_p);
 
 //  According known information about assets, decide, where sensors logically belong to
