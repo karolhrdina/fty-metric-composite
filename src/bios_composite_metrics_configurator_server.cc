@@ -427,6 +427,7 @@ bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
                 if (data_is_reconfig_needed (cfg->asset_data)) {
                     std::set <std::string> metrics_unavailable;
                     s_regenerate (cfg, metrics_unavailable);
+                    data_save (cfg->asset_data, cfg->statefile_name);
                     for ( const auto &one_metric : metrics_unavailable ) {
                         proto_metric_unavailable_send (cfg->client, one_metric.c_str());
                     }
@@ -453,6 +454,7 @@ bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
              if (data_is_reconfig_needed (cfg->asset_data)) {
                 std::set <std::string> metrics_unavailable;
                 s_regenerate (cfg, metrics_unavailable);
+                data_save (cfg->asset_data, cfg->statefile_name);
                 for ( const auto &one_metric : metrics_unavailable ) {
                     proto_metric_unavailable_send (cfg->client, one_metric.c_str());
                 }
@@ -481,6 +483,7 @@ bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
                 continue;
             }
             data_asset_store (cfg->asset_data, &proto);
+            data_save (cfg->asset_data, cfg->statefile_name);
             assert (proto == NULL);
         }
         else

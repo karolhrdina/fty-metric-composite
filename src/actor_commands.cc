@@ -136,6 +136,27 @@ actor_commands (
         zstr_free (&state_file);
     }
     else
+    if (streq (cmd, "LOAD")) {
+        if ( streq(cfg->statefile_name, "")) {
+            log_error (
+                    "State file: '' not loaded (name of statefile is not specified yet).");
+            zstr_free (&cmd);
+            zmsg_destroy (message_p);
+            return 0;
+        }
+        data_t *new_data = data_load (cfg->statefile_name);
+        if ( new_data == NULL ) {
+            log_error (
+                    "State file: '%s' not loaded (error during load).", cfg->statefile_name);
+            zstr_free (&cmd);
+            zmsg_destroy (message_p);
+            return 0;
+        }
+        data_destroy (&cfg->asset_data);
+        cfg->asset_data = new_data;
+        log_info ("State file: '%s' loaded successfully", cfg->statefile_name);
+    }
+    else
     if (streq (cmd, "CFG_DIRECTORY")) {
         char *cfgdir = zmsg_popstr (message);
         if (!cfgdir) {

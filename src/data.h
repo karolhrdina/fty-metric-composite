@@ -88,8 +88,8 @@ COMPOSITE_METRICS_EXPORT int
 
 //  Load nut from disk
 //  0 - success, -1 - error
-COMPOSITE_METRICS_EXPORT int
-    data_load (data_t *self);
+COMPOSITE_METRICS_EXPORT data_t *
+    data_load (const char *filename);
 
 //  Destroy the data
 COMPOSITE_METRICS_EXPORT void
