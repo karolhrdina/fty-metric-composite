@@ -482,8 +482,10 @@ bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
                         mlm_client_sender (cfg->client), mlm_client_subject (cfg->client));
                 continue;
             }
-            data_asset_store (cfg->asset_data, &proto);
-            data_save (cfg->asset_data, cfg->statefile_name);
+            bool is_stored = data_asset_store (cfg->asset_data, &proto);
+            if ( is_stored ) {
+                data_save (cfg->asset_data, cfg->statefile_name);
+            }
             assert (proto == NULL);
         }
         else

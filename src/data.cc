@@ -269,13 +269,13 @@ s_is_sensor_correct (bios_proto_t *sensor)
 //  --------------------------------------------------------------------------
 //  Store asset, takes ownership of the message
 
-void
+bool
 data_asset_store (data_t *self, bios_proto_t **message_p)
 {
     assert (self);
     assert (message_p);
     if (!*message_p)
-        return;
+        return false;
     bios_proto_t *message = *message_p;
 
     const char *operation = bios_proto_operation (message);
@@ -289,7 +289,7 @@ data_asset_store (data_t *self, bios_proto_t **message_p)
         // We are not interested in the 'device's that are not 'sensor's!
         bios_proto_destroy (message_p);
         *message_p = NULL;
-        return;
+        return false;
     }
 
     if (streq (operation, BIOS_PROTO_ASSET_OP_CREATE) ) {
@@ -298,7 +298,7 @@ data_asset_store (data_t *self, bios_proto_t **message_p)
             self->is_reconfig_needed = true;
             zhashx_update (self->all_assets, bios_proto_name (message), (void *) message);
             *message_p = NULL;
-            return;
+            return true;
         }
         // So, we have "device" and it is "sensor"!
         // lets check, that sensor has all necessary information
@@ -307,12 +307,12 @@ data_asset_store (data_t *self, bios_proto_t **message_p)
             self->is_reconfig_needed = true;
             zhashx_update (self->all_assets, bios_proto_name (message), (void *) message);
             *message_p = NULL;
-            return;
+            return true;
         } else {
             // no log message is here, as "s_is_sensor_correct" already wrote all detailed information
             bios_proto_destroy (message_p);
             *message_p = NULL;
-            return;
+            return false;
         }
     } else
     if ( streq (operation, BIOS_PROTO_ASSET_OP_UPDATE) ) {
@@ -342,7 +342,7 @@ data_asset_store (data_t *self, bios_proto_t **message_p)
             }
             zhashx_update (self->all_assets, bios_proto_name (message), (void *) message);
             *message_p = NULL;
-            return;
+            return true;
         }
         // So, we have "device" and it is "sensor"!
         // lets check, that sensor has all necessary information
@@ -351,12 +351,12 @@ data_asset_store (data_t *self, bios_proto_t **message_p)
             self->is_reconfig_needed = true;
             zhashx_update (self->all_assets, bios_proto_name (message), (void *) message);
             *message_p = NULL;
-            return;
+            return true;
         } else {
             // no log message is here, as "s_is_sensor_correct" already wrote all detailed information
             bios_proto_destroy (message_p);
             *message_p = NULL;
-            return;
+            return false;
         }
     } else
     if (streq (operation, BIOS_PROTO_ASSET_OP_DELETE) ||
@@ -368,12 +368,13 @@ data_asset_store (data_t *self, bios_proto_t **message_p)
         zhashx_delete (self->all_assets, bios_proto_name (message));
         bios_proto_destroy (message_p);
         *message_p = NULL;
-        return;
+        return true;
     }
     else {
         log_debug ("Msg: op='%s', asset_name='%s' is not interesting", operation, bios_proto_name (message));
         bios_proto_destroy (message_p);
         *message_p = NULL;
+        return false;
     }
 }
 
