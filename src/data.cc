@@ -282,8 +282,8 @@ data_asset_store (data_t *self, bios_proto_t **message_p)
     const char *type = bios_proto_aux_string (message, "type", "");
     const char *subtype = bios_proto_aux_string (message, "subtype", "");
 
-    if (  (streq (type, "device")) &&
-         !(streq (subtype, "sensor") )
+    if (  (streq (type, "device") && !(streq (subtype, "sensor") ) ) ||
+          (streq (type, "group"))
        )
     {
         // We are not interested in the 'device's that are not 'sensor's!
