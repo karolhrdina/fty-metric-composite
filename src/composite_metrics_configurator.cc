@@ -157,6 +157,7 @@ int main (int argc, char *argv [])
     }
     zstr_sendx (server,  "STATE_FILE", state_file, NULL);
     zstr_sendx (server,  "CFG_DIRECTORY", output_dir, NULL);
+    zstr_sendx (server,  "LOAD", NULL);
     zstr_sendx (server,  "CONNECT", ENDPOINT, NULL);
     zstr_sendx (server,  "CONSUMER", BIOS_PROTO_STREAM_ASSETS, ".*", NULL);
     zstr_sendx (server,  "PRODUCER", "_METRICS_UNAVAILABLE", NULL);
