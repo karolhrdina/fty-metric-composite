@@ -288,6 +288,7 @@ data_asset_store (data_t *self, bios_proto_t **message_p)
        )
     {
         // We are not interested in the 'device's that are not 'sensor's!
+        // and we are not interested in 'groups'
         bios_proto_destroy (message_p);
         *message_p = NULL;
         return false;
@@ -329,12 +330,12 @@ data_asset_store (data_t *self, bios_proto_t **message_p)
                 // if asset is known we need to check, if physical topology had changed
                 // Actually, the chain is: dc-room-row-rack-device-device -> max 5 level parents can be
                 // But here, we start from rack -> only 3 level is available at maximum
-                if ( streq (bios_proto_aux_string (asset, "parent_name.1", ""),
-                            bios_proto_aux_string (message, "parent_name.1", "")) ||
-                     streq (bios_proto_aux_string (asset, "parent_name.2", ""),
-                            bios_proto_aux_string (message, "parent_name.2", "")) ||
-                     streq (bios_proto_aux_string (asset, "parent_name.3", ""),
-                            bios_proto_aux_string (message, "parent_name.3", ""))
+                if ( !streq (bios_proto_aux_string (asset,   "parent_name.1", ""),
+                             bios_proto_aux_string (message, "parent_name.1", "")) ||
+                     !streq (bios_proto_aux_string (asset,   "parent_name.2", ""),
+                             bios_proto_aux_string (message, "parent_name.2", "")) ||
+                     !streq (bios_proto_aux_string (asset,   "parent_name.3", ""),
+                             bios_proto_aux_string (message, "parent_name.3", ""))
                    )
                 {
                     self->is_reconfig_needed = true;
