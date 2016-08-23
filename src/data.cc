@@ -447,7 +447,16 @@ data_save (data_t *self, const char * filename)
 {
     assert (self);
     zconfig_t *root = zconfig_new ("nobody_cares", NULL);
+    if (!root) {
+        log_error ("root=zconfig_new() failed");
+        return -1;
+    }
     zconfig_t *assets = zconfig_new ("assets", root);
+    if (!assets) {
+        log_error ("assets=zconfig_new() failed");
+        zconfig_destroy (&root);
+        return -1;
+    }
     int i = 1;
     for (bios_proto_t *bmsg = (bios_proto_t*) zhashx_first (self->all_assets);
                        bmsg != NULL;
