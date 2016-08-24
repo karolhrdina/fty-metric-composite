@@ -194,8 +194,7 @@ void bios_composite_metrics_server (zsock_t *pipe, void* args) {
         for(auto i : cache) {
             if(tme > i.second.valid_till) {
                 // can't count average, missing measurements from sensor
-                zsys_error ("%s is unknown/expired", i.first.c_str ());
-                goto next_iter;
+                continue;
             }
             if (verbose)
                 zsys_debug ("%s - %s, %f", name, i.first.c_str(), i.second.value);
@@ -296,12 +295,13 @@ bios_composite_metrics_server_test (bool verbose)
 
     zmsg_t *msg_out;
     bios_proto_t *m;
-    
-    // musn't receive anything until we have all values
-    zpoller_t *consumerp = zpoller_new (mlm_client_msgpipe(consumer), NULL);
-    void *who = zpoller_wait (consumerp, 1000);
-    assert (who == NULL);
-    zpoller_destroy (&consumerp);
+    msg_out = mlm_client_recv (consumer);
+    m = bios_proto_decode (&msg_out);
+    bios_proto_print (m);
+    assert ( streq (mlm_client_sender (consumer), "composite-metrics-sd") );
+    assert (m);
+    assert (streq (bios_proto_value (m), "40.00"));    // <<< 40 / 1
+    bios_proto_destroy (&m);
 
     // send another value
     msg_in = bios_proto_encode_metric(
