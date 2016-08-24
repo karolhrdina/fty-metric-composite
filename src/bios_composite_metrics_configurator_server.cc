@@ -32,31 +32,6 @@
 
 #include "composite_metrics_classes.h"
 
-// Wrapper for bios_proto_ext_string
-static float
-s_bios_proto_ext_float (bios_proto_t *self, const char *key, float default_value)
-{
-    assert (self);
-    assert (key);
-    const char *str = bios_proto_ext_string (self, key, NULL);
-    if (!str)
-        return default_value;
-    float f = 0.0;
-    try {
-        size_t pos = 0;
-        f = std::stof (str, &pos);
-        if (pos != strlen (str)) {
-            log_error ("string '%s' does not represent a number (floating point)", str);
-            return default_value;
-        }
-    }
-    catch (const std::exception& e) {
-        log_error ("string '%s' does not represent a number (floating point)", str);
-        return default_value;
-    }
-    return f;
-}
-
 // Copied from agent-nut
 // -1 - error, subprocess code - success
 static int
@@ -183,8 +158,8 @@ s_generate_and_start (const char *path_to_dir, const char *sensor_function, cons
 
     std::string temp_in = "[ ", hum_in = "[ ";
 
-    float temp_offset_total = 0.0, hum_offset_total = 0.0;
-    int32_t temp_offset_count = 0, hum_offset_count = 0;
+    std::string temp_offsets = "    offsets = {};\n";
+    std::string hum_offsets = temp_offsets;
     bool first = true;
 
     bios_proto_t *item = (bios_proto_t *) zlistx_first (sensors);
@@ -196,22 +171,22 @@ s_generate_and_start (const char *path_to_dir, const char *sensor_function, cons
             temp_in += ", ";
             hum_in += ", ";
         }
-        temp_in += "\"temperature.";
-        temp_in += bios_proto_ext_string (item, "port", "(unknown)");
-        temp_in += "@";
-        temp_in += bios_proto_aux_string (item, "parent_name.1", "(unknown)");
-        temp_in += "\"";
+        std::string temp_topic = std::string("temperature.") +
+            bios_proto_ext_string (item, "port", "(unknown)") +
+            "@" +
+            bios_proto_aux_string (item, "parent_name.1", "(unknown)");
+        
+        temp_in += "\"" + temp_topic + "\"";
+        
+        
+        std::string hum_topic = std::string("humidity.") +
+            bios_proto_ext_string (item, "port", "(unknown)") +
+            "@" +
+            bios_proto_aux_string (item, "parent_name.1", "(unknown)");
+        hum_in += "\"" + hum_topic + "\"";
 
-        hum_in += "\"humidity.";
-        hum_in += bios_proto_ext_string (item, "port", "(unknown)");
-        hum_in += "@";
-        hum_in += bios_proto_aux_string (item, "parent_name.1", "(unknown)");
-        hum_in += "\"";
-
-        temp_offset_total += s_bios_proto_ext_float (item, "calibration_offset_t", 0.0);
-        temp_offset_count++;
-        hum_offset_total += s_bios_proto_ext_float (item, "calibration_offset_h", 0.0);
-        hum_offset_count++;
+        temp_offsets += "    offsets['" + temp_topic + "'] = " + bios_proto_ext_string (item, "calibration_offset_t", "0.0") + ";\n";
+        hum_offsets += "    offsets['" + temp_topic + "'] = " + bios_proto_ext_string (item, "calibration_offset_h", "0.0") + ";\n";
 
         item = (bios_proto_t *) zlistx_next (sensors);
     }
@@ -224,23 +199,22 @@ s_generate_and_start (const char *path_to_dir, const char *sensor_function, cons
     static const char *json_tmpl =
                            "{\n"
                            "\"in\" : ##IN##,\n"
-                           "\"evaluation\": \"sum = 0;\n"
-                           "                  num = 0;\n"
-                           "                  for key,value in pairs(mt) do\n"
-                           "                      sum = sum + value;\n"
-                           "                      num = num + 1;\n"
-                           "                  end;\n"
-                           "                  tmp = sum / num + ##CLB##;\n"
-                           "                  return '##RESULT_TOPIC##', tmp, '##UNITS##', 0;\"\n"
+                           "\"evaluation\": \"\n"
+                           "##OFFSETS##\n"
+                           "    sum = 0;\n"
+                           "    num = 0;\n"
+                           "    for key,value in pairs(mt) do\n"
+                           "        sum = sum + value + offsets[key];\n"
+                           "        num = num + 1;\n"
+                           "    end;\n"
+                           "    if num == 0 then error('all sensors lost'); end;\n"
+                           "    tmp = sum / num;\n"
+                           "    return '##RESULT_TOPIC##', tmp, '##UNITS##', 0;\"\n"
                            "}\n";
     std::string contents = json_tmpl;
 
-    double clb = 0;
-    if (temp_offset_count != 0)
-        clb = temp_offset_total / temp_offset_count;
-
     contents.replace (contents.find ("##IN##"), strlen ("##IN##"), temp_in);
-    contents.replace (contents.find ("##CLB##"), strlen ("##CLB##"), std::to_string (clb));
+    contents.replace (contents.find ("##OFFSETS##"), strlen ("##OFFSETS##"), temp_offsets);
     std::string qnty = "temperature";
     if (sensor_function) {
         qnty += "-";
@@ -281,13 +255,9 @@ s_generate_and_start (const char *path_to_dir, const char *sensor_function, cons
                 fullpath.c_str (), filename.c_str ());
     }
 
-    clb = 0.0;
-    if (hum_offset_count != 0)
-        clb = hum_offset_total / hum_offset_count;
-
     contents = json_tmpl;
     contents.replace (contents.find ("##IN##"), strlen ("##IN##"), hum_in);
-    contents.replace (contents.find ("##CLB##"), strlen ("##CLB##"), std::to_string (clb));
+    contents.replace (contents.find ("##OFFSETS##"), strlen ("##OFFSETS##"), hum_offsets);
     qnty = "humidity";
     if (sensor_function) {
         qnty += "-";
