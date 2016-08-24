@@ -1,11 +1,17 @@
 {
   "in": [ "temperature@TH1", "temperature@TH2" ],
-  "evaluation": " sum = 0;
-                  num = 0;
-                  for key,value in pairs(mt) do
-                       sum = sum + value;
-                       num = num + 1;
-                  end;
-                  tmp = sum / num;
-                  return 'temperature@world', tmp, 'C', 0;"
+  "evaluation": "
+     offsets = {};
+     offsets['temperature@TH1'] = 0;
+     offsets['temperature@TH2'] = 0;
+
+     sum = 0;
+     num = 0;
+     for key,value in pairs(mt) do
+         sum = sum + value + offsets[key];
+         num = num + 1;
+     end;
+     if num == 0 then error('all sensors lost'); end;
+     tmp = sum / num;
+     return 'average.temperature@world', tmp, 'C', 0;"
 }
