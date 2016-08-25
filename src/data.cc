@@ -786,23 +786,23 @@ test4 (bool verbose)
     // three assets + reassign + metrics
     self = data_new ();
     
-    asset = test_asset_new ("DC_TEST_4", BIOS_PROTO_ASSET_OP_CREATE);
+    asset = test_asset_new ("TEST4_DC", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_ext_insert (asset, "status", "%s", "active");
     bios_proto_ext_insert (asset, "type", "%s", "datacenter");
     bios_proto_ext_insert (asset, "subtype", "%s", "unknown");
     bios_proto_ext_insert (asset, "max_power" , "%s",  "2");
     data_asset_store (self, &asset);
 
-    asset = test_asset_new ("TEST1_RACK01", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "DC_TEST_4");
+    asset = test_asset_new ("TEST4_RACK", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST4_DC");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "rack");
     bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
     bios_proto_ext_insert (asset, "max_power" , "%s",  "2");
     data_asset_store (self, &asset);
 
-    asset = test_asset_new ("Sensor02", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01");
+    asset = test_asset_new ("TEST4_SENSOR", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST4_UPS");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -810,7 +810,7 @@ test4 (bool verbose)
     bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "2");
     bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "20");
     bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_RACK01");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST4_RACK");
     data_asset_store (self, &asset);
     
     data_reassign_sensors (self, true);
@@ -826,7 +826,6 @@ test4 (bool verbose)
     data_save (self_load, "state_file1");
     data_t *self_load_load = data_load ("state_file1");
     data_compare (self, self_load_load, verbose);
-
 
     data_destroy (&self);
     data_destroy (&self_load);
