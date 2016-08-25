@@ -1224,6 +1224,7 @@ test7 (bool verbose)
     sensors = data_get_assigned_sensors (self, "TEST7_DC", NULL);
     assert ( sensors != NULL ); // dc sensor was assigned!
     assert ( zlistx_size (sensors) == 1 );
+    zlistx_destroy (&sensors);
     sensors = data_get_assigned_sensors (self, "TEST7_RACK", NULL);
     assert ( sensors != NULL );
     assert ( zlistx_size (sensors) == 1 );
