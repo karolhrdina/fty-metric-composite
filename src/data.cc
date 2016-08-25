@@ -1073,36 +1073,6 @@ data_test (bool verbose)
     assert (data_is_reconfig_needed (self) == false);
     zlistx_add_end (assets_expected, (void *) "TEST1_ROW01");
 
-    if ( verbose ) {
-        log_debug ("\tCREATE 'Sensor01' as sensor");
-        log_debug ("\t\tSituation: sensor asset message arrives before asset specified in logical_asset");
-    }
-    asset = test_asset_new ("Sensor01", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent", "%s", "11");
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
-    bios_proto_aux_insert (asset, "status", "%s", "active");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH1");
-    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
-    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "10");
-    bios_proto_ext_insert (asset, "vertical_position", "%s", "bottom");
-    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_RACK01");
-    data_asset_store (self, &asset);
-    assert (data_is_reconfig_needed (self) == true);
-    data_reassign_sensors (self, true);
-    assert (data_is_reconfig_needed (self) == true);
-    zlistx_add_end (assets_expected, (void *) "Sensor01");
-
-    {
-        zlistx_t *received = data_asset_names (self);
-        assert (received);
-
-        int rv = test_zlistx_compare (assets_expected, &received, verbose);
-        assert (rv == 0);
-    }
-
     if ( verbose )
         log_debug ("\tCREATE 'TEST1_RACK01' as rack");
     asset = test_asset_new ("TEST1_RACK01", BIOS_PROTO_ASSET_OP_CREATE);
@@ -1118,6 +1088,36 @@ data_test (bool verbose)
     data_reassign_sensors (self, true);
     assert (data_is_reconfig_needed (self) == false);
     zlistx_add_end (assets_expected, (void *) "TEST1_RACK01");
+
+    if ( verbose ) {
+        log_debug ("\tCREATE 'Sensor01' as sensor");
+    }
+
+    asset = test_asset_new ("Sensor01", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_aux_insert (asset, "parent", "%s", "11");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH1");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "10");
+    bios_proto_ext_insert (asset, "vertical_position", "%s", "bottom");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_RACK01");
+    data_asset_store (self, &asset);
+    assert (data_is_reconfig_needed (self) == true);
+    data_reassign_sensors (self, true);
+    assert (data_is_reconfig_needed (self) == false);
+    zlistx_add_end (assets_expected, (void *) "Sensor01");
+
+    {
+        zlistx_t *received = data_asset_names (self);
+        assert (received);
+
+        int rv = test_zlistx_compare (assets_expected, &received, verbose);
+        assert (rv == 0);
+    }
 
     if ( verbose )
         log_debug ("\tCREATE 'TEST1_RACK02' as rack");
