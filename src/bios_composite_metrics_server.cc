@@ -47,7 +47,8 @@ struct value {
   time_t valid_till;
 };
 
-std::string escape_regex (const std::string notregex)
+static std::string
+escape_regex (const std::string &notregex)
 {
     static const char *to_be_escaped = ".^$|()[]{}*+?\\";
     std::string result;
