@@ -207,8 +207,6 @@ actor_commands_test (bool verbose)
         log_set_level (LOG_DEBUG);
     printf (" * actor_commands: ");
     //  @selftest
-    char *statefile = strdup ("file");
-    char *confdir = strdup("./test_dir");
     static const char* endpoint = "ipc://bios-actor-commands-test";
     // malamute broker
     zactor_t *malamute = zactor_new (mlm_server, (void*) "Malamute");
@@ -227,7 +225,7 @@ actor_commands_test (bool verbose)
     int rv = actor_commands (cfg, &message);
     assert (rv == 0);
     assert (message == NULL);
-    
+
     assert (streq (c_metric_conf_statefile (cfg), ""));
     assert (streq (c_metric_conf_cfgdir (cfg), ""));
     // --------------------------------------------------------------
@@ -446,8 +444,6 @@ actor_commands_test (bool verbose)
     zmsg_destroy (&message);
     c_metric_conf_destroy (&cfg);
     zactor_destroy (&malamute);
-    free (statefile);
-    free (confdir);
     //  @end
     printf ("OK\n");
 }
