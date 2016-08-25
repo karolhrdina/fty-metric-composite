@@ -49,6 +49,17 @@ void usage () {
           );
 }
 
+static int
+s_timer_event (zloop_t *loop, int timer_id, void *output)
+{
+    char *env = getenv ("BIOS_DO_SENSOR_PROPAGATION");
+    if ( env == NULL )
+        zstr_sendx (output, "IS_PROPAGATION_NEEDED", "true", NULL);
+    else
+        zstr_sendx (output, "IS_PROPAGATION_NEEDED", env, NULL);
+    return 0;
+}
+
 int get_log_level (const char *level) {
     if (streq (level, str(LOG_DEBUG))) {
         return LOG_DEBUG;
@@ -162,17 +173,13 @@ int main (int argc, char *argv [])
     zstr_sendx (server,  "CONSUMER", BIOS_PROTO_STREAM_ASSETS, ".*", NULL);
     zstr_sendx (server,  "PRODUCER", "_METRICS_UNAVAILABLE", NULL);
 
-    while (true) {
-        char *message = zstr_recv (server);
-        if (message) {
-            puts (message);
-            zstr_free (&message);
-        }
-        else {
-            puts ("interrupted");
-            break;
-        }
-    }
+    zloop_t *check_configuration_trigger = zloop_new();
+    // one in a minute
+    zloop_timer (check_configuration_trigger, 60*1000, 0, s_timer_event, server);
+    zloop_start (check_configuration_trigger);
+    
+    zloop_destroy (&check_configuration_trigger);
+
     zstr_free (&state_file);
     zstr_free (&output_dir);
     zactor_destroy (&server);
