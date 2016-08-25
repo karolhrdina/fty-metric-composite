@@ -36,6 +36,7 @@ struct _c_metric_conf_t {
     mlm_client_t *client;   // malamute client
     char *statefile_name;   // state file name
     char *configuration_dir;// directory, where all configuration file would be stored
+    bool is_propagation_needed;// specify, if sensors should be propagated in physical topology or not
 };
 
 typedef struct _c_metric_conf_t c_metric_conf_t;
@@ -48,6 +49,12 @@ COMPOSITE_METRICS_EXPORT c_metric_conf_t *
 //  Get state file fullpath or empty string if not set
 COMPOSITE_METRICS_EXPORT const char *
     c_metric_conf_statefile (c_metric_conf_t *self);
+
+//  Set up the physical propagation of sensors
+//   true -> do propagate sensors in physical topology
+//   false -> do NOT propagate sensors in physical topology
+COMPOSITE_METRICS_EXPORT void
+    c_metric_conf_set_proparation (c_metric_conf_t *self, bool is_propagation_needed);
 
 //  Set state file fullpath
 //  0 - success, -1 - error

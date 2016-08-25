@@ -122,6 +122,17 @@ c_metric_conf_cfgdir (c_metric_conf_t *self)
 }
 
 //  --------------------------------------------------------------------------
+//  Set up the physical propagation of sensors
+//   true -> do propagate sensors in physical topology
+//   false -> do NOT propagate sensors in physical topology
+void
+c_metric_conf_set_proparation (c_metric_conf_t *self, bool is_propagation_needed)
+{
+    assert (self);
+    self->is_propagation_needed = is_propagation_needed;
+}
+
+//  --------------------------------------------------------------------------
 //  Set configuration directory path
 //  Directory MUST exist! If directory doesn't exist -> error
 //  0 - success, -1 - error

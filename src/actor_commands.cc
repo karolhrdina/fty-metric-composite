@@ -134,6 +134,23 @@ actor_commands (
         }
         c_metric_conf_set_statefile (cfg, state_file);
         zstr_free (&state_file);
+    } else
+    if (streq (cmd, "IS_PROPAGATION_NEEDED")) {
+        char *answer = zmsg_popstr (message);
+        if (!answer) {
+            log_error (
+                    "Expected multipart string format: IS_PROPAGATION_NEEDED/answer."
+                    "Received IS_PROPAGATION_NEEDED/nullptr");
+            zstr_free (&cmd);
+            zmsg_destroy (message_p);
+            return 0;
+        }
+        if ( streq (answer, "true") ) {
+            c_metric_conf_set_proparation (cfg, true);
+        } else {
+            c_metric_conf_set_proparation (cfg, false);
+        }
+        zstr_free (&answer);
     }
     else
     if (streq (cmd, "LOAD")) {
