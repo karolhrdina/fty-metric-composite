@@ -116,9 +116,13 @@ data_reassign_sensors (data_t *self, bool is_propagation_needed)
         }
         // if it is sensor, do CONFIGURATION
 
-        // first of all, take its logical asset (it is supposed to be NOT empty!!!)
-        // because if it would have been empty it would not be placed in this map
-        const char *logical_asset_name = bios_proto_ext_string (one_sensor, "logical_asset", "");
+        // first of all, take its logical asset
+        const char *logical_asset_name = bios_proto_ext_string (one_sensor, "logical_asset", NULL);
+        if ( logical_asset_name == NULL ) {
+            log_warning ("Sensor '%s' has no logical asset assigned -> skip it", one_sensor_name);
+            one_sensor_name = (char *) zlistx_next (asset_names);
+            continue;
+        }
 
         // find detailed information about logical asset
         bios_proto_t *logical_asset = (bios_proto_t *) zhashx_lookup (self->all_assets, logical_asset_name);
