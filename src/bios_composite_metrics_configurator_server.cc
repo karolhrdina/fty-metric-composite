@@ -186,7 +186,7 @@ s_generate_and_start (const char *path_to_dir, const char *sensor_function, cons
         hum_in += "\"" + hum_topic + "\"";
 
         temp_offsets += "    offsets['" + temp_topic + "'] = " + bios_proto_ext_string (item, "calibration_offset_t", "0.0") + ";\n";
-        hum_offsets += "    offsets['" + temp_topic + "'] = " + bios_proto_ext_string (item, "calibration_offset_h", "0.0") + ";\n";
+        hum_offsets += "    offsets['" + hum_topic + "'] = " + bios_proto_ext_string (item, "calibration_offset_h", "0.0") + ";\n";
 
         item = (bios_proto_t *) zlistx_next (sensors);
     }
