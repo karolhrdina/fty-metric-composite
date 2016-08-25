@@ -350,20 +350,10 @@ data_asset_store (data_t *self, bios_proto_t **message_p)
             *message_p = NULL;
             return true;
         }
-        // So, we have "device" and it is "sensor"!
-        // lets check, that sensor has all necessary information
-        if ( s_is_sensor_correct (message) ) {
-            // So, it is ok -> store it
-            self->is_reconfig_needed = true;
-            zhashx_update (self->all_assets, bios_proto_name (message), (void *) message);
-            *message_p = NULL;
-            return true;
-        } else {
-            // no log message is here, as "s_is_sensor_correct" already wrote all detailed information
-            bios_proto_destroy (message_p);
-            *message_p = NULL;
-            return false;
-        }
+        self->is_reconfig_needed = true;
+        zhashx_update (self->all_assets, bios_proto_name (message), (void *) message);
+        *message_p = NULL;
+        return true;
     } else
     if (streq (operation, BIOS_PROTO_ASSET_OP_DELETE) ||
         streq (operation, BIOS_PROTO_ASSET_OP_RETIRE))
@@ -856,6 +846,9 @@ test5 (bool verbose)
     bios_proto_aux_insert (asset, "type", "%s", "datacenter");
     bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
     data_asset_store (self, &asset);
+    assert ( data_is_reconfig_needed (self) == true );
+    data_reassign_sensors (self, true); // drop the flag "is reconfiguration needed"
+    assert ( data_is_reconfig_needed (self) == false );
     zlistx_add_end (assets_expected, (void *) "TEST5_DC");
 
     if ( verbose )
@@ -866,6 +859,9 @@ test5 (bool verbose)
     bios_proto_aux_insert (asset, "type", "%s", "room");
     bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
     data_asset_store (self, &asset);
+    assert ( data_is_reconfig_needed (self) == true );
+    data_reassign_sensors (self, true); // drop the flag "is reconfiguration needed"
+    assert ( data_is_reconfig_needed (self) == false );
     zlistx_add_end (assets_expected, (void *) "TEST5_ROOM");
 
     if ( verbose )
@@ -877,6 +873,9 @@ test5 (bool verbose)
     bios_proto_aux_insert (asset, "type", "%s", "row");
     bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
     data_asset_store (self, &asset);
+    assert ( data_is_reconfig_needed (self) == true );
+    data_reassign_sensors (self, true); // drop the flag "is reconfiguration needed"
+    assert ( data_is_reconfig_needed (self) == false );
     zlistx_add_end (assets_expected, (void *) "TEST5_ROW");
 
     if ( verbose ) {
@@ -963,15 +962,19 @@ test5 (bool verbose)
     data_reassign_sensors (self, true);
     assert ( data_is_reconfig_needed (self) == false );
     sensors = data_get_assigned_sensors (self, "TEST5_DC", NULL);
+    assert ( sensors != NULL );
     assert ( zlistx_size (sensors) == 1 );
     zlistx_destroy (&sensors);
     sensors = data_get_assigned_sensors (self, "TEST5_ROOM", NULL);
+    assert ( sensors != NULL );
     assert ( zlistx_size (sensors) == 1 );
     zlistx_destroy (&sensors);
     sensors = data_get_assigned_sensors (self, "TEST5_ROW", NULL);
+    assert ( sensors != NULL );
     assert ( zlistx_size (sensors) == 1 );
     zlistx_destroy (&sensors);
     sensors = data_get_assigned_sensors (self, "TEST5_RACK", NULL);
+    assert ( sensors != NULL );
     assert ( zlistx_size (sensors) == 1 );
     zlistx_destroy (&sensors);
 
@@ -985,6 +988,7 @@ test5 (bool verbose)
     sensors = data_get_assigned_sensors (self, "TEST5_ROW", NULL);
     assert ( sensors == NULL );
     sensors = data_get_assigned_sensors (self, "TEST5_RACK", NULL);
+    assert ( sensors != NULL );
     assert ( zlistx_size (sensors) == 1 );
     zlistx_destroy (&sensors);
     data_destroy (&self);
@@ -996,14 +1000,13 @@ test6 (bool verbose)
     if ( verbose )
         log_debug ("Test6: Sensor important info is missing for CREATE operation");
 
-    if ( verbose ) {
-        log_debug ("\tCREATE 'Sensor04' as sensor");
-        log_debug ("\t\tlogical_asset is missing");
-    }
-
     data_t *self = data_new();
     bios_proto_t *asset = NULL;
 
+    if ( verbose ) {
+        log_debug ("\tCREATE 'TEST6_SENSOR01' as sensor");
+        log_debug ("\t\tlogical_asset is missing");
+    }
     asset = test_asset_new ("TEST6_SENSOR01", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST6_UPS");
     bios_proto_aux_insert (asset, "type", "%s", "device");
@@ -1019,7 +1022,7 @@ test6 (bool verbose)
     assert (data_is_reconfig_needed (self) == false);
 
     if ( verbose ) {
-        log_debug ("\tCREATE 'Sensor06' as sensor");
+        log_debug ("\tCREATE 'TEST6_SENSOR02' as sensor");
         log_debug ("\t\tparent_name.1 is missing");
     }
     asset = test_asset_new ("TEST6_SENSOR02", BIOS_PROTO_ASSET_OP_CREATE);
@@ -1038,7 +1041,7 @@ test6 (bool verbose)
     assert (data_is_reconfig_needed (self) == false);
 
     if ( verbose ) {
-        log_debug ("\tCREATE 'Sensor07' as sensor");
+        log_debug ("\tCREATE 'TEST6_SENSOR03' as sensor");
         log_debug ("\t\tport is missing");
     }
     asset = test_asset_new ("TEST6_SENSOR03", BIOS_PROTO_ASSET_OP_CREATE);
@@ -1055,6 +1058,176 @@ test6 (bool verbose)
     assert (data_is_reconfig_needed (self) == false);
     data_reassign_sensors (self, true);
     assert (data_is_reconfig_needed (self) == false);
+
+    data_destroy (&self);
+}
+
+
+static void
+test7 (bool verbose)
+{
+    if ( verbose )
+        log_debug ("Test7: Sensor important info is missing for UPDATE operation");
+
+    if ( verbose ) {
+        log_debug ("\tCREATE 'TEST7_SENSOR01' as sensor");
+        log_debug ("\t\tlogical_asset is missing");
+    }
+
+    data_t *self = data_new();
+    bios_proto_t *asset = NULL;
+    zlistx_t *sensors = NULL;
+
+    // SETUP
+    if ( verbose )
+        log_debug ("\tCREATE 'TEST7_DC' as datacenter");
+    asset = test_asset_new ("TEST7_DC", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "datacenter");
+    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    data_asset_store (self, &asset);
+    assert ( data_is_reconfig_needed (self) == true );
+    data_reassign_sensors (self, true); // drop the flag "is reconfiguration needed"
+    assert ( data_is_reconfig_needed (self) == false );
+
+    if ( verbose )
+        log_debug ("\tCREATE 'TEST7_RACK' as rack");
+    asset = test_asset_new ("TEST7_RACK", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST7_DC");
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "rack");
+    bios_proto_ext_insert (asset, "u_size" , "%s",  "42");
+    bios_proto_ext_insert (asset, "description" , "%s",  "Lorem ipsum asd asd asd asd asd asd asd");
+    data_asset_store (self, &asset);
+    assert ( data_is_reconfig_needed (self) == true );
+    data_reassign_sensors (self, true); // drop the flag "is reconfiguration needed"
+    assert ( data_is_reconfig_needed (self) == false );
+
+    asset = test_asset_new ("TEST7_SENSOR01", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST7_UPS");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH1");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "3");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "30");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST7_RACK");
+    data_asset_store (self, &asset);
+    assert ( data_is_reconfig_needed (self) == true );
+    data_reassign_sensors (self, true); // drop the flag "is reconfiguration needed"
+    assert ( data_is_reconfig_needed (self) == false );
+
+    if ( verbose )
+        log_debug ("\tCREATE 'TEST7_SENSOR02' as sensor");
+    asset = test_asset_new ("TEST7_SENSOR02", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST7_UPS");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH2");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "3");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "30");
+    bios_proto_ext_insert (asset, "vertical_position", "%s", "middle");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST7_RACK");
+    data_asset_store (self, &asset);
+    assert ( data_is_reconfig_needed (self) == true );
+    data_reassign_sensors (self, true); // drop the flag "is reconfiguration needed"
+    assert ( data_is_reconfig_needed (self) == false );
+
+    if ( verbose )
+        log_debug ("\tCREATE 'TEST7_SENSOR03' as sensor");
+    asset = test_asset_new ("TEST7_SENSOR03", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST7_UPS");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH3");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "3");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "30");
+    bios_proto_ext_insert (asset, "vertical_position", "%s", "middle");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST7_RACK");
+    data_asset_store (self, &asset);
+    assert ( data_is_reconfig_needed (self) == true );
+    data_reassign_sensors (self, true); // drop the flag "is reconfiguration needed"
+    assert ( data_is_reconfig_needed (self) == false );
+
+    // actual test
+    if ( verbose ) {
+        log_debug ("\tUPDATE 'TEST7_SENSOR01'");
+        log_debug ("\t\tlogical_asset is missing");
+    }
+    asset = test_asset_new ("TEST7_SENSOR01", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST7_UPS");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH3");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "3");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "30");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    // logical_asset missing
+    data_asset_store (self, &asset);
+    assert ( data_is_reconfig_needed (self) == true );
+    data_reassign_sensors (self, true); // drop the flag "is reconfiguration needed"
+    assert ( data_is_reconfig_needed (self) == false );
+
+    if ( verbose ) {
+        log_debug ("\tUPDATE 'TEST7_SENSOR02' as sensor");
+        log_debug ("\t\tparent_name.1 is missing");
+    }
+    asset = test_asset_new ("TEST7_SENSOR02", BIOS_PROTO_ASSET_OP_UPDATE);
+    // parent_name.1 missing
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH3");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "3");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "30");
+    bios_proto_ext_insert (asset, "vertical_position", "%s", "middle");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST7_DC");
+    data_asset_store (self, &asset);
+    assert ( data_is_reconfig_needed (self) == true );
+    data_reassign_sensors (self, true); // drop the flag "is reconfiguration needed"
+    assert ( data_is_reconfig_needed (self) == false );
+
+    if ( verbose ) {
+        log_debug ("\tCREATE 'TEST7_SENSOR03' as sensor");
+        log_debug ("\t\tport is missing");
+    }
+    asset = test_asset_new ("TEST7_SENSOR03", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST7_UPS");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    // port missing
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "3");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "30");
+    bios_proto_ext_insert (asset, "vertical_position", "%s", "middle");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST7_RACK");
+    data_asset_store (self, &asset);
+    assert ( data_is_reconfig_needed (self) == true );
+
+    // test assigned sensors: propagated
+    data_reassign_sensors (self, true);
+    assert ( data_is_reconfig_needed (self) == false );
+    sensors = data_get_assigned_sensors (self, "TEST7_DC", NULL);
+    assert ( sensors != NULL ); // rack sensor was propagated!
+    assert ( zlistx_size (sensors) == 1 );
+    zlistx_destroy (&sensors);
+    sensors = data_get_assigned_sensors (self, "TEST7_RACK", NULL);
+    assert ( sensors != NULL );
+    assert ( zlistx_size (sensors) == 1 );
+    zlistx_destroy (&sensors);
+
+    // test assigned sensors: NOT propagated
+    data_reassign_sensors (self, false);
+    assert ( data_is_reconfig_needed (self) == false );
+    sensors = data_get_assigned_sensors (self, "TEST7_DC", NULL);
+    assert ( sensors != NULL ); // dc sensor was assigned!
+    assert ( zlistx_size (sensors) == 1 );
+    sensors = data_get_assigned_sensors (self, "TEST7_RACK", NULL);
+    assert ( sensors != NULL );
+    assert ( zlistx_size (sensors) == 1 );
+    zlistx_destroy (&sensors);
 
     data_destroy (&self);
 }
@@ -2339,6 +2512,7 @@ data_test (bool verbose)
     test4 (verbose);
     test5 (verbose);
     test6 (verbose);
+    test7 (verbose);
 
     data_t *newdata = data_new();
     std::set <std::string> newset{"sdlkfj"};
