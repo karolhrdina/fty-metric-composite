@@ -844,6 +844,8 @@ test5 (bool verbose)
     zlistx_set_duplicator (assets_expected, (czmq_duplicator *) strdup);
     zlistx_set_comparator (assets_expected, (czmq_comparator *) strcmp);
 
+    // TOPOLOGY: 
+    // DC->ROOM->ROW->RACK->UPS->SENSOR
     if ( verbose )
         log_debug ("\tCREATE 'TEST5_DC' as datacenter");
     asset = test_asset_new ("TEST5_DC", BIOS_PROTO_ASSET_OP_CREATE);
@@ -875,11 +877,15 @@ test5 (bool verbose)
     zlistx_add_end (assets_expected, (void *) "TEST5_ROW");
 
     if ( verbose ) {
-        log_debug ("\tCREATE 'Sensor01' as sensor");
+        log_debug ("\tCREATE 'TEST5_SENSOR' as sensor");
         log_debug ("\t\tSituation: sensor asset message arrives before asset specified in logical_asset");
     }
-    asset = test_asset_new ("Sensor01", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK.ups1");
+    asset = test_asset_new ("TEST5_SENSOR", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST5_UPS");
+    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST5_RACK");
+    bios_proto_aux_insert (asset, "parent_name.3", "%s", "TEST5_ROW");
+    bios_proto_aux_insert (asset, "parent_name.4", "%s", "TEST5_ROOM");
+    bios_proto_aux_insert (asset, "parent_name.5", "%s", "TEST5_DC");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
@@ -916,7 +922,7 @@ test5 (bool verbose)
     assert ( sensors == NULL );
  
     // test that all messages expected to be store are really stores
-    zlistx_add_end (assets_expected, (void *) "Sensor01");
+    zlistx_add_end (assets_expected, (void *) "TEST5_SENSOR");
     {
         zlistx_t *received = data_asset_names (self);
         assert ( received );
