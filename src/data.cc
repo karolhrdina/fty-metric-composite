@@ -187,7 +187,7 @@ data_reassign_sensors (data_t *self, bool is_propagation_needed)
 //  Get list of sensors assigned to the asset
 //  You can limit the list of sensors returned to a certain 'sensor_function',
 //  NULL returns all sensors.
-//  Returns NULL when for 'asset_name' T&H sensors are not known or asset_name is not known at all
+//  Returns NULL when for 'asset_name' sensors are not known or asset_name is not known at all
 //  or in case of memory issues
 //  The caller is responsible for destroying the return value when finished with it
 
@@ -203,7 +203,7 @@ data_get_assigned_sensors (
     zlistx_t *sensors = (zlistx_t *) zhashx_lookup (self->last_configuration, asset_name);
     if (!sensors) {
         log_info (
-                "Asset '%s' has no sensors assigned -> no T&H would be computed (function='%s')",
+                "Asset '%s' has no sensors assigned (function='%s')",
                 asset_name, ( sensor_function == NULL ) ? "(null)": sensor_function);
         return NULL;
     }
@@ -829,6 +829,159 @@ test4 (bool verbose)
     data_destroy (&self_load_load);
 }
 
+static void
+test5 (bool verbose)
+{
+    if ( verbose )
+        log_debug ("Test5: Sensor arrived before logical asset for CREATE operation");
+    
+    data_t *self = data_new();
+    bios_proto_t *asset = NULL;
+    zlistx_t *sensors = NULL;
+
+    zlistx_t *assets_expected = zlistx_new ();
+    zlistx_set_destructor (assets_expected, (czmq_destructor *) zstr_free);
+    zlistx_set_duplicator (assets_expected, (czmq_duplicator *) strdup);
+    zlistx_set_comparator (assets_expected, (czmq_comparator *) strcmp);
+
+    if ( verbose )
+        log_debug ("\tCREATE 'TEST5_DC' as datacenter");
+    asset = test_asset_new ("TEST5_DC", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "datacenter");
+    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    data_asset_store (self, &asset);
+    zlistx_add_end (assets_expected, (void *) "TEST5_DC");
+
+    if ( verbose )
+        log_debug ("\tCREATE 'TEST5_ROOM' as room");
+    asset = test_asset_new ("TEST5_ROOM", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST5_DC");
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "room");
+    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    data_asset_store (self, &asset);
+    zlistx_add_end (assets_expected, (void *) "TEST5_ROOM");
+
+    if ( verbose )
+        log_debug ("\tCREATE 'TEST5_ROW' as row");
+    asset = test_asset_new ("TEST5_ROW", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST5_ROOM");
+    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST5_DC");
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "row");
+    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    data_asset_store (self, &asset);
+    zlistx_add_end (assets_expected, (void *) "TEST5_ROW");
+
+    if ( verbose ) {
+        log_debug ("\tCREATE 'Sensor01' as sensor");
+        log_debug ("\t\tSituation: sensor asset message arrives before asset specified in logical_asset");
+    }
+    asset = test_asset_new ("Sensor01", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK.ups1");
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH1");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "10");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST5_RACK");
+    data_asset_store (self, &asset);
+    assert ( data_is_reconfig_needed (self) == true );
+    
+    // test assigned sensors: propagated
+    data_reassign_sensors (self, true);
+    assert ( data_is_reconfig_needed (self) == true );
+    sensors = data_get_assigned_sensors (self, "TEST5_DC", NULL);
+    assert ( sensors == NULL );
+    sensors = data_get_assigned_sensors (self, "TEST5_ROOM", NULL);
+    assert ( sensors == NULL );
+    sensors = data_get_assigned_sensors (self, "TEST5_ROW", NULL);
+    assert ( sensors == NULL );
+    sensors = data_get_assigned_sensors (self, "TEST5_RACK", NULL);
+    assert ( sensors == NULL );
+ 
+    // test assigned sensors: NOT propagated
+    data_reassign_sensors (self, false);
+    assert ( data_is_reconfig_needed (self) == true );
+    sensors = data_get_assigned_sensors (self, "TEST5_DC", NULL);
+    assert ( sensors == NULL );
+    sensors = data_get_assigned_sensors (self, "TEST5_ROOM", NULL);
+    assert ( sensors == NULL );
+    sensors = data_get_assigned_sensors (self, "TEST5_ROW", NULL);
+    assert ( sensors == NULL );
+    sensors = data_get_assigned_sensors (self, "TEST5_RACK", NULL);
+    assert ( sensors == NULL );
+ 
+    // test that all messages expected to be store are really stores
+    zlistx_add_end (assets_expected, (void *) "Sensor01");
+    {
+        zlistx_t *received = data_asset_names (self);
+        assert ( received );
+
+        int rv = test_zlistx_compare (assets_expected, &received, verbose);
+        assert ( rv == 0 );
+    }
+
+    if ( verbose ) {
+        log_debug ("\tCREATE 'TEST5_RACK' as rack");
+        log_debug ("\t\tSituation: finally message about logical_asset arrived");
+    }
+    asset = test_asset_new ("TEST5_RACK", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST5_ROW");
+    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST5_ROOM");
+    bios_proto_aux_insert (asset, "parent_name.3", "%s", "TEST5_DC");
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "rack");
+    bios_proto_ext_insert (asset, "u_size" , "%s",  "42");
+    bios_proto_ext_insert (asset, "description" , "%s",  "Lorem ipsum asd asd asd asd asd asd asd");
+    data_asset_store (self, &asset);
+    assert ( data_is_reconfig_needed (self) == true );
+
+    // test that all messages expected to be store are really stores
+    zlistx_add_end (assets_expected, (void *) "TEST5_RACK");
+    {
+        zlistx_t *received = data_asset_names (self);
+        assert (received);
+
+        int rv = test_zlistx_compare (assets_expected, &received, verbose);
+        assert (rv == 0);
+    }
+
+    // test assigned sensors: propagated
+    data_reassign_sensors (self, true);
+    assert ( data_is_reconfig_needed (self) == false );
+    sensors = data_get_assigned_sensors (self, "TEST5_DC", NULL);
+    assert ( zlistx_size (sensors) == 1 );
+    zlistx_destroy (&sensors);
+    sensors = data_get_assigned_sensors (self, "TEST5_ROOM", NULL);
+    assert ( zlistx_size (sensors) == 1 );
+    zlistx_destroy (&sensors);
+    sensors = data_get_assigned_sensors (self, "TEST5_ROW", NULL);
+    assert ( zlistx_size (sensors) == 1 );
+    zlistx_destroy (&sensors);
+    sensors = data_get_assigned_sensors (self, "TEST5_RACK", NULL);
+    assert ( zlistx_size (sensors) == 1 );
+    zlistx_destroy (&sensors);
+
+    // test assigned sensors: NOT propagated
+    data_reassign_sensors (self, false);
+    assert ( data_is_reconfig_needed (self) == false );
+    sensors = data_get_assigned_sensors (self, "TEST5_DC", NULL);
+    assert ( sensors == NULL );
+    sensors = data_get_assigned_sensors (self, "TEST5_ROOM", NULL);
+    assert ( sensors == NULL );
+    sensors = data_get_assigned_sensors (self, "TEST5_ROW", NULL);
+    assert ( sensors == NULL );
+    sensors = data_get_assigned_sensors (self, "TEST5_RACK", NULL);
+    assert ( zlistx_size (sensors) == 1 );
+    zlistx_destroy (&sensors);
+    data_destroy (&self);
+}
+
+
 void
 data_test (bool verbose)
 {
@@ -947,10 +1100,11 @@ data_test (bool verbose)
     if ( verbose )
         log_debug ("\tCREATE 'TEST1_RACK01' as rack");
     asset = test_asset_new ("TEST1_RACK01", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent", "%s", "4");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_ROW01");
+    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST1_ROOM01");
+    bios_proto_aux_insert (asset, "parent_name.3", "%s", "TEST1_DC");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "rack");
-    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
     bios_proto_ext_insert (asset, "u_size" , "%s",  "42");
     bios_proto_ext_insert (asset, "description" , "%s",  "Lorem ipsum asd asd asd asd asd asd asd");
     data_asset_store (self, &asset);
@@ -960,9 +1114,11 @@ data_test (bool verbose)
     zlistx_add_end (assets_expected, (void *) "TEST1_RACK01");
 
     if ( verbose )
-        log_debug ("\tCREATE 'Rack02' as rack");
-    asset = test_asset_new ("Rack02", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent", "%s", "4");
+        log_debug ("\tCREATE 'TEST1_RACK02' as rack");
+    asset = test_asset_new ("TEST1_RACK02", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_ROW01");
+    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST1_ROOM01");
+    bios_proto_aux_insert (asset, "parent_name.3", "%s", "TEST1_DC");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "rack");
     bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
@@ -971,11 +1127,11 @@ data_test (bool verbose)
     assert (data_is_reconfig_needed (self) == true);
     data_reassign_sensors (self, true);
     assert (data_is_reconfig_needed (self) == false);
-    zlistx_add_end (assets_expected, (void *) "Rack02");
+    zlistx_add_end (assets_expected, (void *) "TEST1_RACK02");
 
     if ( verbose )
-        log_debug ("\tCREATE 'TEST1_ROOM02 with spaces.Row01' as row");
-    asset = test_asset_new ("TEST1_ROOM02 with spaces.Row01", BIOS_PROTO_ASSET_OP_CREATE);
+        log_debug ("\tCREATE 'TEST1_ROW02' as row");
+    asset = test_asset_new ("TEST1_ROW02", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent", "%s", "3");
     bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "row");
@@ -984,7 +1140,7 @@ data_test (bool verbose)
     assert (data_is_reconfig_needed (self) == true);
     data_reassign_sensors (self, true);
     assert (data_is_reconfig_needed (self) == false);
-    zlistx_add_end (assets_expected, (void *) "TEST1_ROOM02 with spaces.Row01");
+    zlistx_add_end (assets_expected, (void *) "TEST1_ROW02");
 
     if ( verbose )
         log_debug ("\tCREATE 'TEST1_ROOM02 with spaces.Row02' as row");
@@ -1157,7 +1313,7 @@ data_test (bool verbose)
     bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "1");
     bios_proto_ext_insert (asset, "vertical_position", "%s", "bottom");
     bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "Rack02");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_RACK02");
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == true);
     data_reassign_sensors (self, true);
@@ -1177,7 +1333,7 @@ data_test (bool verbose)
     bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "2.0");
     bios_proto_ext_insert (asset, "vertical_position", "%s", "top");
     bios_proto_ext_insert (asset, "sensor_function", "%s", "output");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "Rack02");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_RACK02");
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == true);
     data_reassign_sensors (self, true);
@@ -1332,7 +1488,7 @@ data_test (bool verbose)
 
         asset = data_asset (self, "TEST1_RACK01");
         assert (asset);
-        asset = data_asset (self, "Rack02");
+        asset = data_asset (self, "TEST1_RACK02");
         assert (asset);
         asset = data_asset (self, "TEST1_RACK01.ups1");
         assert (asset == NULL);
@@ -1374,7 +1530,7 @@ data_test (bool verbose)
         assert (zlistx_size (sensors) == 0);
         zlistx_destroy (&sensors);
 
-        sensors = data_sensor (self, "TEST1_ROOM02 with spaces.Row01", NULL);
+        sensors = data_sensor (self, "TEST1_ROW02", NULL);
         assert (zlistx_size (sensors) == 0);
         zlistx_destroy (&sensors);
 
@@ -1418,7 +1574,7 @@ data_test (bool verbose)
         }
         zlistx_destroy (&sensors);
 
-        sensors = data_sensor (self, "Rack02", NULL);
+        sensors = data_sensor (self, "TEST1_RACK02", NULL);
         assert (zlistx_size (sensors) == 2);
         {
             bios_proto_t *item = (bios_proto_t *) zlistx_first (sensors);
@@ -1442,7 +1598,7 @@ data_test (bool verbose)
         }
         zlistx_destroy (&sensors);
 
-        sensors = data_sensor (self, "Rack02", "input");
+        sensors = data_sensor (self, "TEST1_RACK02", "input");
         assert (zlistx_size (sensors) == 1);
         {
             bios_proto_t *item = (bios_proto_t *) zlistx_first (sensors);
@@ -1450,7 +1606,7 @@ data_test (bool verbose)
         }
         zlistx_destroy (&sensors);
 
-        sensors = data_sensor (self, "Rack02", "output");
+        sensors = data_sensor (self, "TEST1_RACK02", "output");
         assert (zlistx_size (sensors) == 1);
         {
             bios_proto_t *item = (bios_proto_t *) zlistx_first (sensors);
@@ -1933,7 +2089,7 @@ data_test (bool verbose)
         assert (zlistx_size (sensors) == 0);
         zlistx_destroy (&sensors);
 
-        sensors = data_sensor (self, "TEST1_ROOM02 with spaces.Row01", NULL);
+        sensors = data_sensor (self, "TEST1_ROW02", NULL);
         assert (zlistx_size (sensors) == 0);
         zlistx_destroy (&sensors);
 
@@ -1973,7 +2129,7 @@ data_test (bool verbose)
         }
         zlistx_destroy (&sensors);
 
-        sensors = data_sensor (self, "Rack02", NULL);
+        sensors = data_sensor (self, "TEST1_RACK02", NULL);
         assert (zlistx_size (sensors) == 0);
         zlistx_destroy (&sensors);
 
@@ -2163,6 +2319,7 @@ data_test (bool verbose)
     }
 
     test4 (verbose);
+    test5 (verbose);
 
     data_t *newdata = data_new();
     std::set <std::string> newset{"sdlkfj"};
