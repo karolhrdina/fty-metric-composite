@@ -44,7 +44,7 @@ COMPOSITE_METRICS_EXPORT bool
 
 //  According known information about assets, decide, where sensors logically belong to
 COMPOSITE_METRICS_EXPORT void
-    data_reassign_sensors (data_t *self);
+    data_reassign_sensors (data_t *self, bool is_propagation_needed);
 
 //  Before using this functionality, sensors should be assigned to the right positions
 //  by calling 'data_reassign_sensors' function.

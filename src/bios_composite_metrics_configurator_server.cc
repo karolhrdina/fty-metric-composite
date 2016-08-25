@@ -323,7 +323,7 @@ s_regenerate (c_metric_conf_t *cfg, std::set <std::string> &metrics_unavailable)
         log_error ("data_asset_names () failed");
         return;
     }
-    data_reassign_sensors (data);
+    data_reassign_sensors (data, true);
     log_info ("New configuration was deduced");
     const char *asset = (const char *) zlistx_first (assets);
     std::set <std::string> metricsAvailable;
@@ -416,8 +416,20 @@ bios_composite_metrics_configurator_server (zsock_t *pipe, void* args)
                 log_error ("Given `which == pipe`, function `zmsg_recv (pipe)` returned NULL");
                 continue;
             }
+            bool old_is_propagation_needed = cfg->is_propagation_needed;
             if (actor_commands (cfg, &message) == 1) {
                 break;
+            }
+            // This is UGLY hack, because there is a need to call s_regenerate from actor commands in some cases
+            // but s_regenerate is satic function here!
+            if ( old_is_propagation_needed != cfg->is_propagation_needed ) {
+                // so, we need to regenerate configuration according new reality
+                std::set <std::string> metrics_unavailable;
+                s_regenerate (cfg, metrics_unavailable);
+                data_save (cfg->asset_data, cfg->statefile_name);
+                for ( const auto &one_metric : metrics_unavailable ) {
+                    proto_metric_unavailable_send (cfg->client, one_metric.c_str());
+                }
             }
             continue;
         }
