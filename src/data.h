@@ -51,7 +51,7 @@ COMPOSITE_METRICS_EXPORT void
 //  Get list of sensors assigned to the asset
 //  You can limit the list of sensors returned to a certain 'sensor_function',
 //  NULL returns all sensors.
-//  Returns NULL when for 'asset_name' T&H sensors are not known or asset_name is not known at all
+//  Returns NULL when for 'asset_name' sensors are not known or asset_name is not known at all
 //  or in case of memory issues
 //  The caller is responsible for destroying the return value when finished with it
 COMPOSITE_METRICS_EXPORT zlistx_t *
