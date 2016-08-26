@@ -1074,11 +1074,6 @@ test7 (bool verbose)
     if ( verbose )
         log_debug ("Test7: Sensor important info is missing for UPDATE operation");
 
-    if ( verbose ) {
-        log_debug ("\tCREATE 'TEST7_SENSOR01' as sensor");
-        log_debug ("\t\tlogical_asset is missing");
-    }
-
     data_t *self = data_new();
     bios_proto_t *asset = NULL;
     zlistx_t *sensors = NULL;
@@ -1109,7 +1104,7 @@ test7 (bool verbose)
     assert ( data_is_reconfig_needed (self) == false );
 
     if ( verbose )
-        log_debug ("\tCREATE 'TEST7_SENSOR01' as rack");
+        log_debug ("\tCREATE 'TEST7_SENSOR01' as sensor");
     asset = test_asset_new ("TEST7_SENSOR01", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST7_UPS");
     bios_proto_aux_insert (asset, "type", "%s", "device");
@@ -1160,7 +1155,7 @@ test7 (bool verbose)
 
     // actual test
     if ( verbose ) {
-        log_debug ("\tUPDATE 'TEST7_SENSOR01'");
+        log_debug ("\tUPDATE 'TEST7_SENSOR01' as sensor");
         log_debug ("\t\tlogical_asset is missing");
     }
     asset = test_asset_new ("TEST7_SENSOR01", BIOS_PROTO_ASSET_OP_UPDATE);
@@ -1235,6 +1230,134 @@ test7 (bool verbose)
     sensors = data_get_assigned_sensors (self, "TEST7_RACK", NULL);
     assert ( sensors != NULL );
     assert ( zlistx_size (sensors) == 1 );
+    zlistx_destroy (&sensors);
+
+    data_destroy (&self);
+}
+
+static void
+test8 (bool verbose)
+{
+    if ( verbose )
+        log_debug ("Test8: data_get_assigned_sensors");
+
+    data_t *self = data_new();
+    bios_proto_t *asset = NULL;
+    zlistx_t *sensors = NULL;
+    bios_proto_t *item = NULL;
+
+    if ( verbose )
+        log_debug ("\tCREATE 'TEST8_DC' as datacenter");
+    asset = test_asset_new ("TEST8_DC", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_aux_insert (asset, "status", "%s", "active");
+    bios_proto_aux_insert (asset, "type", "%s", "datacenter");
+    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    data_asset_store (self, &asset);
+
+    if ( verbose )
+        log_debug ("\tCREATE 'TEST8_RACK' as rack");
+    asset = test_asset_new ("TEST8_RACK", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST8_DC");
+    bios_proto_aux_insert (asset, "type", "%s", "rack");
+    data_asset_store (self, &asset);
+
+    if ( verbose )
+        log_debug ("\tCREATE 'TEST8_SENSOR01' as sensor");
+    asset = test_asset_new ("TEST8_SENSOR01", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST8_UPS");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH1");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "10");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST8_RACK");
+    data_asset_store (self, &asset);
+
+    if ( verbose )
+        log_debug ("\tCREATE 'TEST8_SENSOR02' as sensor");
+    asset = test_asset_new ("TEST8_SENSOR02", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST8_UPS");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH2");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "2");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "20");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST8_RACK");
+    data_asset_store (self, &asset);
+
+    if ( verbose )
+        log_debug ("\tCREATE 'TEST8_SENSOR03' as sensor");
+    asset = test_asset_new ("TEST8_SENSOR03", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST8_UPS");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH3");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "3");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "30");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "output");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST8_RACK");
+    data_asset_store (self, &asset);
+
+    if ( verbose )
+        log_debug ("\tCREATE 'TEST8_SENSOR04' as sensor");
+    asset = test_asset_new ("TEST8_SENSOR04", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST8_UPS");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH4");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "1");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST8_RACK");
+    data_asset_store (self, &asset);
+
+    data_reassign_sensors (self, false);
+
+    sensors = data_get_assigned_sensors (self, "Non-existing-asset", NULL);
+    assert (sensors == NULL);
+    sensors = data_get_assigned_sensors (self, "Non-existing-asset", "input");
+    assert (sensors == NULL);
+
+    sensors = data_get_assigned_sensors (self, "TEST8_DC", NULL);
+    assert (sensors == NULL);
+    sensors = data_get_assigned_sensors (self, "TEST8_DC", "ambient");
+    assert (sensors == NULL);
+
+    sensors = data_get_assigned_sensors (self, "TEST8_RACK", NULL);
+    assert (sensors != NULL);
+    assert (zlistx_size (sensors) == 4);
+    zlistx_destroy (&sensors);
+
+    sensors = data_get_assigned_sensors (self, "TEST8_RACK", "input");
+    assert (sensors != NULL);
+    assert (zlistx_size (sensors) == 2);
+    item = (bios_proto_t *) zlistx_first (sensors);
+    const char *name1 = bios_proto_name (item);
+    item = (bios_proto_t *) zlistx_next (sensors);
+    const char *name2 = bios_proto_name (item);
+    assert
+        (   (streq(name1, "TEST8_SENSOR01") || (streq(name2, "TEST8_SENSOR02")) ) 
+            ||
+            (streq(name1, "TEST8_SENSOR02") || (streq(name2, "TEST8_SENSOR01")) ) 
+        );
+    zlistx_destroy (&sensors);
+
+    sensors = data_get_assigned_sensors (self, "TEST8_RACK", "notknownfunction");
+    assert (sensors == NULL);
+
+    sensors = data_get_assigned_sensors (self, "TEST8_RACK", "output");
+    assert (sensors != NULL);
+    assert (zlistx_size (sensors) == 1);
+    item = (bios_proto_t *) zlistx_first (sensors);
+    assert ( streq(bios_proto_name (item), "TEST8_SENSOR03") );
+    zlistx_destroy (&sensors);
+
+    sensors = data_get_assigned_sensors (self, "TEST8_RACK", "");
+    assert (sensors != NULL);
+    assert (zlistx_size (sensors) == 1);
+    item = (bios_proto_t *) zlistx_first (sensors);
+    assert ( streq(bios_proto_name (item), "TEST8_SENSOR04") );
     zlistx_destroy (&sensors);
 
     data_destroy (&self);
@@ -1699,10 +1822,8 @@ data_test (bool verbose)
         asset = data_asset (self, "TEST1_GROUP"); // should no be stored
         assert (asset == NULL);
 
-        zlistx_t *sensors = data_get_assigned_sensors (self, "Non-existing-dc", NULL);
-        assert (sensors == NULL);
-
-        sensors = data_get_assigned_sensors (self, "TEST1_DC", NULL);
+        // check, that sensors where assigned correctly
+        zlistx_t *sensors = data_get_assigned_sensors (self, "TEST1_DC", NULL);
         assert (sensors == NULL);
 
         sensors = data_get_assigned_sensors (self, "TEST1_ROOM01", NULL);
@@ -1715,37 +1836,26 @@ data_test (bool verbose)
         assert (streq (bios_proto_name (item), "Sensor14"));
         zlistx_destroy (&sensors);
 
-        sensors = data_get_assigned_sensors (self, "TEST1_ROOM02 with spaces", "input");
-        assert (sensors == NULL);
-
         sensors = data_get_assigned_sensors (self, "TEST1_ROW01", NULL);
         assert (sensors == NULL);
 
         sensors = data_get_assigned_sensors (self, "TEST1_ROW02", NULL);
         assert (sensors == NULL);
-/*
+
         sensors = data_get_assigned_sensors (self, "TEST1_ROW03", NULL);
         assert (sensors != NULL);
         assert (zlistx_size (sensors) == 2);
         item = (bios_proto_t *) zlistx_first (sensors);
-        assert (streq (bios_proto_name (item), "Sensor13") );
+        const char *name1 = bios_proto_name (item);
         item = (bios_proto_t *) zlistx_next (sensors);
-        assert (streq (bios_proto_name (item), "Sensor15"));
-        zlistx_destroy (&sensors);
-*/
-        sensors = data_get_assigned_sensors (self, "TEST1_ROW03", "input");
-        assert (sensors != NULL);
-        assert (zlistx_size (sensors) == 1);
-        item = (bios_proto_t *) zlistx_first (sensors);
-        assert (streq (bios_proto_name (item), "Sensor13"));
+        const char *name2 = bios_proto_name (item);
+        assert
+            (   (streq(name1, "Sensor13") || (streq(name2, "Sensor15")) ) 
+              ||
+                (streq(name1, "Sensor15") || (streq(name2, "Sensor13")) ) 
+            );
         zlistx_destroy (&sensors);
 
-        sensors = data_get_assigned_sensors (self, "TEST1_ROW03", "output");
-        assert (sensors != NULL);
-        assert (zlistx_size (sensors) == 1);
-        item = (bios_proto_t *) zlistx_first (sensors);
-        assert (streq (bios_proto_name (item), "Sensor15"));
-        zlistx_destroy (&sensors);
 /*
         sensors = data_get_assigned_sensors (self, "TEST1_RACK02", NULL);
         assert (zlistx_size (sensors) == 2);
@@ -1768,22 +1878,6 @@ data_test (bool verbose)
             assert (streq (bios_proto_ext_string (item, "calibration_offset_t", ""), "2.0"));
             assert (streq (bios_proto_ext_string (item, "calibration_offset_h", ""), "2.0"));
             item = (bios_proto_t *) zlistx_next (sensors);
-        }
-        zlistx_destroy (&sensors);
-
-        sensors = data_get_assigned_sensors (self, "TEST1_RACK02", "input");
-        assert (zlistx_size (sensors) == 1);
-        {
-            bios_proto_t *item = (bios_proto_t *) zlistx_first (sensors);
-            assert (streq (bios_proto_name (item), "Sensor08"));
-        }
-        zlistx_destroy (&sensors);
-
-        sensors = data_get_assigned_sensors (self, "TEST1_RACK02", "output");
-        assert (zlistx_size (sensors) == 1);
-        {
-            bios_proto_t *item = (bios_proto_t *) zlistx_first (sensors);
-            assert (streq (bios_proto_name (item), "Sensor09"));
         }
         zlistx_destroy (&sensors);
 
@@ -1852,28 +1946,6 @@ data_test (bool verbose)
             assert (streq (bios_proto_ext_string (item, "calibration_offset_t", ""), "0"));
             assert (streq (bios_proto_ext_string (item, "calibration_offset_h", ""), "0"));
 
-        }
-        zlistx_destroy (&sensors);
-
-        sensors = data_get_assigned_sensors (self, "TEST1_RACK01", "input");
-        assert (zlistx_size (sensors) == 3);
-        {
-            bios_proto_t *item = (bios_proto_t *) zlistx_first (sensors);
-            assert (streq (bios_proto_name (item), "Sensor01"));
-            item = (bios_proto_t *) zlistx_next (sensors);
-            assert (streq (bios_proto_name (item), "Sensor02"));
-            item = (bios_proto_t *) zlistx_next (sensors);
-            assert (streq (bios_proto_name (item), "Sensor03"));
-        }
-        zlistx_destroy (&sensors);
-
-        sensors = data_get_assigned_sensors (self, "TEST1_RACK01", "output");
-        assert (zlistx_size (sensors) == 2);
-        {
-            bios_proto_t *item = (bios_proto_t *) zlistx_first (sensors);
-            assert (streq (bios_proto_name (item), "Sensor10"));
-            item = (bios_proto_t *) zlistx_next (sensors);
-            assert (streq (bios_proto_name (item), "Sensor11"));
         }
         zlistx_destroy (&sensors);
 */
@@ -2178,22 +2250,6 @@ data_test (bool verbose)
         }
         zlistx_destroy (&sensors);
 
-        sensors = data_get_assigned_sensors (self, "TEST1_DC", "input");
-        assert (zlistx_size (sensors) == 1);
-        {
-            bios_proto_t *item = (bios_proto_t *) zlistx_first (sensors);
-            assert (streq (bios_proto_name (item), "Sensor08"));
-        }
-        zlistx_destroy (&sensors);
-
-        sensors = data_get_assigned_sensors (self, "TEST1_DC", "output");
-        assert (zlistx_size (sensors) == 1);
-        {
-            bios_proto_t *item = (bios_proto_t *) zlistx_first (sensors);
-            assert (streq (bios_proto_name (item), "Sensor05"));
-        }
-        zlistx_destroy (&sensors);
-
         sensors = data_get_assigned_sensors (self, "TEST1_ROOM01", NULL);
         assert (zlistx_size (sensors) == 2);
         {
@@ -2218,26 +2274,6 @@ data_test (bool verbose)
         }
         zlistx_destroy (&sensors);
 
-        sensors = data_get_assigned_sensors (self, "TEST1_ROOM01", "input");
-        assert (zlistx_size (sensors) == 0);
-        zlistx_destroy (&sensors);
-
-        sensors = data_get_assigned_sensors (self, "TEST1_ROOM01", "output");
-        assert (zlistx_size (sensors) == 1);
-        {
-            bios_proto_t *item = (bios_proto_t *) zlistx_first (sensors);
-            assert (streq (bios_proto_name (item), "Sensor06"));
-        }
-        zlistx_destroy (&sensors);
-
-        sensors = data_get_assigned_sensors (self, "TEST1_ROOM01", "");
-        assert (zlistx_size (sensors) == 1);
-        {
-            bios_proto_t *item = (bios_proto_t *) zlistx_first (sensors);
-            assert (streq (bios_proto_name (item), "Sensor04"));
-        }
-        zlistx_destroy (&sensors);
-
         sensors = data_get_assigned_sensors (self, "TEST1_ROOM02 with spaces", NULL);
         assert (zlistx_size (sensors) == 1);
         {
@@ -2252,10 +2288,6 @@ data_test (bool verbose)
             item = (bios_proto_t *) zlistx_next (sensors);
 
         }
-        zlistx_destroy (&sensors);
-
-        sensors = data_get_assigned_sensors (self, "TEST1_ROOM02 with spaces", "input");
-        assert (zlistx_size (sensors) == 0);
         zlistx_destroy (&sensors);
 
         sensors = data_get_assigned_sensors (self, "TEST1_ROW01", NULL);
@@ -2287,18 +2319,6 @@ data_test (bool verbose)
             assert (streq (bios_proto_ext_string (item, "calibration_offset_t", ""), "4"));
             assert (streq (bios_proto_ext_string (item, "calibration_offset_h", ""), "-25"));
             item = (bios_proto_t *) zlistx_next (sensors);
-        }
-        zlistx_destroy (&sensors);
-
-        sensors = data_get_assigned_sensors (self, "TEST1_ROW03", "input");
-        assert (zlistx_size (sensors) == 0);
-        zlistx_destroy (&sensors);
-
-        sensors = data_get_assigned_sensors (self, "TEST1_ROW03", "ambient");
-        assert (zlistx_size (sensors) == 1);
-        {
-            bios_proto_t *item = (bios_proto_t *) zlistx_first (sensors);
-            assert (streq (bios_proto_name (item), "Sensor07"));
         }
         zlistx_destroy (&sensors);
 
@@ -2352,28 +2372,6 @@ data_test (bool verbose)
             assert (streq (bios_proto_ext_string (item, "sensor_function", ""), "output"));
             assert (streq (bios_proto_ext_string (item, "calibration_offset_t", ""), ""));
             assert (streq (bios_proto_ext_string (item, "calibration_offset_h", ""), "-0.16"));
-        }
-        zlistx_destroy (&sensors);
-
-        sensors = data_get_assigned_sensors (self, "TEST1_RACK01", "output");
-        assert (zlistx_size (sensors) == 2);
-        {
-            bios_proto_t *item = (bios_proto_t *) zlistx_first (sensors);
-            assert (streq (bios_proto_name (item), "Sensor03"));
-            item = (bios_proto_t *) zlistx_next (sensors);
-            assert (streq (bios_proto_name (item), "Sensor10"));
-            item = (bios_proto_t *) zlistx_next (sensors);
-        }
-        zlistx_destroy (&sensors);
-
-        sensors = data_get_assigned_sensors (self, "TEST1_RACK01", "input");
-        assert (zlistx_size (sensors) == 2);
-        {
-            bios_proto_t *item = (bios_proto_t *) zlistx_first (sensors);
-            assert (streq (bios_proto_name (item), "Sensor01"));
-            item = (bios_proto_t *) zlistx_next (sensors);
-            assert (streq (bios_proto_name (item), "Sensor02"));
-            item = (bios_proto_t *) zlistx_next (sensors);
         }
         zlistx_destroy (&sensors);
         */
@@ -2495,6 +2493,7 @@ data_test (bool verbose)
     test5 (verbose);
     test6 (verbose);
     test7 (verbose);
+    test8 (verbose);
 
     data_t *newdata = data_new();
     std::set <std::string> newset{"sdlkfj"};
