@@ -990,6 +990,7 @@ test5 (bool verbose)
     sensors = data_get_assigned_sensors (self, "TEST5_RACK", NULL);
     assert ( sensors != NULL );
     assert ( zlistx_size (sensors) == 1 );
+    zlistx_destroy (&assets_expected);
     zlistx_destroy (&sensors);
     data_destroy (&self);
 }
