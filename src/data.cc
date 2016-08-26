@@ -345,6 +345,12 @@ data_asset_store (data_t *self, bios_proto_t **message_p)
             *message_p = NULL;
             return true;
         }
+        // So, we have "device" and it is "sensor"!
+        // lets check, that sensor has all necessary information
+        s_check_sensor_correctness (message);
+        // store it in any case, because we cannot ignore message on UPDATE operation,
+        // Because if we ignore this message -> everything would be configured
+        // with old information which is already obsolete
         self->is_reconfig_needed = true;
         zhashx_update (self->all_assets, bios_proto_name (message), (void *) message);
         *message_p = NULL;
