@@ -136,12 +136,17 @@ data_reassign_sensors (data_t *self, bool is_propagation_needed)
             one_sensor_name = (char *) zlistx_next (asset_names);
             continue;
         }
-
+        // We do not allow sensors to be logically assigned to any device
+        const char *logical_asset_type = bios_proto_aux_string (logical_asset, "type", "");
+        if ( streq (logical_asset_type, "device") ) {
+            log_error ("Sensor '%s' is logically assigned to 'device' -> skip it", one_sensor_name);
+            one_sensor_name = (char *) zlistx_next (asset_names);
+            continue;
+        }
         if ( is_propagation_needed ) {
             // BIOS-2484: start - ignore sensors assigned to the NON-RACK asset
-            const char *logical_asset_type = bios_proto_aux_string (logical_asset, "type", "");
             if ( !streq (logical_asset_type, "rack") ) {
-                log_warning ("Sensor '%s' assigned to non-'rack' is ignored", one_sensor_name);
+                log_warning ("Sensor '%s' is logically assigned to non-'rack' -> skip it (BIOS-2484)", one_sensor_name);
                 one_sensor_name = (char *) zlistx_next (asset_names);
                 continue;
             }
@@ -238,9 +243,7 @@ data_get_assigned_sensors (
 
 //  --------------------------------------------------------------------------
 //  Checks if sensors attributes are ok.
-//  Returns 'true' if we have all necessary information
-//  Returns 'false' if some must-have information is missing
-//  Writes to log detailed information "what is missing"
+//  Writes to log detailed information "what is wrong"
 
 static void
 s_check_sensor_correctness (bios_proto_t *sensor)
