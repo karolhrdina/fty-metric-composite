@@ -742,8 +742,6 @@ test4 (bool verbose)
 
     // one asset without EXT
     asset = test_asset_new ("some_asset_without_ext", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent", "%s", "0");
-    bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "datacenter");
     bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
     self = data_new ();
@@ -760,11 +758,8 @@ test4 (bool verbose)
 
     // one asset without AUX
     asset = test_asset_new ("some_asset_without_aux", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_ext_insert (asset, "parent", "%s", "0");
-    bios_proto_ext_insert (asset, "status", "%s", "active");
     bios_proto_ext_insert (asset, "type", "%s", "datacenter");
     bios_proto_ext_insert (asset, "subtype", "%s", "unknown");
-    bios_proto_ext_insert (asset, "max_power" , "%s",  "2");
     self = data_new ();
 
     data_asset_store (self, &asset);
@@ -781,23 +776,18 @@ test4 (bool verbose)
     self = data_new ();
     
     asset = test_asset_new ("TEST4_DC", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_ext_insert (asset, "status", "%s", "active");
     bios_proto_ext_insert (asset, "type", "%s", "datacenter");
     bios_proto_ext_insert (asset, "subtype", "%s", "unknown");
-    bios_proto_ext_insert (asset, "max_power" , "%s",  "2");
     data_asset_store (self, &asset);
 
     asset = test_asset_new ("TEST4_RACK", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST4_DC");
-    bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "rack");
     bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
-    bios_proto_ext_insert (asset, "max_power" , "%s",  "2");
     data_asset_store (self, &asset);
 
     asset = test_asset_new ("TEST4_SENSOR", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST4_UPS");
-    bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
     bios_proto_ext_insert (asset, "port", "%s", "TH2");
@@ -846,7 +836,6 @@ test5 (bool verbose)
     if ( verbose )
         log_debug ("\tCREATE 'TEST5_DC' as datacenter");
     asset = test_asset_new ("TEST5_DC", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "datacenter");
     bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
     data_asset_store (self, &asset);
@@ -859,7 +848,6 @@ test5 (bool verbose)
         log_debug ("\tCREATE 'TEST5_ROOM' as room");
     asset = test_asset_new ("TEST5_ROOM", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST5_DC");
-    bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "room");
     bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
     data_asset_store (self, &asset);
@@ -873,7 +861,6 @@ test5 (bool verbose)
     asset = test_asset_new ("TEST5_ROW", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST5_ROOM");
     bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST5_DC");
-    bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "row");
     bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
     data_asset_store (self, &asset);
@@ -892,7 +879,6 @@ test5 (bool verbose)
     bios_proto_aux_insert (asset, "parent_name.3", "%s", "TEST5_ROW");
     bios_proto_aux_insert (asset, "parent_name.4", "%s", "TEST5_ROOM");
     bios_proto_aux_insert (asset, "parent_name.5", "%s", "TEST5_DC");
-    bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
     bios_proto_ext_insert (asset, "port", "%s", "TH1");
@@ -945,10 +931,7 @@ test5 (bool verbose)
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST5_ROW");
     bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST5_ROOM");
     bios_proto_aux_insert (asset, "parent_name.3", "%s", "TEST5_DC");
-    bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "rack");
-    bios_proto_ext_insert (asset, "u_size" , "%s",  "42");
-    bios_proto_ext_insert (asset, "description" , "%s",  "Lorem ipsum asd asd asd asd asd asd asd");
     data_asset_store (self, &asset);
     assert ( data_is_reconfig_needed (self) == true );
 
@@ -1037,7 +1020,6 @@ test6 (bool verbose)
     bios_proto_ext_insert (asset, "port", "%s", "TH3");
     bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "3");
     bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "30");
-    bios_proto_ext_insert (asset, "vertical_position", "%s", "middle");
     bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST6_RACK");
     data_asset_store (self, &asset);
@@ -1056,7 +1038,6 @@ test6 (bool verbose)
     // port missing
     bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "3");
     bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "30");
-    bios_proto_ext_insert (asset, "vertical_position", "%s", "middle");
     bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST6_RACK");
     data_asset_store (self, &asset);
@@ -1082,7 +1063,6 @@ test7 (bool verbose)
     if ( verbose )
         log_debug ("\tCREATE 'TEST7_DC' as datacenter");
     asset = test_asset_new ("TEST7_DC", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "datacenter");
     bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
     data_asset_store (self, &asset);
@@ -1094,10 +1074,7 @@ test7 (bool verbose)
         log_debug ("\tCREATE 'TEST7_RACK' as rack");
     asset = test_asset_new ("TEST7_RACK", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST7_DC");
-    bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "rack");
-    bios_proto_ext_insert (asset, "u_size" , "%s",  "42");
-    bios_proto_ext_insert (asset, "description" , "%s",  "Lorem ipsum asd asd asd asd asd asd asd");
     data_asset_store (self, &asset);
     assert ( data_is_reconfig_needed (self) == true );
     data_reassign_sensors (self, true); // drop the flag "is reconfiguration needed"
@@ -1128,7 +1105,6 @@ test7 (bool verbose)
     bios_proto_ext_insert (asset, "port", "%s", "TH2");
     bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "3");
     bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "30");
-    bios_proto_ext_insert (asset, "vertical_position", "%s", "middle");
     bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST7_RACK");
     data_asset_store (self, &asset);
@@ -1145,7 +1121,6 @@ test7 (bool verbose)
     bios_proto_ext_insert (asset, "port", "%s", "TH3");
     bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "3");
     bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "30");
-    bios_proto_ext_insert (asset, "vertical_position", "%s", "middle");
     bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST7_RACK");
     data_asset_store (self, &asset);
@@ -1183,7 +1158,6 @@ test7 (bool verbose)
     bios_proto_ext_insert (asset, "port", "%s", "TH3");
     bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "3");
     bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "30");
-    bios_proto_ext_insert (asset, "vertical_position", "%s", "middle");
     bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST7_DC");
     data_asset_store (self, &asset);
@@ -1202,7 +1176,6 @@ test7 (bool verbose)
     // port missing
     bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "3");
     bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "30");
-    bios_proto_ext_insert (asset, "vertical_position", "%s", "middle");
     bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST7_RACK");
     data_asset_store (self, &asset);
@@ -1249,7 +1222,6 @@ test8 (bool verbose)
     if ( verbose )
         log_debug ("\tCREATE 'TEST8_DC' as datacenter");
     asset = test_asset_new ("TEST8_DC", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "datacenter");
     bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
     data_asset_store (self, &asset);
@@ -1403,7 +1375,6 @@ data_test (bool verbose)
     if ( verbose )
         log_debug ("\tCREATE 'TEST1_DC' as datacenter");
     asset = test_asset_new ("TEST1_DC", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "datacenter");
     bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
     data_asset_store (self, &asset);
@@ -1416,7 +1387,6 @@ data_test (bool verbose)
         log_debug ("\tCREATE 'TEST1_ROOM01' as room");
     asset = test_asset_new ("TEST1_ROOM01", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_DC");
-    bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "room");
     bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
     data_asset_store (self, &asset);
@@ -1429,7 +1399,6 @@ data_test (bool verbose)
         log_debug ("\tCREATE 'TEST1_ROOM02 with spaces' as room");
     asset = test_asset_new ("TEST1_ROOM02 with spaces", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_DC");
-    bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "room");
     bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
     data_asset_store (self, &asset);
@@ -1443,7 +1412,6 @@ data_test (bool verbose)
     asset = test_asset_new ("TEST1_ROW01", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_ROOM01");
     bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST1_DC");
-    bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "row");
     bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
     data_asset_store (self, &asset);
@@ -1458,10 +1426,7 @@ data_test (bool verbose)
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_ROW01");
     bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST1_ROOM01");
     bios_proto_aux_insert (asset, "parent_name.3", "%s", "TEST1_DC");
-    bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "rack");
-    bios_proto_ext_insert (asset, "u_size" , "%s",  "42");
-    bios_proto_ext_insert (asset, "description" , "%s",  "Lorem ipsum asd asd asd asd asd asd asd");
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == true);
     data_reassign_sensors (self, true);
@@ -1474,10 +1439,8 @@ data_test (bool verbose)
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_ROW01");
     bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST1_ROOM01");
     bios_proto_aux_insert (asset, "parent_name.3", "%s", "TEST1_DC");
-    bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "rack");
     bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
-    bios_proto_ext_insert (asset, "u_size" , "%s",  "42");
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == true);
     data_reassign_sensors (self, true);
@@ -1489,7 +1452,6 @@ data_test (bool verbose)
     asset = test_asset_new ("TEST1_ROW02", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_ROOM02");
     bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST1_DC");
-    bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "row");
     bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
     data_asset_store (self, &asset);
@@ -1503,7 +1465,6 @@ data_test (bool verbose)
     asset = test_asset_new ("TEST1_ROW03", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_ROOM02");
     bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST1_DC");
-    bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "row");
     bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
     data_asset_store (self, &asset);
@@ -1518,11 +1479,8 @@ data_test (bool verbose)
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_ROW02");
     bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST1_ROOM02");
     bios_proto_aux_insert (asset, "parent_name.3", "%s", "TEST1_DC");
-    bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "rack");
     bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
-    bios_proto_ext_insert (asset, "u_size" , "%s",  "42");
-    bios_proto_ext_insert (asset, "description" , "%s",  "Lorem ipsum asd asd asd asd asd asd asd");
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == true);
     data_reassign_sensors (self, true);
@@ -1535,11 +1493,8 @@ data_test (bool verbose)
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_ROW03");
     bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST1_ROOM02");
     bios_proto_aux_insert (asset, "parent_name.3", "%s", "TEST1_DC");
-    bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "rack");
     bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
-    bios_proto_ext_insert (asset, "u_size" , "%s",  "42");
-    bios_proto_ext_insert (asset, "description" , "%s",  "Lorem ipsum asd asd asd asd asd asd asd");
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == true);
     data_reassign_sensors (self, true);
@@ -1551,8 +1506,7 @@ data_test (bool verbose)
     asset = test_asset_new ("TEST1_RACK01.ups1", BIOS_PROTO_ASSET_OP_CREATE);
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "ups");
-    bios_proto_aux_insert (asset, "parent", "%s", "5");
-    bios_proto_ext_insert (asset, "abc.d", "%s", " ups string 1");
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01");
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == false);
     data_reassign_sensors (self, true);
@@ -1571,15 +1525,12 @@ data_test (bool verbose)
     if ( verbose )
         log_debug ("\tCREATE 'Sensor01' as sensor");
     asset = test_asset_new ("Sensor01", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
-    bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
     bios_proto_ext_insert (asset, "port", "%s", "TH1");
     bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
     bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "10");
-    bios_proto_ext_insert (asset, "vertical_position", "%s", "bottom");
     bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_RACK01");
     data_asset_store (self, &asset);
@@ -1591,15 +1542,12 @@ data_test (bool verbose)
     if ( verbose )
         log_debug ("\tCREATE 'Sensor02' as sensor");
     asset = test_asset_new ("Sensor02", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
-    bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
     bios_proto_ext_insert (asset, "port", "%s", "TH2");
     bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "2");
     bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "20");
-    bios_proto_ext_insert (asset, "vertical_position", "%s", "bottom");
     bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_RACK01");
     data_asset_store (self, &asset);
@@ -1611,15 +1559,12 @@ data_test (bool verbose)
     if ( verbose )
         log_debug ("\tCREATE 'Sensor03' as sensor");
     asset = test_asset_new ("Sensor03", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
-    bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
     bios_proto_ext_insert (asset, "port", "%s", "TH3");
     bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "3");
     bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "30");
-    bios_proto_ext_insert (asset, "vertical_position", "%s", "middle");
     bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_RACK01");
     data_asset_store (self, &asset);
@@ -1631,15 +1576,12 @@ data_test (bool verbose)
     if ( verbose )
         log_debug ("\tCREATE 'Sensor08' as sensor");
     asset = test_asset_new ("Sensor08", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
-    bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
     bios_proto_ext_insert (asset, "port", "%s", "TH4");
     bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
     bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "1");
-    bios_proto_ext_insert (asset, "vertical_position", "%s", "bottom");
     bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_RACK02");
     data_asset_store (self, &asset);
@@ -1651,15 +1593,12 @@ data_test (bool verbose)
     if ( verbose )
         log_debug ("\tCREATE 'Sensor09' as sensor");
     asset = test_asset_new ("Sensor09", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
-    bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
     bios_proto_ext_insert (asset, "port", "%s", "TH5");
     bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "2.0");
     bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "2.0");
-    bios_proto_ext_insert (asset, "vertical_position", "%s", "top");
     bios_proto_ext_insert (asset, "sensor_function", "%s", "output");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_RACK02");
     data_asset_store (self, &asset);
@@ -1671,13 +1610,10 @@ data_test (bool verbose)
     if ( verbose )
         log_debug ("\tCREATE 'Sensor10' as sensor");
     asset = test_asset_new ("Sensor10", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
-    bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
     bios_proto_ext_insert (asset, "port", "%s", "TH6");
-    bios_proto_ext_insert (asset, "vertical_position", "%s", "top");
     bios_proto_ext_insert (asset, "sensor_function", "%s", "output");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_RACK01");
     data_asset_store (self, &asset);
@@ -1689,15 +1625,12 @@ data_test (bool verbose)
     if ( verbose )
         log_debug ("\tCREATE 'Sensor11' as sensor");
     asset = test_asset_new ("Sensor11", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
-    bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
     bios_proto_ext_insert (asset, "port", "%s", "TH7");
     bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "15.5");
     bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "20.7");
-    bios_proto_ext_insert (asset, "vertical_position", "%s", "top");
     bios_proto_ext_insert (asset, "sensor_function", "%s", "output");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_RACK01");
     data_asset_store (self, &asset);
@@ -1709,9 +1642,7 @@ data_test (bool verbose)
     if ( verbose )
         log_debug ("\tCREATE 'Sensor12' as sensor");
     asset = test_asset_new ("Sensor12", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
-    bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
     bios_proto_ext_insert (asset, "port", "%s", "TH8");
@@ -1728,15 +1659,12 @@ data_test (bool verbose)
     if ( verbose )
         log_debug ("\tCREATE 'Sensor13' as sensor");
     asset = test_asset_new ("Sensor13", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
-    bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
     bios_proto_ext_insert (asset, "port", "%s", "TH9");
     bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "-1");
     bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "1");
-    bios_proto_ext_insert (asset, "vertical_position", "%s", "top");
     bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_ROW03");
     data_asset_store (self, &asset);
@@ -1748,13 +1676,10 @@ data_test (bool verbose)
     if ( verbose )
         log_debug ("\tCREATE 'Sensor14' as sensor");
     asset = test_asset_new ("Sensor14", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
-    bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
     bios_proto_ext_insert (asset, "port", "%s", "TH10");
-    bios_proto_ext_insert (asset, "vertical_position", "%s", "bottom");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_ROOM02 with spaces");
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == true);
@@ -1765,15 +1690,12 @@ data_test (bool verbose)
     if ( verbose )
         log_debug ("\tCREATE 'Sensor15' as sensor");
     asset = test_asset_new ("Sensor15", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
-    bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
     bios_proto_ext_insert (asset, "port", "%s", "TH11");
     bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "1.4");
     bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "-1");
-    bios_proto_ext_insert (asset, "vertical_position", "%s", "middle");
     bios_proto_ext_insert (asset, "sensor_function", "%s", "output");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_ROW03");
     data_asset_store (self, &asset);
@@ -1965,14 +1887,11 @@ data_test (bool verbose)
     if ( verbose )
         log_debug ("\tUPDATE 'Sensor01'");
     asset = test_asset_new ("Sensor01", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
-    bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
     bios_proto_ext_insert (asset, "port", "%s", "TH1");
     bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "-5.2");
-    bios_proto_ext_insert (asset, "vertical_position", "%s", "bottom");
     bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_RACK01");
     data_asset_store (self, &asset);
@@ -2018,14 +1937,11 @@ data_test (bool verbose)
     if ( verbose )
         log_debug ("\tUPDATE 'Sensor10'");
     asset = test_asset_new ("Sensor10", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
-    bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
     bios_proto_ext_insert (asset, "port", "%s", "TH2");
     bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "-0.16");
-    bios_proto_ext_insert (asset, "vertical_position", "%s", "top");
     bios_proto_ext_insert (asset, "sensor_function", "%s", "output");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_RACK01");
     data_asset_store (self, &asset);
@@ -2048,15 +1964,12 @@ data_test (bool verbose)
     if ( verbose )
         log_debug ("\tUPDATE 'Sensor08'");
     asset = test_asset_new ("Sensor08", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
-    bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
     bios_proto_ext_insert (asset, "port", "%s", "TH4");
     bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "2.0");
     bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "12");
-    bios_proto_ext_insert (asset, "vertical_position", "%s", "middle");
     bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_DC");
     data_asset_store (self, &asset);
@@ -2067,9 +1980,7 @@ data_test (bool verbose)
     if ( verbose )
         log_debug ("\tUPDATE 'Sensor09'");
     asset = test_asset_new ("Sensor09", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
-    bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
     bios_proto_ext_insert (asset, "port", "%s", "TH5");
@@ -2084,9 +1995,7 @@ data_test (bool verbose)
     if ( verbose )
         log_debug ("\tUPDATE 'Sensor04'");
     asset = test_asset_new ("Sensor04", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
-    bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
     bios_proto_ext_insert (asset, "port", "%s", "TH12");
@@ -2102,15 +2011,12 @@ data_test (bool verbose)
     if ( verbose )
         log_debug ("\tUPDATE 'Sensor05'");
     asset = test_asset_new ("Sensor05", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
-    bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
     bios_proto_ext_insert (asset, "port", "%s", "TH13");
     bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "4");
     bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "-6");
-    bios_proto_ext_insert (asset, "vertical_position", "%s", "top");
     bios_proto_ext_insert (asset, "sensor_function", "%s", "output");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_DC");
     data_asset_store (self, &asset);
@@ -2122,9 +2028,7 @@ data_test (bool verbose)
     if ( verbose )
         log_debug ("\tUPDATE 'Sensor06'");
     asset = test_asset_new ("Sensor06", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
-    bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
     bios_proto_ext_insert (asset, "port", "%s", "TH14");
@@ -2141,9 +2045,7 @@ data_test (bool verbose)
     if ( verbose )
         log_debug ("\tUPDATE 'Sensor07'");
     asset = test_asset_new ("Sensor07", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
-    bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
     bios_proto_ext_insert (asset, "port", "%s", "TH15");
@@ -2172,9 +2074,7 @@ data_test (bool verbose)
     if ( verbose )
         log_debug ("\tUPDATE 'Sensor14'");
     asset = test_asset_new ("Sensor14", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent", "%s", "12");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "ups2");
-    bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
     bios_proto_ext_insert (asset, "port", "%s", "TH10");
@@ -2187,9 +2087,7 @@ data_test (bool verbose)
     if ( verbose )
         log_debug ("\tUPDATE 'Sensor15'");
     asset = test_asset_new ("Sensor15", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent", "%s", "11");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
-    bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
     bios_proto_ext_insert (asset, "port", "%s", "TH11");
@@ -2405,9 +2303,7 @@ data_test (bool verbose)
     if ( verbose )
         log_debug ("\tCREATE 'Sensor16' as sensor");
     asset = test_asset_new ("Sensor16", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent", "%s", "13");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "nas rack controller");
-    bios_proto_aux_insert (asset, "status", "%s", "active");
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
     bios_proto_ext_insert (asset, "port", "%s", "TH2");
@@ -2423,7 +2319,6 @@ data_test (bool verbose)
     asset = test_asset_new ("nas rack controller", BIOS_PROTO_ASSET_OP_CREATE); // 12
     bios_proto_aux_insert (asset, "type", "%s", "device");
     bios_proto_aux_insert (asset, "subtype", "%s", "rack controller");
-    bios_proto_aux_insert (asset, "parent", "%s", "5");
     bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01");
     data_asset_store (self, &asset);
     data_reassign_sensors (self, true);
