@@ -242,8 +242,8 @@ data_get_assigned_sensors (
 //  Returns 'false' if some must-have information is missing
 //  Writes to log detailed information "what is missing"
 
-static bool
-s_is_sensor_correct (bios_proto_t *sensor)
+static void
+s_check_sensor_correctness (bios_proto_t *sensor)
 {
     assert (sensor);
     const char *logical_asset = bios_proto_ext_string (sensor, "logical_asset", NULL);
@@ -252,26 +252,22 @@ s_is_sensor_correct (bios_proto_t *sensor)
 
     if (!logical_asset) {
         log_error (
-                "Attribute '%s' is missing from '%s' field of message where asset name = '%s'. "
-                "This message is not stored.",
-                "logical_asset", "ext", bios_proto_name (sensor));
-        return false;
+                "Sensor='%s':Attribute '%s' is missing from '%s' field in the message.",
+                bios_proto_name (sensor), "logical_asset", "ext"); 
+        return;
     }
     if (!parent_name) {
         log_error (
-                "Attribute '%s' is missing from '%s' field of message where asset name = '%s'. "
-                "This message is not stored.",
-                "parent_name.1", "ext", bios_proto_name (sensor));
-        return false;
+                "Sensor='%s':Attribute '%s' is missing from '%s' field in the message.",
+                bios_proto_name (sensor), "parent_name.1", "aux");
+        return;
     }
     if (!port) {
         log_error (
-                "Attribute '%s' is missing from '%s' field of message where asset name = '%s'. "
-                "This message is not stored.",
-                "port", "ext", bios_proto_name (sensor));
-        return false;
+                "Sensor='%s':Attribute '%s' is missing from '%s' field in the message.",
+                bios_proto_name (sensor), "port", "ext");
+        return;
     }
-    return true;
 }
 
 //  --------------------------------------------------------------------------
@@ -312,18 +308,13 @@ data_asset_store (data_t *self, bios_proto_t **message_p)
         }
         // So, we have "device" and it is "sensor"!
         // lets check, that sensor has all necessary information
-        if ( s_is_sensor_correct (message) ) {
-            // So, it is ok -> store it
-            self->is_reconfig_needed = true;
-            zhashx_update (self->all_assets, bios_proto_name (message), (void *) message);
-            *message_p = NULL;
-            return true;
-        } else {
-            // no log message is here, as "s_is_sensor_correct" already wrote all detailed information
-            bios_proto_destroy (message_p);
-            *message_p = NULL;
-            return false;
-        }
+        s_check_sensor_correctness (message);
+        // store it in any case, because we cannot ignore message on UPDATE operation,
+        // and in order to be consistent do not ignore it ere on CREATE operation
+        self->is_reconfig_needed = true;
+        zhashx_update (self->all_assets, bios_proto_name (message), (void *) message);
+        *message_p = NULL;
+        return true;
     } else
     if ( streq (operation, BIOS_PROTO_ASSET_OP_UPDATE) ) {
         if ( !streq (type, "device") ) {
@@ -991,6 +982,15 @@ test6 (bool verbose)
     data_t *self = data_new();
     bios_proto_t *asset = NULL;
 
+    if ( verbose )
+        log_debug ("\tCREATE 'TEST6_RACK' as rack");
+    asset = test_asset_new ("TEST6_RACK", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_aux_insert (asset, "type", "%s", "rack");
+    data_asset_store (self, &asset);
+    assert ( data_is_reconfig_needed (self) == true );
+    data_reassign_sensors (self, true);
+    assert ( data_is_reconfig_needed (self) == false );
+
     if ( verbose ) {
         log_debug ("\tCREATE 'TEST6_SENSOR01' as sensor");
         log_debug ("\t\tlogical_asset is missing");
@@ -1005,7 +1005,7 @@ test6 (bool verbose)
     bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
     // logical_asset missing
     data_asset_store (self, &asset);
-    assert (data_is_reconfig_needed (self) == false);
+    assert (data_is_reconfig_needed (self) == true);
     data_reassign_sensors (self, true);
     assert (data_is_reconfig_needed (self) == false);
 
@@ -1023,7 +1023,7 @@ test6 (bool verbose)
     bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST6_RACK");
     data_asset_store (self, &asset);
-    assert (data_is_reconfig_needed (self) == false);
+    assert (data_is_reconfig_needed (self) == true);
     data_reassign_sensors (self, true);
     assert (data_is_reconfig_needed (self) == false);
 
@@ -1041,7 +1041,7 @@ test6 (bool verbose)
     bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
     bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST6_RACK");
     data_asset_store (self, &asset);
-    assert (data_is_reconfig_needed (self) == false);
+    assert (data_is_reconfig_needed (self) == true);
     data_reassign_sensors (self, true);
     assert (data_is_reconfig_needed (self) == false);
 
