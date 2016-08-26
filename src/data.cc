@@ -288,19 +288,17 @@ data_asset_store (data_t *self, bios_proto_t **message_p)
     const char *operation = bios_proto_operation (message);
     log_debug ("Process message: op='%s', asset_name='%s'", operation, bios_proto_name (message));
     const char *type = bios_proto_aux_string (message, "type", "");
-    const char *subtype = bios_proto_aux_string (message, "subtype", "");
 
-    if (  (streq (type, "device") && !(streq (subtype, "sensor") ) ) ||
-          (streq (type, "group"))
-       )
-    {
-        // We are not interested in the 'device's that are not 'sensor's!
+    // We are interested in the 'device's that are not 'sensor's
+    // to make sure, we can detect situation, when sensor is logically assigned to device, as a wrong one
+    if ( streq (type, "group") ) {
         // and we are not interested in 'groups'
         bios_proto_destroy (message_p);
         *message_p = NULL;
         return false;
     }
 
+    const char *subtype = bios_proto_aux_string (message, "subtype", "");
     if (streq (operation, BIOS_PROTO_ASSET_OP_CREATE) ) {
         if ( !streq (type, "device") ) {
             // So, if NOT "device" is created -> always do reconfiguration
@@ -309,12 +307,15 @@ data_asset_store (data_t *self, bios_proto_t **message_p)
             *message_p = NULL;
             return true;
         }
-        // So, we have "device" and it is "sensor"!
-        // lets check, that sensor has all necessary information
-        s_check_sensor_correctness (message);
-        // store it in any case, because we cannot ignore message on UPDATE operation,
-        // and in order to be consistent do not ignore it ere on CREATE operation
-        self->is_reconfig_needed = true;
+        if ( streq (subtype, "sensor") ) {
+            // lets check, that sensor has all necessary information
+            // So, we have "device" and it is "sensor"!
+            s_check_sensor_correctness (message);
+            // store it in any case, because we cannot ignore message on UPDATE operation,
+            // and in order to be consistent do not ignore it ere on CREATE operation
+            self->is_reconfig_needed = true;
+        }
+        //  device which is not sensor can not impact configuration
         zhashx_update (self->all_assets, bios_proto_name (message), (void *) message);
         *message_p = NULL;
         return true;
@@ -348,13 +349,16 @@ data_asset_store (data_t *self, bios_proto_t **message_p)
             *message_p = NULL;
             return true;
         }
-        // So, we have "device" and it is "sensor"!
-        // lets check, that sensor has all necessary information
-        s_check_sensor_correctness (message);
-        // store it in any case, because we cannot ignore message on UPDATE operation,
-        // Because if we ignore this message -> everything would be configured
-        // with old information which is already obsolete
-        self->is_reconfig_needed = true;
+        if ( streq (subtype, "sensor") ) {
+            // So, we have "device" and it is "sensor"!
+            // lets check, that sensor has all necessary information
+            s_check_sensor_correctness (message);
+            // store it in any case, because we cannot ignore message on UPDATE operation,
+            // Because if we ignore this message -> everything would be configured
+            // with old information which is already obsolete
+            self->is_reconfig_needed = true;
+        }
+        //  device which is not sensor can not impact configuration
         zhashx_update (self->all_assets, bios_proto_name (message), (void *) message);
         *message_p = NULL;
         return true;
@@ -1341,8 +1345,119 @@ test8 (bool verbose)
     assert ( streq(bios_proto_name (item), "TEST8_SENSOR04") );
     zlistx_destroy (&sensors);
 
+    sensors = data_get_assigned_sensors (self, "TEST8_SENSOR03", NULL);
+    assert (sensors == NULL);
+
     data_destroy (&self);
 }
+
+
+static void
+test9 (bool verbose)
+{
+    if ( verbose )
+        log_debug ("Test9: Check that sensor logically assigned to device is skipped on CREATE/UPDATE operation");
+    
+    data_t *self = data_new();
+    bios_proto_t *asset = NULL;
+    zlistx_t *sensors = NULL;
+
+    // Physical topology: 
+    // DC->RACK->UPS->SENSOR01
+    //         ->RC ->SENSOR02
+    if ( verbose )
+        log_debug ("\tCREATE 'TEST9_DC' as datacenter");
+    asset = test_asset_new ("TEST9_DC", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_aux_insert (asset, "type", "%s", "datacenter");
+    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    data_asset_store (self, &asset);
+
+    if ( verbose )
+        log_debug ("\tCREATE 'TEST9_RACK' as rack");
+    asset = test_asset_new ("TEST9_RACK", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST9_DC");
+    bios_proto_aux_insert (asset, "type", "%s", "rack");
+    data_asset_store (self, &asset);
+
+    if ( verbose )
+        log_debug ("\tCREATE 'TEST9_UPS' as ups");
+    asset = test_asset_new ("TEST9_UPS", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST9_RACK");
+    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST9_DC");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "ups");
+    data_asset_store (self, &asset);
+
+    if ( verbose )
+        log_debug ("\tCREATE 'TEST9_RC' as rack controller");
+    asset = test_asset_new ("TEST9_RC", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST9_RACK");
+    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST9_DC");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "rack controller");
+    data_asset_store (self, &asset);
+
+    if ( verbose )
+        log_debug ("\tCREATE 'TEST9_SENSOR01' as sensor");
+    asset = test_asset_new ("TEST9_SENSOR01", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST9_UPS");
+    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST9_RACK");
+    bios_proto_aux_insert (asset, "parent_name.3", "%s", "TEST9_DC");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH1");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "10");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST9_RACK");
+    data_asset_store (self, &asset);
+
+    if ( verbose ) {
+        log_debug ("\tCREATE 'TEST9_SENSOR02' as sensor");
+        log_debug ("\t\tSituation: sensor logically assigned to device");
+    }
+    asset = test_asset_new ("TEST9_SENSOR02", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST9_RC");
+    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST9_RACK");
+    bios_proto_aux_insert (asset, "parent_name.3", "%s", "TEST9_DC");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH2");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "10");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST9_UPS");
+    data_asset_store (self, &asset);
+
+    // test assigned sensors: propagated
+    data_reassign_sensors (self, true);
+    assert ( data_is_reconfig_needed (self) == false );
+
+    sensors = data_get_assigned_sensors (self, "TEST9_DC", NULL);
+    assert ( sensors != NULL );
+    assert (zlistx_size (sensors) == 1);
+    zlistx_destroy (&sensors);
+    
+    sensors = data_get_assigned_sensors (self, "TEST9_RACK", NULL);
+    assert ( sensors != NULL );
+    assert (zlistx_size (sensors) == 1);
+    zlistx_destroy (&sensors);
+ 
+    // test assigned sensors: NOT propagated
+    data_reassign_sensors (self, false);
+    assert ( data_is_reconfig_needed (self) == false );
+
+    sensors = data_get_assigned_sensors (self, "TEST9_DC", NULL);
+    assert ( sensors == NULL );
+
+    sensors = data_get_assigned_sensors (self, "TEST9_RACK", NULL);
+    assert ( sensors != NULL );
+    assert (zlistx_size (sensors) == 1);
+    zlistx_destroy (&sensors);
+
+    data_destroy (&self);
+}
+
+
 
 void
 data_test (bool verbose)
@@ -1520,6 +1635,7 @@ data_test (bool verbose)
     assert (data_is_reconfig_needed (self) == false);
     data_reassign_sensors (self, true);
     assert (data_is_reconfig_needed (self) == false);
+    zlistx_add_end (assets_expected, (void *) "TEST1_RACK01.ups1");
 
     if ( verbose )
         log_debug ("\tCREATE 'TEST1_GROUP' as group");
@@ -1746,8 +1862,8 @@ data_test (bool verbose)
         assert (asset);
         asset = data_asset (self, "TEST1_RACK02");
         assert (asset);
-        asset = data_asset (self, "TEST1_RACK01.ups1"); // should no be stored
-        assert (asset == NULL);
+        asset = data_asset (self, "TEST1_RACK01.ups1");
+        assert (asset);
         asset = data_asset (self, "non-existing-sensor");
         assert (asset == NULL);
         asset = data_asset (self, "TEST1_GROUP"); // should no be stored
@@ -1892,6 +2008,7 @@ data_test (bool verbose)
     assert (data_is_reconfig_needed (self) == false);
     data_reassign_sensors (self, true);
     assert (data_is_reconfig_needed (self) == false);
+    zlistx_add_end (assets_expected, (void *) "ups2");
 
     if ( verbose )
         log_debug ("\tUPDATE 'Sensor01'");
@@ -2125,7 +2242,7 @@ data_test (bool verbose)
         assert (rv == 0);
 
         asset = data_asset (self, "ups2");
-        assert (asset == NULL);
+        assert (asset);
 
         asset = data_asset (self, "This-asset-does-not-exist");
         assert (asset == NULL);
@@ -2334,6 +2451,7 @@ data_test (bool verbose)
     // "true" is expected, because data_reassign_sensors also changes the "is_reconfig_needed"
     // when detailed information about the asset is not known
     assert (data_is_reconfig_needed (self) == true);
+    zlistx_add_end (assets_expected, (void *) "nas rack controller");
 
     printf ("TRACE ---===### (Test block -3-) ###===---\n");
     {
@@ -2398,6 +2516,7 @@ data_test (bool verbose)
     test6 (verbose);
     test7 (verbose);
     test8 (verbose);
+    test9 (verbose);
 
     data_t *newdata = data_new();
     std::set <std::string> newset{"sdlkfj"};
