@@ -66,8 +66,10 @@ c_metric_conf_new (const char* name)
             self->statefile_name = strdup ("");
         if ( self->statefile_name )
             self->configuration_dir = strdup ("");
-        if ( self->configuration_dir )
+        if ( self->configuration_dir ) {
             self->verbose = false;
+            self->is_propagation_needed = true;
+        }
         else
             c_metric_conf_destroy (&self);
     }

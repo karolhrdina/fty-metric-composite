@@ -323,7 +323,8 @@ s_regenerate (c_metric_conf_t *cfg, std::set <std::string> &metrics_unavailable)
         log_error ("data_asset_names () failed");
         return;
     }
-    data_reassign_sensors (data, true);
+    log_debug ("propagation: %s",  cfg->is_propagation_needed ? "true": "false");
+    data_reassign_sensors (data, cfg->is_propagation_needed);
     log_info ("New configuration was deduced");
     const char *asset = (const char *) zlistx_first (assets);
     std::set <std::string> metricsAvailable;
