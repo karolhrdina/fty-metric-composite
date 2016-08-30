@@ -1567,7 +1567,6 @@ test10 (bool verbose)
     
     data_t *self = data_new();
     bios_proto_t *asset = NULL;
-    zlistx_t *sensors = NULL;
 
     if ( verbose )
         log_debug ("\tCREATE 'TEST10_RACK01' as rack");
@@ -1749,6 +1748,306 @@ test10 (bool verbose)
     data_asset_store (self, &asset);
     assert ( data_is_reconfig_needed (self) == false );
 
+    data_destroy (&self);
+}
+
+static void
+test11 (bool verbose)
+{
+    if ( verbose )
+        log_debug ("Test11: Check that UPDATE container will trigger reconfig only if needed");
+    
+    data_t *self = data_new();
+    bios_proto_t *asset = NULL;
+
+    // this one is used in UPDATE operations
+    if ( verbose )
+        log_debug ("\tCREATE 'TEST11_DC_NEW' as datacenter");
+    asset = test_asset_new ("TEST11_DC_NEW", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_aux_insert (asset, "type", "%s", "datacenter");
+    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    data_asset_store (self, &asset);
+
+    if ( verbose )
+        log_debug ("\tCREATE 'TEST11_ROOM_NEW' as room");
+    asset = test_asset_new ("TEST11_ROOM_NEW", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_DC_NEW");
+    bios_proto_aux_insert (asset, "type", "%s", "room");
+    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    data_asset_store (self, &asset);
+
+    if ( verbose )
+        log_debug ("\tCREATE 'TEST11_ROW_NEW' as row");
+    asset = test_asset_new ("TEST11_ROW_NEW", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_ROOM_NEW");
+    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST11_DC_NEW");
+    bios_proto_aux_insert (asset, "type", "%s", "row");
+    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    data_asset_store (self, &asset);
+
+    data_reassign_sensors (self, false); // drop the flag "is reconfiguration needed"
+    assert ( data_is_reconfig_needed (self) == false );
+
+    // DC
+    if ( verbose ) {
+        log_debug ("\tUPDATE 'TEST11_DC' as datacenter");
+        log_debug ("\t\tSituation: UPDATE message came, but CREATE message was missing");
+    }
+    asset = test_asset_new ("TEST11_DC", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "type", "%s", "datacenter");
+    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    data_asset_store (self, &asset);
+    assert ( data_is_reconfig_needed (self) == true );
+    data_reassign_sensors (self, false); // drop the flag "is reconfiguration needed"
+    assert ( data_is_reconfig_needed (self) == false );
+
+    if ( verbose ) {
+        log_debug ("\tUPDATE 'TEST11_DC' as datacenter");
+        log_debug ("\t\tSituation: UPDATE message has the same important info but other different EXT attributes");
+    }
+    asset = test_asset_new ("TEST11_DC", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "type", "%s", "datacenter");
+    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    bios_proto_ext_insert (asset, "notimportant_ext_attribute", "%s", "WOW");
+    data_asset_store (self, &asset);
+    assert ( data_is_reconfig_needed (self) == false );
+
+    if ( verbose ) {
+        log_debug ("\tUPDATE 'TEST11_DC' as datacenter");
+        log_debug ("\t\tSituation: UPDATE message has the same important info but other different AUX attributes");
+    }
+    asset = test_asset_new ("TEST11_DC", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "type", "%s", "datacenter");
+    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    bios_proto_ext_insert (asset, "notimportant_ext_attribute", "%s", "WOW"); // as it was in previous
+    bios_proto_aux_insert (asset, "notimportant_aux_attribute", "%s", "WOW");
+    data_asset_store (self, &asset);
+    assert ( data_is_reconfig_needed (self) == false );
+
+    // ROOM
+    if ( verbose ) {
+        log_debug ("\tUPDATE 'TEST11_ROOM' as room");
+        log_debug ("\t\tSituation: UPDATE message came, but CREATE message was missing");
+    }
+    asset = test_asset_new ("TEST11_ROOM", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_DC");
+    bios_proto_aux_insert (asset, "type", "%s", "room");
+    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    data_asset_store (self, &asset);
+    assert ( data_is_reconfig_needed (self) == true );
+    data_reassign_sensors (self, false); // drop the flag "is reconfiguration needed"
+    assert ( data_is_reconfig_needed (self) == false );
+
+    if ( verbose ) {
+        log_debug ("\tUPDATE 'TEST11_ROOM' as room");
+        log_debug ("\t\tSituation: UPDATE message has the same important info but other different EXT attributes");
+    }
+    asset = test_asset_new ("TEST11_ROOM", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_DC");
+    bios_proto_aux_insert (asset, "type", "%s", "room");
+    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    bios_proto_ext_insert (asset, "notimportant_ext_attribute", "%s", "WOW");
+    data_asset_store (self, &asset);
+    assert ( data_is_reconfig_needed (self) == false );
+
+    if ( verbose ) {
+        log_debug ("\tUPDATE 'TEST11_ROOM' as room");
+        log_debug ("\t\tSituation: UPDATE message has the same important info but other different AUX attributes");
+    }
+    asset = test_asset_new ("TEST11_ROOM", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_DC");
+    bios_proto_aux_insert (asset, "type", "%s", "room");
+    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    bios_proto_ext_insert (asset, "notimportant_ext_attribute", "%s", "WOW"); // as it was in previous
+    bios_proto_aux_insert (asset, "notimportant_aux_attribute", "%s", "WOW");
+    data_asset_store (self, &asset);
+    assert ( data_is_reconfig_needed (self) == false );
+
+    if ( verbose ) {
+        log_debug ("\tUPDATE 'TEST11_ROOM' as room");
+        log_debug ("\t\tSituation: UPDATE message not important info ('parent_name.1') changed");
+    }
+    asset = test_asset_new ("TEST11_ROOM", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_DC_NEW");
+    bios_proto_aux_insert (asset, "type", "%s", "room");
+    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    bios_proto_ext_insert (asset, "notimportant_ext_attribute", "%s", "WOW"); // as it was in previous
+    bios_proto_aux_insert (asset, "notimportant_aux_attribute", "%s", "WOW"); // as it was in previous
+    data_asset_store (self, &asset);
+    assert ( data_is_reconfig_needed (self) == true );
+    data_reassign_sensors (self, false); // drop the flag "is reconfiguration needed"
+    assert ( data_is_reconfig_needed (self) == false );
+
+    // ROW
+    if ( verbose ) {
+        log_debug ("\tUPDATE 'TEST11_ROW' as row");
+        log_debug ("\t\tSituation: UPDATE message came, but CREATE message was missing");
+    }
+    asset = test_asset_new ("TEST11_ROW", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_ROOM");
+    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST11_DC");
+    bios_proto_aux_insert (asset, "type", "%s", "row");
+    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    data_asset_store (self, &asset);
+    assert ( data_is_reconfig_needed (self) == true );
+    data_reassign_sensors (self, false); // drop the flag "is reconfiguration needed"
+    assert ( data_is_reconfig_needed (self) == false );
+
+    if ( verbose ) {
+        log_debug ("\tUPDATE 'TEST11_ROW' as row");
+        log_debug ("\t\tSituation: UPDATE message has the same important info but other different EXT attributes");
+    }
+    asset = test_asset_new ("TEST11_ROW", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_ROOM");
+    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST11_DC");
+    bios_proto_aux_insert (asset, "type", "%s", "row");
+    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    bios_proto_ext_insert (asset, "notimportant_ext_attribute", "%s", "WOW");
+    data_asset_store (self, &asset);
+    assert ( data_is_reconfig_needed (self) == false );
+
+    if ( verbose ) {
+        log_debug ("\tUPDATE 'TEST11_ROW' as row");
+        log_debug ("\t\tSituation: UPDATE message has the same important info but other different AUX attributes");
+    }
+    asset = test_asset_new ("TEST11_ROW", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_ROOM");
+    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST11_DC");
+    bios_proto_aux_insert (asset, "type", "%s", "row");
+    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    bios_proto_ext_insert (asset, "notimportant_ext_attribute", "%s", "WOW"); // as it was in previous
+    bios_proto_aux_insert (asset, "notimportant_aux_attribute", "%s", "WOW");
+    data_asset_store (self, &asset);
+    assert ( data_is_reconfig_needed (self) == false );
+
+    if ( verbose ) {
+        log_debug ("\tUPDATE 'TEST11_ROW' as row");
+        log_debug ("\t\tSituation: UPDATE message not important info ('parent_name.1') changed");
+    }
+    asset = test_asset_new ("TEST11_ROW", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_ROOM_NEW");
+    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST11_DC");
+    bios_proto_aux_insert (asset, "type", "%s", "row");
+    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    bios_proto_ext_insert (asset, "notimportant_ext_attribute", "%s", "WOW"); // as it was in previous
+    bios_proto_aux_insert (asset, "notimportant_aux_attribute", "%s", "WOW"); // as it was in previous
+    data_asset_store (self, &asset);
+    assert ( data_is_reconfig_needed (self) == true );
+    data_reassign_sensors (self, false); // drop the flag "is reconfiguration needed"
+    assert ( data_is_reconfig_needed (self) == false );
+
+    if ( verbose ) {
+        log_debug ("\tUPDATE 'TEST11_ROW' as row");
+        log_debug ("\t\tSituation: UPDATE message not important info ('parent_name.2') changed");
+    }
+    asset = test_asset_new ("TEST11_ROW", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_ROOM_NEW");
+    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST11_DC_NEW");
+    bios_proto_aux_insert (asset, "type", "%s", "row");
+    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    bios_proto_ext_insert (asset, "notimportant_ext_attribute", "%s", "WOW"); // as it was in previous
+    bios_proto_aux_insert (asset, "notimportant_aux_attribute", "%s", "WOW"); // as it was in previous
+    data_asset_store (self, &asset);
+    assert ( data_is_reconfig_needed (self) == true );
+    data_reassign_sensors (self, false); // drop the flag "is reconfiguration needed"
+    assert ( data_is_reconfig_needed (self) == false );
+
+    // RACK
+    if ( verbose ) {
+        log_debug ("\tUPDATE 'TEST11_RACK' as rack");
+        log_debug ("\t\tSituation: UPDATE message came, but CREATE message was missing");
+    }
+    asset = test_asset_new ("TEST11_RACK", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_ROW");
+    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST11_ROOM");
+    bios_proto_aux_insert (asset, "parent_name.3", "%s", "TEST11_DC");
+    bios_proto_aux_insert (asset, "type", "%s", "rack");
+    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    data_asset_store (self, &asset);
+    assert ( data_is_reconfig_needed (self) == true );
+    data_reassign_sensors (self, false); // drop the flag "is reconfiguration needed"
+    assert ( data_is_reconfig_needed (self) == false );
+   
+    if ( verbose ) {
+        log_debug ("\tUPDATE 'TEST11_RACK' as rack");
+        log_debug ("\t\tSituation: UPDATE message has the same important info but other different EXT attributes");
+    }
+    asset = test_asset_new ("TEST11_RACK", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_ROW");
+    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST11_ROOM");
+    bios_proto_aux_insert (asset, "parent_name.3", "%s", "TEST11_DC");
+    bios_proto_aux_insert (asset, "type", "%s", "rack");
+    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    bios_proto_ext_insert (asset, "notimportant_ext_attribute", "%s", "WOW");
+    data_asset_store (self, &asset);
+    assert ( data_is_reconfig_needed (self) == false );
+
+    if ( verbose ) {
+        log_debug ("\tUPDATE 'TEST11_RACK' as rack");
+        log_debug ("\t\tSituation: UPDATE message has the same important info but other different AUX attributes");
+    }
+    asset = test_asset_new ("TEST11_RACK", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_ROW");
+    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST11_ROOM");
+    bios_proto_aux_insert (asset, "parent_name.3", "%s", "TEST11_DC");
+    bios_proto_aux_insert (asset, "type", "%s", "rack");
+    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    bios_proto_ext_insert (asset, "notimportant_ext_attribute", "%s", "WOW"); // as it was in previous
+    bios_proto_aux_insert (asset, "notimportant_aux_attribute", "%s", "WOW");
+    data_asset_store (self, &asset);
+    assert ( data_is_reconfig_needed (self) == false );
+
+    if ( verbose ) {
+        log_debug ("\tUPDATE 'TEST11_RACK' as rack");
+        log_debug ("\t\tSituation: UPDATE message not important info ('parent_name.1') changed");
+    }
+    asset = test_asset_new ("TEST11_RACK", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_ROW_NEW");
+    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST11_ROOM");
+    bios_proto_aux_insert (asset, "parent_name.3", "%s", "TEST11_DC");
+    bios_proto_aux_insert (asset, "type", "%s", "rack");
+    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    bios_proto_ext_insert (asset, "notimportant_ext_attribute", "%s", "WOW"); // as it was in previous
+    bios_proto_aux_insert (asset, "notimportant_aux_attribute", "%s", "WOW"); // as it was in previous
+    data_asset_store (self, &asset);
+    assert ( data_is_reconfig_needed (self) == true );
+    data_reassign_sensors (self, false); // drop the flag "is reconfiguration needed"
+    assert ( data_is_reconfig_needed (self) == false );
+
+    if ( verbose ) {
+        log_debug ("\tUPDATE 'TEST11_RACK' as rack");
+        log_debug ("\t\tSituation: UPDATE message not important info ('parent_name.2') changed");
+    }
+    asset = test_asset_new ("TEST11_RACK", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_ROW_NEW");
+    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST11_ROOM_NEW");
+    bios_proto_aux_insert (asset, "parent_name.3", "%s", "TEST11_DC");
+    bios_proto_aux_insert (asset, "type", "%s", "rack");
+    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    bios_proto_ext_insert (asset, "notimportant_ext_attribute", "%s", "WOW"); // as it was in previous
+    bios_proto_aux_insert (asset, "notimportant_aux_attribute", "%s", "WOW"); // as it was in previous
+    data_asset_store (self, &asset);
+    assert ( data_is_reconfig_needed (self) == true );
+    data_reassign_sensors (self, false); // drop the flag "is reconfiguration needed"
+    assert ( data_is_reconfig_needed (self) == false );
+
+    if ( verbose ) {
+        log_debug ("\tUPDATE 'TEST11_RACK' as rack");
+        log_debug ("\t\tSituation: UPDATE message not important info ('parent_name.3') changed");
+    }
+    asset = test_asset_new ("TEST11_RACK", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_ROW_NEW");
+    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST11_ROOM_NEW");
+    bios_proto_aux_insert (asset, "parent_name.3", "%s", "TEST11_DC_NEW");
+    bios_proto_aux_insert (asset, "type", "%s", "rack");
+    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    bios_proto_ext_insert (asset, "notimportant_ext_attribute", "%s", "WOW"); // as it was in previous
+    bios_proto_aux_insert (asset, "notimportant_aux_attribute", "%s", "WOW"); // as it was in previous
+    data_asset_store (self, &asset);
+    assert ( data_is_reconfig_needed (self) == true );
+    data_reassign_sensors (self, false); // drop the flag "is reconfiguration needed"
+    assert ( data_is_reconfig_needed (self) == false );
+   
     data_destroy (&self);
 }
 
@@ -2812,6 +3111,7 @@ data_test (bool verbose)
     test8 (verbose);
     test9 (verbose);
     test10(verbose);
+    test11(verbose);
 
     data_t *newdata = data_new();
     std::set <std::string> newset{"sdlkfj"};
