@@ -275,6 +275,73 @@ s_check_sensor_correctness (bios_proto_t *sensor)
     }
 }
 
+static bool
+s_check_container_info_changed (bios_proto_t *asset_old, bios_proto_t *asset_new)
+{
+    // BIOS-2484: start
+    // update of the asset should trigger reconfiguration if topology changed
+    // if asset is known we need to check, if physical topology had changed
+    // Actually, the chain is: dc-room-row-rack-device-device -> max 5 level parents can be
+    // But here, we start from rack -> only 3 level is available at maximum
+    if ( !streq (bios_proto_aux_string (asset_old,   "parent_name.1", ""),
+                 bios_proto_aux_string (asset_new, "parent_name.1", ""))
+        )
+    {
+        return true;
+    }
+    if ( !streq (bios_proto_aux_string (asset_old,   "parent_name.2", ""),
+                 bios_proto_aux_string (asset_new, "parent_name.2", ""))
+        )
+    {
+        return true;
+    }
+    if ( !streq (bios_proto_aux_string (asset_old,   "parent_name.3", ""),
+                 bios_proto_aux_string (asset_new, "parent_name.3", ""))
+        )
+    {
+        return true;
+    }
+    return false;
+    // BIOS-2484: end
+}
+
+static bool
+s_check_sensor_info_changed (bios_proto_t *asset_old, bios_proto_t *asset_new)
+{
+    if ( !streq (bios_proto_ext_string (asset_old, "logical_asset", ""),
+                 bios_proto_ext_string (asset_new, "logical_asset", ""))
+        )
+    {
+        return true;
+    }
+    if ( !streq (bios_proto_ext_string (asset_old, "port", ""),
+                 bios_proto_ext_string (asset_new, "port", ""))
+        )
+    {
+        return true;
+    }
+    if ( !streq (bios_proto_ext_string (asset_old, "calibration_offset_t", ""),
+                 bios_proto_ext_string (asset_new, "calibration_offset_t", ""))
+        )
+    {
+        return true;
+    }
+    if ( !streq (bios_proto_ext_string (asset_old, "calibration_offset_h", ""),
+                 bios_proto_ext_string (asset_new, "calibration_offset_h", ""))
+        )
+    {
+        return true;
+    }
+    if ( !streq (bios_proto_ext_string (asset_old, "sensor_function", ""),
+                 bios_proto_ext_string (asset_new, "sensor_function", ""))
+        )
+    {
+        return true;
+    }
+    // TODO add sensor driver when it would be needed
+    return false;
+}
+
 //  --------------------------------------------------------------------------
 //  Store asset, takes ownership of the message
 
@@ -330,21 +397,9 @@ data_asset_store (data_t *self, bios_proto_t **message_p)
                 self->is_reconfig_needed = true;
             }
             else {
-                // BIOS-2484: start update of the asset should trigger reconfiguration if topology changed
-                // if asset is known we need to check, if physical topology had changed
-                // Actually, the chain is: dc-room-row-rack-device-device -> max 5 level parents can be
-                // But here, we start from rack -> only 3 level is available at maximum
-                if ( !streq (bios_proto_aux_string (asset,   "parent_name.1", ""),
-                             bios_proto_aux_string (message, "parent_name.1", "")) ||
-                     !streq (bios_proto_aux_string (asset,   "parent_name.2", ""),
-                             bios_proto_aux_string (message, "parent_name.2", "")) ||
-                     !streq (bios_proto_aux_string (asset,   "parent_name.3", ""),
-                             bios_proto_aux_string (message, "parent_name.3", ""))
-                   )
-                {
+                if ( s_check_container_info_changed (asset, message) ) {
                     self->is_reconfig_needed = true;
                 }
-                // BIOS-2484: end
             }
         } else
         if ( streq (subtype, "sensor") ) {
@@ -354,7 +409,18 @@ data_asset_store (data_t *self, bios_proto_t **message_p)
             // store it in any case, because we cannot ignore message on UPDATE operation,
             // Because if we ignore this message -> everything would be configured
             // with old information which is already obsolete
-            self->is_reconfig_needed = true;
+            
+            // do reconfiguration only if important info changes
+            // Look for the asset
+            bios_proto_t *asset = (bios_proto_t*) zhashx_lookup (self->all_assets, bios_proto_name (message));
+            if ( asset == NULL ) { // if it not known (for any reason)
+                self->is_reconfig_needed = true;
+            }
+            else {
+                if ( s_check_sensor_info_changed (asset, message) ) {
+                    self->is_reconfig_needed = true;
+                }
+            }
         } else {
             // intentionally left empty
             // here we are if message is for "group" or any "device" other than "sensor"
@@ -1493,7 +1559,198 @@ test9 (bool verbose)
     data_destroy (&self);
 }
 
+static void
+test10 (bool verbose)
+{
+    if ( verbose )
+        log_debug ("Test10: Check that UPDATE sensor will trigger reconfig only if needed");
+    
+    data_t *self = data_new();
+    bios_proto_t *asset = NULL;
+    zlistx_t *sensors = NULL;
 
+    if ( verbose )
+        log_debug ("\tCREATE 'TEST10_RACK01' as rack");
+    asset = test_asset_new ("TEST10_RACK01", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_aux_insert (asset, "type", "%s", "rack");
+    data_asset_store (self, &asset);
+
+    if ( verbose )
+        log_debug ("\tCREATE 'TEST10_RACK02' as rack");
+    asset = test_asset_new ("TEST10_RACK02", BIOS_PROTO_ASSET_OP_CREATE);
+    bios_proto_aux_insert (asset, "type", "%s", "rack");
+    data_asset_store (self, &asset);
+    data_reassign_sensors (self, false); // drop the flag "is reconfiguration needed"
+    assert ( data_is_reconfig_needed (self) == false );
+
+    if ( verbose ) {
+        log_debug ("\tUPDATE 'TEST10_SENSOR01' as sensor");
+        log_debug ("\t\tSituation: UPDATE message came, but CREATE message was missing");
+    }
+    asset = test_asset_new ("TEST10_SENSOR01", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST10_UPS");
+    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST10_DC");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH1");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "10");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST10_RACK01");
+    data_asset_store (self, &asset);
+    assert ( data_is_reconfig_needed (self) == true );
+    data_reassign_sensors (self, false); // drop the flag "is reconfiguration needed"
+    assert ( data_is_reconfig_needed (self) == false );
+    
+    if ( verbose ) {
+        log_debug ("\tUPDATE 'TEST10_SENSOR01' as sensor");
+        log_debug ("\t\tSituation: UPDATE message has the same important info but other different EXT attributes");
+    }
+    asset = test_asset_new ("TEST10_SENSOR01", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST10_UPS");
+    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST10_DC");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH1");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "10");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST10_RACK01");
+    bios_proto_ext_insert (asset, "notimportant_ext_attribute", "%s", "WOW");
+    data_asset_store (self, &asset);
+    assert ( data_is_reconfig_needed (self) == false );
+
+    if ( verbose ) {
+        log_debug ("\tUPDATE 'TEST10_SENSOR01' as sensor");
+        log_debug ("\t\tSituation: UPDATE message has the same important info but other different AUX attributes");
+    }
+    asset = test_asset_new ("TEST10_SENSOR01", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST10_UPS");
+    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST10_DC");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_aux_insert (asset, "notimportant_aux_attribute", "%s", "WOW");
+    bios_proto_ext_insert (asset, "port", "%s", "TH1");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "10");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST10_RACK01");
+    data_asset_store (self, &asset);
+    assert ( data_is_reconfig_needed (self) == false );
+
+    if ( verbose ) {
+        log_debug ("\tUPDATE 'TEST10_SENSOR01' as sensor");
+        log_debug ("\t\tSituation: UPDATE message important info ('port') changed");
+    }
+    asset = test_asset_new ("TEST10_SENSOR01", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST10_UPS");
+    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST10_DC");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH2");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "10");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST10_RACK01");
+    data_asset_store (self, &asset);
+    assert ( data_is_reconfig_needed (self) == true );
+    data_reassign_sensors (self, false); // drop the flag "is reconfiguration needed"
+    assert ( data_is_reconfig_needed (self) == false );
+
+    if ( verbose ) {
+        log_debug ("\tUPDATE 'TEST10_SENSOR01' as sensor");
+        log_debug ("\t\tSituation: UPDATE message important info ('logical_asset') changed");
+    }
+    asset = test_asset_new ("TEST10_SENSOR01", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST10_UPS");
+    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST10_DC");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH2");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "10");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST10_RACK02");
+    data_asset_store (self, &asset);
+    assert ( data_is_reconfig_needed (self) == true );
+    data_reassign_sensors (self, false); // drop the flag "is reconfiguration needed"
+    assert ( data_is_reconfig_needed (self) == false );
+
+    if ( verbose ) {
+        log_debug ("\tUPDATE 'TEST10_SENSOR01' as sensor");
+        log_debug ("\t\tSituation: UPDATE message important info ('calibration_offset_h') changed");
+    }
+    asset = test_asset_new ("TEST10_SENSOR01", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST10_UPS");
+    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST10_DC");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH2");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "100");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST10_RACK02");
+    data_asset_store (self, &asset);
+    assert ( data_is_reconfig_needed (self) == true );
+    data_reassign_sensors (self, false); // drop the flag "is reconfiguration needed"
+    assert ( data_is_reconfig_needed (self) == false );
+
+    if ( verbose ) {
+        log_debug ("\tUPDATE 'TEST10_SENSOR01' as sensor");
+        log_debug ("\t\tSituation: UPDATE message important info ('calibration_offset_t') changed");
+    }
+    asset = test_asset_new ("TEST10_SENSOR01", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST10_UPS");
+    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST10_DC");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH2");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "10");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "100");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST10_RACK02");
+    data_asset_store (self, &asset);
+    assert ( data_is_reconfig_needed (self) == true );
+    data_reassign_sensors (self, false); // drop the flag "is reconfiguration needed"
+    assert ( data_is_reconfig_needed (self) == false );
+
+    if ( verbose ) {
+        log_debug ("\tUPDATE 'TEST10_SENSOR01' as sensor");
+        log_debug ("\t\tSituation: UPDATE message important info ('sensor_function') changed");
+    }
+    asset = test_asset_new ("TEST10_SENSOR01", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST10_UPS");
+    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST10_DC");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH2");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "10");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "100");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "output");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST10_RACK02");
+    data_asset_store (self, &asset);
+    assert ( data_is_reconfig_needed (self) == true );
+    data_reassign_sensors (self, false); // drop the flag "is reconfiguration needed"
+    assert ( data_is_reconfig_needed (self) == false );
+
+    if ( verbose ) {
+        log_debug ("\tUPDATE 'TEST10_SENSOR01' as sensor");
+        log_debug ("\t\tSituation: UPDATE message not important info ('parent_name.1') changed");
+    }
+    asset = test_asset_new ("TEST10_SENSOR01", BIOS_PROTO_ASSET_OP_UPDATE);
+    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST10_DC");
+    bios_proto_aux_insert (asset, "type", "%s", "device");
+    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    bios_proto_ext_insert (asset, "port", "%s", "TH2");
+    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "10");
+    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "100");
+    bios_proto_ext_insert (asset, "sensor_function", "%s", "output");
+    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST10_RACK02");
+    data_asset_store (self, &asset);
+    assert ( data_is_reconfig_needed (self) == false );
+
+    data_destroy (&self);
+}
 
 void
 data_test (bool verbose)
@@ -1522,7 +1779,7 @@ data_test (bool verbose)
 
     //  =================================================================
     if ( verbose )
-        log_debug ("Test2: data_asset_store()/data_reassign_needed()/data_is_reconfig_needed() for CREATE operation");
+        log_debug ("Test2: data_asset_store()/data_is_reconfig_needed()/data_is_reconfig_needed() for CREATE operation");
     // asset
     zlistx_t *assets_expected = zlistx_new ();
     zlistx_set_destructor (assets_expected, (czmq_destructor *) zstr_free);
@@ -2554,6 +2811,7 @@ data_test (bool verbose)
     test7 (verbose);
     test8 (verbose);
     test9 (verbose);
+    test10(verbose);
 
     data_t *newdata = data_new();
     std::set <std::string> newset{"sdlkfj"};
