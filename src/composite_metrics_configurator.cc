@@ -153,10 +153,10 @@ int main (int argc, char *argv [])
 
     // Set default state file on empty
     if (!state_file) {
-        state_file = (char *) STATE_FILE;
+        state_file = strdup (STATE_FILE);
     }
     if (!output_dir) {
-        output_dir = (char *) DIRECTORY;
+        output_dir = strdup (DIRECTORY);
     }
     log_debug ("state file == '%s'", state_file ? state_file : "(null)");
     log_debug ("output_dir == '%s'", output_dir ? output_dir : "(null)");
