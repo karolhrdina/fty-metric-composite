@@ -121,25 +121,32 @@ void bios_composite_metrics_server (zsock_t *pipe, void* args) {
                 if (verbose)
                     zsys_debug ("%s: Opening '%s'", name, filename);
                 cxxtools::JsonDeserializer json(f);
-                json.deserialize();
+                try {
+                    json.deserialize();
+                    const cxxtools::SerializationInfo *si = json.si();
+                    si->getMember("evaluation") >>= lua_code;
 
-                const cxxtools::SerializationInfo *si = json.si();
-                si->getMember("evaluation") >>= lua_code;
-
-                // Subscribe to all streams, create expired values in cache
-                value expired;
-                expired.valid_till = 0;
-                for(auto it : si->getMember("in")) {
-                    std::string buff;
-                    it >>= buff;
-                    cache[buff] = expired;
-                    buff = "^" + escape_regex (buff) + "$";
-                    mlm_client_set_consumer(client, "_METRICS_SENSOR", buff.c_str());
-                    if (verbose)
-                        zsys_debug("%s: Registered to receive '%s' from stream '%s'", name, buff.c_str(), "_METRICS_SENSOR");
+                    // Subscribe to all streams, create expired values in cache
+                    value expired;
+                    expired.valid_till = 0;
+                    for(auto it : si->getMember("in")) {
+                        std::string buff;
+                        it >>= buff;
+                        cache[buff] = expired;
+                        buff = "^" + escape_regex (buff) + "$";
+                        mlm_client_set_consumer(client, "_METRICS_SENSOR", buff.c_str());
+                        if (verbose)
+                            zsys_debug("%s: Registered to receive '%s' from stream '%s'", name, buff.c_str(), "_METRICS_SENSOR");
+                    }
+                    zstr_free (&filename);
+                    phase = 2;
                 }
-                zstr_free (&filename);
-                phase = 2;
+                catch ( const std::exception &e ) {
+                    zsys_error ("Cannot deserialize cfg file! with '%s'", e.what());
+                    zstr_free (&cmd);
+                    zmsg_destroy (&msg);
+                    break; // if we cannot load config file -> just exit!
+                }
             }
             zstr_free (&cmd);
             zmsg_destroy (&msg);
