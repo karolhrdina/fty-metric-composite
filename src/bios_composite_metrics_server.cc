@@ -117,11 +117,18 @@ void bios_composite_metrics_server (zsock_t *pipe, void* args) {
                     continue;
                 }
                 char* filename = zmsg_popstr (msg);
-                std::ifstream f(filename);
                 if (verbose)
-                    zsys_debug ("%s: Opening '%s'", name, filename);
-                cxxtools::JsonDeserializer json(f);
+                    zsys_debug ("%s:\tOpening '%s'", name, filename);
+                std::ifstream f(filename);
+                if ( !f.good() ) {
+                    zsys_error ("%s:\tCannot open config file '%s' correctly", name, filename);
+                    zstr_free (&filename);
+                    zstr_free (&cmd);
+                    zmsg_destroy (&msg);
+                    break; // if we cannot open config file -> just exit!
+                }
                 try {
+                    cxxtools::JsonDeserializer json(f);
                     json.deserialize();
                     const cxxtools::SerializationInfo *si = json.si();
                     si->getMember("evaluation") >>= lua_code;
@@ -143,6 +150,7 @@ void bios_composite_metrics_server (zsock_t *pipe, void* args) {
                 }
                 catch ( const std::exception &e ) {
                     zsys_error ("Cannot deserialize cfg file! with '%s'", e.what());
+                    zstr_free (&filename);
                     zstr_free (&cmd);
                     zmsg_destroy (&msg);
                     break; // if we cannot load config file -> just exit!
