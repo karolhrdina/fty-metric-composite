@@ -170,8 +170,8 @@ int main (int argc, char *argv [])
     zstr_sendx (server,  "CFG_DIRECTORY", output_dir, NULL);
     zstr_sendx (server,  "LOAD", NULL);
     zstr_sendx (server,  "CONNECT", ENDPOINT, NULL);
-    zstr_sendx (server,  "CONSUMER", BIOS_PROTO_STREAM_ASSETS, ".*", NULL);
     zstr_sendx (server,  "PRODUCER", "_METRICS_UNAVAILABLE", NULL);
+    zstr_sendx (server,  "CONSUMER", BIOS_PROTO_STREAM_ASSETS, ".*", NULL);
 
     zloop_t *check_configuration_trigger = zloop_new();
     // one in a minute
