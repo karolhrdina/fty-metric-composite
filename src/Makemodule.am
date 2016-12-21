@@ -71,7 +71,7 @@ src_fty_metric_composite_SOURCES = src/fty_metric_composite.cc
 src_fty_metric_composite_config_DATA = src/fty-metric-composite.cfg
 src_fty_metric_composite_configdir = $(sysconfdir)/fty-metric-composite
 if WITH_SYSTEMD_UNITS
-systemdsystemunit_DATA += src/fty-metric-composite.service
+systemdsystemunit_DATA += src/fty-metric-composite@.service
 endif #WITH_SYSTEMD_UNITS
 endif #ENABLE_FTY_METRIC_COMPOSITE
 
