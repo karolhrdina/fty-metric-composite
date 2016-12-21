@@ -1,5 +1,5 @@
 /*  =========================================================================
-    composite_metrics_configurator - Metrics calculator configurator
+    fty_metric_composite_configurator - Metrics calculator configurator
 
     Copyright (C) 2014 - 2015 Eaton
 
@@ -21,18 +21,18 @@
 
 /*
 @header
-    composite_metrics_configurator - Metrics calculator configurator
+    fty_metric_composite_configurator - Metrics calculator configurator
 @discuss
 @end
 */
 
 #include <getopt.h>
 
-#include "composite_metrics_classes.h"
+#include "fty_metric_composite_classes.h"
 
 #define str(x) #x
 
-static const char *AGENT_NAME = "composite-metrics-configurator";
+static const char *AGENT_NAME = "fty-metric-composite-configurator";
 static const char *ENDPOINT = "ipc://@/malamute";
 static const char *DIRECTORY = "/var/lib/bios/composite-metrics";
 static const char *STATE_FILE = "/var/lib/bios/composite-metrics/configurator_state_file";
@@ -40,7 +40,7 @@ static const char *STATE_FILE = "/var/lib/bios/composite-metrics/configurator_st
 #define DEFAULT_LOG_LEVEL LOG_WARNING
 
 void usage () {
-    puts ("bios-agent-rt [options] ...\n"
+    puts ("fty-metric-composite-configurator [options] ...\n"
           "  --log-level / -l       bios log level\n"
           "                         overrides setting in env. variable BIOS_LOG_LEVEL\n"
           "  --output-dir / -s      directory, where configuration files would be created (directory MUST exist)\n"
@@ -53,7 +53,7 @@ static int
 s_timer_event (zloop_t *loop, int timer_id, void *output)
 {
     char *env = getenv ("BIOS_DO_SENSOR_PROPAGATION");
-    if ( env == NULL )
+    if (env == NULL)
         zstr_sendx (output, "IS_PROPAGATION_NEEDED", "true", NULL);
     else
         zstr_sendx (output, "IS_PROPAGATION_NEEDED", env, NULL);
@@ -161,9 +161,9 @@ int main (int argc, char *argv [])
     log_debug ("state file == '%s'", state_file ? state_file : "(null)");
     log_debug ("output_dir == '%s'", output_dir ? output_dir : "(null)");
 
-    zactor_t *server = zactor_new (bios_composite_metrics_configurator_server, (void *) AGENT_NAME);
+    zactor_t *server = zactor_new (fty_metric_composite_configurator_server, (void *) AGENT_NAME);
     if (!server) {
-        log_critical ("zactor_new (task = 'bios_composite_metrics_configurator_server', args = 'NULL') failed");
+        log_critical ("zactor_new (task = 'fty_metric_composite_configurator_server', args = 'NULL') failed");
         return EXIT_FAILURE;
     }
     zstr_sendx (server,  "STATE_FILE", state_file, NULL);
@@ -171,7 +171,7 @@ int main (int argc, char *argv [])
     zstr_sendx (server,  "LOAD", NULL);
     zstr_sendx (server,  "CONNECT", ENDPOINT, NULL);
     zstr_sendx (server,  "PRODUCER", "_METRICS_UNAVAILABLE", NULL);
-    zstr_sendx (server,  "CONSUMER", BIOS_PROTO_STREAM_ASSETS, ".*", NULL);
+    zstr_sendx (server,  "CONSUMER", FTY_PROTO_STREAM_ASSETS, ".*", NULL);
 
     zloop_t *check_configuration_trigger = zloop_new();
     // one in a minute

@@ -32,16 +32,15 @@
         />
 
     <use project = "lua" libname = "lua" prefix = "lua"
-        min_major = "5" min_minor = "1" min_patch = "0"
-        repository = "https://github.com/lua/lua"
-        includename = "lua"
-        debian_name = "liblua5.1-0-dev"
+        min_major = "5" min_minor = "1" mit_patch = "0"
+        debian_name="liblua5.1-0-dev"
         test = "lua_close"
         />
 
+
+    <class name = "actor commands"              private = "1">actor commands</class>
     <class name = "logger"                      private = "1">logging api</class>
     <class name = "subprocess"                  private = "1">C++ Wrapper around cxxtools::Fork</class>
-    <class name = "actor commands"              private = "1">actor commands</class>
     <class name = "data"                        private = "1">composite metrics data structure</class>
     <class name = "proto-metric-unavailable"    private = "1">metric unavailable protocol send part</class>
     <class name = "c_metric_conf"               private = "1">structure that represents current start of composite-metrics-configurator</class>

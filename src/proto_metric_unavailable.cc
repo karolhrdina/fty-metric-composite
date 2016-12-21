@@ -26,7 +26,7 @@
 @end
 */
 
-#include "composite_metrics_classes.h"
+#include "fty_metric_composite_classes.h"
 
 //  --------------------------------------------------------------------------
 //  Send metric unavailable protocol message

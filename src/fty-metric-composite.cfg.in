@@ -1,4 +1,4 @@
-#   composite-metrics configuration
+#   fty-metric-composite configuration
 
 server
     timeout = 10000     #   Client connection timeout, msec

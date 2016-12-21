@@ -1,5 +1,5 @@
 [Unit]
-Description=composite-metrics-configurator service
+Description=fty-metric-composite-configurator service
 Requires=malamute.service
 After=malamute.service
 PartOf=bios.target
@@ -8,11 +8,11 @@ PartOf=bios.target
 Type=simple
 User=bios
 EnvironmentFile=-/usr/share/bios/etc/default/bios
-EnvironmentFile=-/usr/share/bios/etc/default/bios__%n.conf
+EnvironmentFile=-/usr/share/bios/etc/default/fty__%n.conf
 EnvironmentFile=-/etc/default/bios
-EnvironmentFile=-/etc/default/bios__composite-metrics__%i.conf
+EnvironmentFile=-/etc/default/fty__fty-metric-composite__%i.conf
 Environment="prefix=@prefix@"
-ExecStart=@prefix@/bin/composite-metrics-configurator
+ExecStart=@prefix@/bin/fty-metric-composite-configurator 
 Restart=always
 
 [Install]

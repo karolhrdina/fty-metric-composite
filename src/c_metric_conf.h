@@ -27,56 +27,68 @@
 extern "C" {
 #endif
 
-// It is a configurator entiry entity
-// TODO: Temporary it is here
-struct _c_metric_conf_t {
-    bool verbose;           // is server verbose or not
-    char *name;             // server name
-    data_t *asset_data;     // asset data
-    mlm_client_t *client;   // malamute client
-    char *statefile_name;   // state file name
-    char *configuration_dir;// directory, where all configuration file would be stored
-    bool is_propagation_needed;// specify, if sensors should be propagated in physical topology or not
-};
-
 typedef struct _c_metric_conf_t c_metric_conf_t;
 
 //  @interface
 //  Create a new empty configuration
-COMPOSITE_METRICS_EXPORT c_metric_conf_t *
+FTY_METRIC_COMPOSITE_EXPORT c_metric_conf_t *
     c_metric_conf_new (const char *name);
 
-//  Get state file fullpath or empty string if not set
-COMPOSITE_METRICS_EXPORT const char *
-    c_metric_conf_statefile (c_metric_conf_t *self);
+//  Get server name
+FTY_METRIC_COMPOSITE_EXPORT const char *
+    c_metric_conf_name (c_metric_conf_t *self);
 
-//  Set up the physical propagation of sensors
-//   true -> do propagate sensors in physical topology
-//   false -> do NOT propagate sensors in physical topology
-COMPOSITE_METRICS_EXPORT void
-    c_metric_conf_set_proparation (c_metric_conf_t *self, bool is_propagation_needed);
+/*
+//  Get data
+FTY_METRIC_COMPOSITE_EXPORT data_t *
+    c_metric_conf_data (c_metric_conf_t *self);
+
+//  Get data and transfers ownership
+FTY_METRIC_COMPOSITE_EXPORT data_t *
+    c_metric_conf_get_data (c_metric_conf_t *self);
+
+//  Set data transfering ownership from caller
+FTY_METRIC_COMPOSITE_EXPORT void
+    c_metric_conf_set_data (c_metric_conf_t *self, data_t **data_p);
+*/
+
+//  Get client
+FTY_METRIC_COMPOSITE_EXPORT mlm_client_t *
+    c_metric_conf_client (c_metric_conf_t *self);
+
+//  Get state file fullpath or empty string if not set
+FTY_METRIC_COMPOSITE_EXPORT const char *
+    c_metric_conf_statefile (c_metric_conf_t *self);
 
 //  Set state file fullpath
 //  0 - success, -1 - error
-COMPOSITE_METRICS_EXPORT int
+FTY_METRIC_COMPOSITE_EXPORT int
     c_metric_conf_set_statefile (c_metric_conf_t *self, const char *fullpath);
 
+//  Get propagation of sensors in topology
+FTY_METRIC_COMPOSITE_EXPORT bool
+    c_metric_conf_propagation (c_metric_conf_t *self);
+
+//  Set propagation of sensors in topology
+FTY_METRIC_COMPOSITE_EXPORT void
+    c_metric_conf_set_propagation (c_metric_conf_t *self, bool is_propagation_needed);
+
 //  Get path to confuration directory
-COMPOSITE_METRICS_EXPORT const char *
+FTY_METRIC_COMPOSITE_EXPORT const char *
     c_metric_conf_cfgdir (c_metric_conf_t *self);
 
 //  Set configuration directory path
 //  Directory MUST exist! If directory doesn't exist -> error
 //  0 - success, -1 - error
-COMPOSITE_METRICS_EXPORT int
+FTY_METRIC_COMPOSITE_EXPORT int
     c_metric_conf_set_cfgdir (c_metric_conf_t *self, const char *path);
 
 //  Destroy the c_metric_conf
-COMPOSITE_METRICS_EXPORT void
+FTY_METRIC_COMPOSITE_EXPORT void
     c_metric_conf_destroy (c_metric_conf_t **self_p);
 
 //  Self test of this class
-COMPOSITE_METRICS_EXPORT void
+FTY_METRIC_COMPOSITE_EXPORT void
     c_metric_conf_test (bool verbose);
 
 //  @end

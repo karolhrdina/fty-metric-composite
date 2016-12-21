@@ -28,45 +28,38 @@
 @end
 */
 
-#include "composite_metrics_classes.h"
+#include "fty_metric_composite_classes.h"
 
-/*
- * \brief Destroy the configurator entity
- */
-void
-c_metric_conf_destroy (c_metric_conf_t **self_p)
-{
-    if (*self_p)
-    {
-        c_metric_conf_t *self = *self_p;
-        // free structure items
-        zstr_free (&self->name);
-        data_destroy (&self->asset_data);
-        mlm_client_destroy (&self->client);
-        zstr_free (&self->statefile_name);
-        zstr_free (&self->configuration_dir);
-        // free structure itself
-        free (self);
-        *self_p = NULL;
-    }
-}
+struct _c_metric_conf_t {
+    bool verbose;                   // is server verbose?
+    char *name;                     // server name
+//    data_t *asset_data;         // asset data
+    mlm_client_t *client;           // malamute client
+    char *statefile_name;           // state file name
+    char *configuration_dir;        // configuration directory
+    bool is_propagation_needed;     // should sensors be propagated in topology?
+};
+
+//  --------------------------------------------------------------------------
+//  Create a new empty configuration
 
 c_metric_conf_t*
-c_metric_conf_new (const char* name)
+c_metric_conf_new (const char *name)
 {
     assert (name);
+
     c_metric_conf_t *self = (c_metric_conf_t*) zmalloc (sizeof (c_metric_conf_t));
-    if ( self ) {
+    if (self) {
         self->name = strdup (name);
-        if ( self->name )
-            self->asset_data = data_new ();
-        if ( self->asset_data )
+        if (self->name)
+////            self->asset_data = data_new ();
+////        if (self->asset_data)
             self->client = mlm_client_new ();
-        if ( self->client )
+        if (self->client)
             self->statefile_name = strdup ("");
-        if ( self->statefile_name )
+        if (self->statefile_name)
             self->configuration_dir = strdup ("");
-        if ( self->configuration_dir ) {
+        if (self->configuration_dir) {
             self->verbose = false;
             self->is_propagation_needed = true;
         }
@@ -76,6 +69,83 @@ c_metric_conf_new (const char* name)
     return self;
 }
 
+//  --------------------------------------------------------------------------
+//  Destroy the c_metric_conf
+
+void
+c_metric_conf_destroy (c_metric_conf_t **self_p)
+{
+    if (*self_p)
+    {
+        c_metric_conf_t *self = *self_p;
+        // free structure items
+        zstr_free (&self->name);
+//        data_destroy (&self->asset_data);
+        mlm_client_destroy (&self->client);
+        zstr_free (&self->statefile_name);
+        zstr_free (&self->configuration_dir);
+        // free structure itself
+        free (self);
+        *self_p = NULL;
+    }
+}
+
+//  --------------------------------------------------------------------------
+//  Get server name
+
+const char *
+c_metric_conf_name (c_metric_conf_t *self)
+{
+    assert (self);
+    return self->name;
+}
+
+//  --------------------------------------------------------------------------
+//  Get client
+
+mlm_client_t *
+c_metric_conf_client (c_metric_conf_t *self)
+{
+    assert (self);
+    return self->client; 
+}
+
+/*
+//  --------------------------------------------------------------------------
+//  Get data
+
+data_t *
+c_metric_conf_data (c_metric_conf_t *self)
+{
+    assert (self);
+    return self->asset_data;
+}
+
+//  --------------------------------------------------------------------------
+//  Get data and transfers ownership
+
+data_t *
+c_metric_conf_get_data (c_metric_conf_t *self)
+{
+    assert (self);
+    data_t *data = self->asset_data;
+    self->asset_data = NULL;
+    return data;
+}
+
+//  --------------------------------------------------------------------------
+//  Set data transfering ownership from caller
+
+void
+c_metric_conf_set_data (c_metric_conf_t *self, data_t **data_p)
+{
+    assert (self);
+    assert (data_p);
+    data_destroy (&self->asset_data);
+    self->asset_data = *data_p;
+    *data_p = NULL;    
+}
+*/
 
 //  --------------------------------------------------------------------------
 //  Get state file fullpath or empty string if not set
@@ -114,6 +184,26 @@ c_metric_conf_set_statefile (c_metric_conf_t *self, const char *fullpath)
 }
 
 //  --------------------------------------------------------------------------
+//  Get propagation of sensors in topology
+
+bool
+c_metric_conf_propagation (c_metric_conf_t *self)
+{
+    assert (self);
+    return self->is_propagation_needed;
+}
+
+//  --------------------------------------------------------------------------
+//  Set propagation of sensors in topology
+
+void
+c_metric_conf_set_propagation (c_metric_conf_t *self, bool is_propagation_needed)
+{
+    assert (self);
+    self->is_propagation_needed = is_propagation_needed;
+}
+
+//  --------------------------------------------------------------------------
 //  Get path to configuration directory
 
 const char *
@@ -121,17 +211,6 @@ c_metric_conf_cfgdir (c_metric_conf_t *self)
 {
     assert (self);
     return self->configuration_dir;
-}
-
-//  --------------------------------------------------------------------------
-//  Set up the physical propagation of sensors
-//   true -> do propagate sensors in physical topology
-//   false -> do NOT propagate sensors in physical topology
-void
-c_metric_conf_set_proparation (c_metric_conf_t *self, bool is_propagation_needed)
-{
-    assert (self);
-    self->is_propagation_needed = is_propagation_needed;
 }
 
 //  --------------------------------------------------------------------------
