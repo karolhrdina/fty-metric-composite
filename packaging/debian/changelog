@@ -1,5 +1,5 @@
-composite-metrics (0.1.0) UNRELEASED; urgency=low
+fty-metric-composite (1.0.0) UNRELEASED; urgency=low
 
   * Initial packaging.
 
- -- composite-metrics Developers <bios@eaton.com>  Wed, 31 Dec 2014 00:00:00 +0000
+ -- fty-metric-composite Developers <eatonipcopensource@eaton.com>  Wed, 31 Dec 2014 00:00:00 +0000

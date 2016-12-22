@@ -28,7 +28,7 @@
 
 #include <errno.h>
 
-#include "composite_metrics_classes.h"
+#include "fty_metric_composite_classes.h"
 
 #define ASSERT_LEVEL \
     assert(level == LOG_DEBUG   || \

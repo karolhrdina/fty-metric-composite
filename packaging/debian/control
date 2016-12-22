@@ -1,75 +1,75 @@
 #
-#    composite-metrics - Agent that computes new metrics from bunch of other metrics
+#    fty-metric-composite - Agent that computes new metrics from bunch of other metrics
 #
-#    Copyright (C) 2014 - 2015 Eaton
-#
-#    This program is free software; you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation; either version 2 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
+#    Copyright (C) 2014 - 2015 Eaton                                        
+#                                                                           
+#    This program is free software; you can redistribute it and/or modify   
+#    it under the terms of the GNU General Public License as published by   
+#    the Free Software Foundation; either version 2 of the License, or      
+#    (at your option) any later version.                                    
+#                                                                           
+#    This program is distributed in the hope that it will be useful,        
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of         
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the          
+#    GNU General Public License for more details.                           
+#                                                                           
 #    You should have received a copy of the GNU General Public License along
 #    with this program; if not, write to the Free Software Foundation, Inc.,
-#    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.            
 
-Source:         composite-metrics
+Source:         fty-metric-composite
 Section:        net
 Priority:       optional
-Maintainer:     composite-metrics Developers <bios@eaton.com>
+Maintainer:     fty-metric-composite Developers <eatonipcopensource@eaton.com>
 Standards-Version: 3.9.7
 Build-Depends: debhelper (>= 9),
     pkg-config,
     dh-autoreconf,
-    libzmq4-dev,
+    libzmq3-dev,
     libczmq-dev,
     libmlm-dev,
-    libbiosproto-dev,
-    liblua5.1-0-dev,
+    libfty-proto-dev,
     libcxxtools-dev,
-    dh-autoreconf,
+    liblua5.1-0-dev,
+# necessary for systemd.pc to get unit install path
     systemd,
-    dh-systemd
+    dh-systemd,
 Build-Depends-Indep: asciidoc,
                      xmlto
 
-Package: libcomposite-metrics0
+Package: libfty-metric-composite1
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: composite-metrics
- This package contains shared library for composite-metrics: agent that computes new metrics from bunch of other metrics
+Description: agent that computes new metrics from bunch of other metrics shared library
+ This package contains shared library for fty-metric-composite: agent that computes new metrics from bunch of other metrics
 
-Package: libcomposite-metrics-dev
+Package: libfty-metric-composite-dev
 Architecture: any
 Section: libdevel
 Depends:
-    libzmq4-dev,
+    libzmq3-dev,
     libczmq-dev,
     libmlm-dev,
-    libbiosproto-dev,
-    liblua5.1-0-dev,
+    libfty-proto-dev,
     libcxxtools-dev,
-    libcomposite-metrics0 (= ${binary:Version})
-Description: development files for composite-metrics
- This package contains development files for composite-metrics: agent that computes new metrics from bunch of other metrics
+    liblua5.1-0-dev,
+    libfty-metric-composite1 (= ${binary:Version})
+Description: agent that computes new metrics from bunch of other metrics development tools
+ This package contains development files for fty-metric-composite: agent that computes new metrics from bunch of other metrics
 
-Package: composite-metrics
+Package: fty-metric-composite
 Architecture: any
 Depends: ${misc:Depends}, ${shlibs:Depends}
 Description: agent that computes new metrics from bunch of other metrics
- Main package for composite-metrics: agent that computes new metrics from bunch of other metrics
+ Main package for fty-metric-composite: agent that computes new metrics from bunch of other metrics
 
-Package: composite-metrics-dbg
+Package: fty-metric-composite-dbg
 Architecture: any
 Section: debug
 Priority: extra
 Depends:
-    composite-metrics (= ${binary:Version}),
+    fty-metric-composite (= ${binary:Version}),
     ${misc:Depends}
-Description: debugging symbols for composite-metrics
- This package contains the debugging symbols for composite-metrics : agent that computes new metrics from bunch of other metrics.
+Description: agent that computes new metrics from bunch of other metrics debugging symbols
+ This package contains the debugging symbols for fty-metric-composite : agent that computes new metrics from bunch of other metrics.
 

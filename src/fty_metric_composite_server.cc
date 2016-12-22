@@ -1,33 +1,38 @@
-/*
-Copyright (C) 2014 - 2015 Eaton
+/*  =========================================================================
+    fty_metric_composite_server - Composite metrics server
 
-This program is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License along
-with this program; if not, write to the Free Software Foundation, Inc.,
-51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+    Copyright (C) 2014 - 2015 Eaton                                        
+                                                                           
+    This program is free software; you can redistribute it and/or modify   
+    it under the terms of the GNU General Public License as published by   
+    the Free Software Foundation; either version 2 of the License, or      
+    (at your option) any later version.                                    
+                                                                           
+    This program is distributed in the hope that it will be useful,        
+    but WITHOUT ANY WARRANTY; without even the implied warranty of         
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the          
+    GNU General Public License for more details.                           
+                                                                           
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.            
+    =========================================================================
 */
-
 /*
 @header
-    Provides actor server implementing METRIC protocol.
+    fty_metric_composite_server - Composite metrics server
 @discuss
 @end
 */
+
+#include "fty_metric_composite_classes.h"
 
 extern "C" {
 #include <lua.h>
 #include <lauxlib.h>
 #include <lualib.h>
 }
+
 #include <string.h>
 #include <stdio.h>
 #include <vector>
@@ -37,10 +42,7 @@ extern "C" {
 #include <fstream>
 #include <cxxtools/jsondeserializer.h>
 #include <cxxtools/directory.h>
-#include <bios_proto.h>
-#include <malamute.h>
-
-#include "composite_metrics_classes.h"
+#include <fty_proto.h>
 
 struct value {
   double value;
@@ -62,7 +64,8 @@ escape_regex (const std::string &notregex)
     return result;
 }
 
-void bios_composite_metrics_server (zsock_t *pipe, void* args) {
+void
+fty_metric_composite_server (zsock_t *pipe, void* args) {
     static const uint64_t TTL = 5*60;
     std::map<std::string, value> cache;
     std::string lua_code;
@@ -174,18 +177,18 @@ void bios_composite_metrics_server (zsock_t *pipe, void* args) {
             continue;
         if(verbose)
             zsys_debug("It is not null");
-        bios_proto_t *yn = bios_proto_decode(&msg);
+        fty_proto_t *yn = fty_proto_decode(&msg);
         if(yn == NULL)
             continue;
         if(verbose)
-            zsys_debug("And it is bios_proto_message");
+            zsys_debug("And it is fty_proto_message");
 
         // Update cache with updated values
         std::string topic = mlm_client_subject(client);
         value val;
-        val.value = atof(bios_proto_value(yn));
-        uint32_t ttl = bios_proto_ttl(yn);
-        uint64_t timestamp = bios_proto_aux_number (yn, "time", ::time(NULL));
+        val.value = atof(fty_proto_value(yn));
+        uint32_t ttl = fty_proto_ttl(yn);
+        uint64_t timestamp = fty_proto_aux_number (yn, "time", ::time(NULL));
         val.valid_till = timestamp + ttl;
         if (verbose)
             zsys_debug ("%s: Got message '%s' with value %lf", name, topic.c_str(), val.value);
@@ -195,7 +198,7 @@ void bios_composite_metrics_server (zsock_t *pipe, void* args) {
         } else {
             cache.insert(std::make_pair(topic, val));
         }
-        bios_proto_destroy(&yn);
+        fty_proto_destroy(&yn);
 
         // Prepare data for computation
 #if LUA_VERSION_NUM > 501
@@ -234,16 +237,16 @@ void bios_composite_metrics_server (zsock_t *pipe, void* args) {
                 zsys_error ("Invalid output topic");
                 goto next_iter;
             }
-            bios_proto_t *n_met = bios_proto_new(BIOS_PROTO_METRIC);
+            fty_proto_t *n_met = fty_proto_new(FTY_PROTO_METRIC);
             zsys_debug ("Creating new bios proto message");
             char *buff = strdup(lua_tostring(L, -3));
-            bios_proto_set_element_src(n_met, "%s", strrchr(buff, '@') + 1);
+            fty_proto_set_element_src(n_met, "%s", strrchr(buff, '@') + 1);
             (*strrchr(buff, '@')) = 0;
-            bios_proto_set_type(n_met, "%s", buff);
-            bios_proto_set_value(n_met, "%.2f", lua_tonumber(L, -2));
-            bios_proto_set_unit(n_met,  "%s", lua_tostring(L, -1));
-            bios_proto_set_ttl(n_met,  TTL);
-            zmsg_t* z_met = bios_proto_encode(&n_met);
+            fty_proto_set_type(n_met, "%s", buff);
+            fty_proto_set_value(n_met, "%.2f", lua_tonumber(L, -2));
+            fty_proto_set_unit(n_met,  "%s", lua_tostring(L, -1));
+            fty_proto_set_ttl(n_met,  TTL);
+            zmsg_t* z_met = fty_proto_encode(&n_met);
             int rv = mlm_client_send(client, lua_tostring(L, -3), &z_met);
             if (rv != 0) {
                 zsys_error ("mlm_client_send () failed.");
@@ -266,13 +269,13 @@ exit:
 //  Selftest
 
 void
-bios_composite_metrics_server_test (bool verbose)
+fty_metric_composite_server_test (bool verbose)
 {
     if ( verbose )
         log_set_level (LOG_DEBUG);
     static const char* endpoint = "inproc://bios-cm-server-test";
 
-    printf (" * bios_composite_metrics_server: ");
+    printf (" * fty_composite_metrics_server: ");
     if (verbose)
         printf ("\n");
 
@@ -286,7 +289,7 @@ bios_composite_metrics_server_test (bool verbose)
 
     mlm_client_t *consumer = mlm_client_new ();
     mlm_client_connect (consumer, endpoint, 1000, "consumer");
-    mlm_client_set_consumer (consumer, BIOS_PROTO_STREAM_METRICS, "temperature@world");
+    mlm_client_set_consumer (consumer, FTY_PROTO_STREAM_METRICS, "temperature@world");
 
     char *name = NULL;
     if(asprintf(&name, "composite-metrics-%s", "sd") < 0) {
@@ -294,55 +297,55 @@ bios_composite_metrics_server_test (bool verbose)
         exit(1);
     }
 
-    zactor_t *cm_server = zactor_new (bios_composite_metrics_server, (void*) name);
+    zactor_t *cm_server = zactor_new (fty_metric_composite_server, (void*) name);
     free(name);
     if (verbose)
         zstr_send (cm_server, "VERBOSE");
     zstr_sendx (cm_server, "CONNECT", endpoint, NULL);
-    zstr_sendx (cm_server, "CONFIG", "src/composite-metrics.cfg.example", NULL);
+    zstr_sendx (cm_server, "CONFIG", "src/fty-metric-composite.cfg.example", NULL);
     zclock_sleep (500);   //THIS IS A HACK TO SETTLE DOWN THINGS
 
     // send one value
     zmsg_t *msg_in;
-    msg_in = bios_proto_encode_metric(
+    msg_in = fty_proto_encode_metric(
             NULL, "temperature", "TH1", "40", "C", ::time (NULL));
     assert (msg_in);
     mlm_client_send (producer, "temperature@TH1", &msg_in);
 
     zmsg_t *msg_out;
-    bios_proto_t *m;
+    fty_proto_t *m;
     msg_out = mlm_client_recv (consumer);
-    m = bios_proto_decode (&msg_out);
-    bios_proto_print (m);
+    m = fty_proto_decode (&msg_out);
+    fty_proto_print (m);
     assert ( streq (mlm_client_sender (consumer), "composite-metrics-sd") );
     assert (m);
-    assert (streq (bios_proto_value (m), "40.00"));    // <<< 40 / 1
-    bios_proto_destroy (&m);
+    assert (streq (fty_proto_value (m), "40.00"));    // <<< 40 / 1
+    fty_proto_destroy (&m);
 
     // send another value
-    msg_in = bios_proto_encode_metric(
+    msg_in = fty_proto_encode_metric(
             NULL, "temperature", "TH2", "100", "C", ::time (NULL));
     assert (msg_in);
     mlm_client_send (producer, "temperature@TH2", &msg_in);
 
     msg_out = mlm_client_recv (consumer);
-    m = bios_proto_decode (&msg_out);
+    m = fty_proto_decode (&msg_out);
     assert (m);
-    zsys_error("value %s", bios_proto_value (m));    // <<< (100 + 40) / 2
-    assert (streq (bios_proto_value (m), "70.00"));    // <<< (100 + 40) / 2
-    bios_proto_destroy (&m);
+    zsys_error("value %s", fty_proto_value (m));    // <<< (100 + 40) / 2
+    assert (streq (fty_proto_value (m), "70.00"));    // <<< (100 + 40) / 2
+    fty_proto_destroy (&m);
 
     // send value for TH1 again
-    msg_in = bios_proto_encode_metric(
+    msg_in = fty_proto_encode_metric(
             NULL, "temperature", "TH1", "70.00", "C", ::time (NULL));
     assert (msg_in);
     mlm_client_send (producer, "temperature@TH1", &msg_in);
 
     msg_out = mlm_client_recv (consumer);
-    m = bios_proto_decode (&msg_out);
+    m = fty_proto_decode (&msg_out);
     assert (m);
-    assert (streq (bios_proto_value (m), "85.00"));     // <<< (100 + 70) / 2
-    bios_proto_destroy (&m);
+    assert (streq (fty_proto_value (m), "85.00"));     // <<< (100 + 70) / 2
+    fty_proto_destroy (&m);
 
     zactor_destroy (&cm_server);
     mlm_client_destroy (&consumer);

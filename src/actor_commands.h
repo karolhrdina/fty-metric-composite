@@ -22,6 +22,9 @@
 #ifndef ACTOR_COMMANDS_H_INCLUDED
 #define ACTOR_COMMANDS_H_INCLUDED
 
+#include "c_metric_conf.h"
+#include "data.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -51,13 +54,14 @@ extern "C" {
 // Performs the actor commands logic
 // Destroys the message
 // Returns 1 for $TERM (means exit), 0 otherwise
-COMPOSITE_METRICS_EXPORT int
+FTY_METRIC_COMPOSITE_EXPORT int
     actor_commands (
         c_metric_conf_t *cfg,
+        data_t **data_p,
         zmsg_t **message_p);
 
 //  Self test of this class
-COMPOSITE_METRICS_EXPORT void
+FTY_METRIC_COMPOSITE_EXPORT void
     actor_commands_test (bool verbose);
 
 //  @end

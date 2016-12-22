@@ -28,11 +28,11 @@ extern "C" {
 
 //  @interface
 //  Send metric unavailable protocol message
-COMPOSITE_METRICS_EXPORT void
+FTY_METRIC_COMPOSITE_EXPORT void
     proto_metric_unavailable_send (mlm_client_t *client, const char *topic);
 
 //  Self test of this class
-COMPOSITE_METRICS_EXPORT void
+FTY_METRIC_COMPOSITE_EXPORT void
     proto_metric_unavailable_test (bool verbose);
 
 //  @end

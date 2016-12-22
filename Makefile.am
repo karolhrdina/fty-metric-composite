@@ -3,6 +3,9 @@
 #  Read the zproject/README.md for information about making permanent changes. #
 ################################################################################
 
+DISTCHECK_CONFIGURE_FLAGS = \
+  --with-systemdsystemunitdir=$$dc_install_base/$(systemdsystemunitdir)
+
 ACLOCAL_AMFLAGS = -I config
 
 AM_CFLAGS = \
@@ -16,16 +19,16 @@ AM_CPPFLAGS = \
     ${libzmq_CFLAGS} \
     ${czmq_CFLAGS} \
     ${malamute_CFLAGS} \
-    ${biosproto_CFLAGS} \
-    ${lua_CFLAGS} \
+    ${fty_proto_CFLAGS} \
     ${cxxtools_CFLAGS} \
+    ${lua_CFLAGS} \
     -D__STDC_FORMAT_MACROS \
     -I$(srcdir)/include
 
-project_libs = ${libzmq_LIBS} ${czmq_LIBS} ${malamute_LIBS} ${biosproto_LIBS} ${lua_LIBS} ${cxxtools_LIBS}
+project_libs = ${libzmq_LIBS} ${czmq_LIBS} ${malamute_LIBS} ${fty_proto_LIBS} ${cxxtools_LIBS} ${lua_LIBS}
 
-SUBDIRS = 
-DIST_SUBDIRS = 
+SUBDIRS = doc
+DIST_SUBDIRS = doc
 lib_LTLIBRARIES =
 bin_PROGRAMS =
 noinst_PROGRAMS =
@@ -38,15 +41,16 @@ EXTRA_DIST = \
     Findlibzmq.cmake \
     Findczmq.cmake \
     Findmalamute.cmake \
-    Findbiosproto.cmake \
-    Findlua.cmake \
+    Findfty_proto.cmake \
     Findcxxtools.cmake \
+    Findlua.cmake \
+    src/actor_commands.h \
     src/logger.h \
     src/subprocess.h \
-    src/actor_commands.h \
     src/data.h \
     src/proto_metric_unavailable.h \
-    src/composite_metrics_classes.h
+    src/c_metric_conf.h \
+    src/fty_metric_composite_classes.h
 
 include $(srcdir)/src/Makemodule.am
 

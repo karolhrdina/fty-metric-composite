@@ -28,7 +28,7 @@
 @end
 */
 
-#include "composite_metrics_classes.h"
+#include "fty_metric_composite_classes.h"
 #include <set>
 #include <string>
 
@@ -57,7 +57,7 @@ data_new (void)
         }
         if ( self->all_assets ) {
             zhashx_set_destructor (self->last_configuration, (zhashx_destructor_fn *) zlistx_destroy);
-            zhashx_set_destructor (self->all_assets, (zhashx_destructor_fn *) bios_proto_destroy);
+            zhashx_set_destructor (self->all_assets, (zhashx_destructor_fn *) fty_proto_destroy);
             self->is_reconfig_needed = false;
         }
         else {
@@ -104,9 +104,9 @@ data_reassign_sensors (data_t *self, bool is_propagation_needed)
     char *one_sensor_name = (char *) zlistx_first (asset_names);
     while (one_sensor_name) {
         // get an asset
-        bios_proto_t *one_sensor = (bios_proto_t *) zhashx_lookup (self->all_assets, one_sensor_name);
+        fty_proto_t *one_sensor = (fty_proto_t *) zhashx_lookup (self->all_assets, one_sensor_name);
         // discover the sub-type of the asset
-        const char *subtype = bios_proto_aux_string (one_sensor, "subtype", "");
+        const char *subtype = fty_proto_aux_string (one_sensor, "subtype", "");
         // check if it is sensor or not
         if ( !streq (subtype, "sensor") ) {
             // if it is NOT sensor -> do nothing!
@@ -117,7 +117,7 @@ data_reassign_sensors (data_t *self, bool is_propagation_needed)
         // if it is sensor, do CONFIGURATION
 
         // first of all, take its logical asset
-        const char *logical_asset_name = bios_proto_ext_string (one_sensor, "logical_asset", NULL);
+        const char *logical_asset_name = fty_proto_ext_string (one_sensor, "logical_asset", NULL);
         if ( logical_asset_name == NULL ) {
             log_warning ("Sensor '%s' has no logical asset assigned -> skip it", one_sensor_name);
             one_sensor_name = (char *) zlistx_next (asset_names);
@@ -125,7 +125,7 @@ data_reassign_sensors (data_t *self, bool is_propagation_needed)
         }
 
         // find detailed information about logical asset
-        bios_proto_t *logical_asset = (bios_proto_t *) zhashx_lookup (self->all_assets, logical_asset_name);
+        fty_proto_t *logical_asset = (fty_proto_t *) zhashx_lookup (self->all_assets, logical_asset_name);
         if ( logical_asset == NULL ) {
             log_warning ("Inconsistecy (yet): detailes about logical asset '%s' are not known -> skip sensor '%s'", logical_asset_name, one_sensor_name);
             // Detailed information about logical asset was not found
@@ -137,7 +137,7 @@ data_reassign_sensors (data_t *self, bool is_propagation_needed)
             continue;
         }
         // We do not allow sensors to be logically assigned to any device or group
-        const char *logical_asset_type = bios_proto_aux_string (logical_asset, "type", "");
+        const char *logical_asset_type = fty_proto_aux_string (logical_asset, "type", "");
         if ( streq (logical_asset_type, "device") || 
              streq (logical_asset_type, "group" ) )
         {
@@ -166,19 +166,19 @@ data_reassign_sensors (data_t *self, bool is_propagation_needed)
             // (need to add sensor to all "parents" of the logical asset)
             // Actually, the chain is: dc-room-row-rack-device-device -> max 5 level parents can be
             // But here, we start from rack -> only 3 level is available at maximum
-            const char *l_parent_name = bios_proto_aux_string (logical_asset, "parent_name.1", NULL);
+            const char *l_parent_name = fty_proto_aux_string (logical_asset, "parent_name.1", NULL);
             if ( l_parent_name ) {
                 already_assigned_sensors = s_get_assigned_sensors (self, l_parent_name);
                 zlistx_add_end (already_assigned_sensors, (void *) one_sensor);
             }
 
-            l_parent_name = bios_proto_aux_string (logical_asset, "parent_name.2", NULL);
+            l_parent_name = fty_proto_aux_string (logical_asset, "parent_name.2", NULL);
             if ( l_parent_name ) {
                 already_assigned_sensors = s_get_assigned_sensors (self, l_parent_name);
                 zlistx_add_end (already_assigned_sensors, (void *) one_sensor);
             }
 
-            l_parent_name = bios_proto_aux_string (logical_asset, "parent_name.3", NULL);
+            l_parent_name = fty_proto_aux_string (logical_asset, "parent_name.3", NULL);
             if ( l_parent_name ) {
                 already_assigned_sensors = s_get_assigned_sensors (self, l_parent_name);
                 zlistx_add_end (already_assigned_sensors, (void *) one_sensor);
@@ -223,18 +223,18 @@ data_get_assigned_sensors (
         log_error ("Memory allocation error");
         return NULL;
     }
-    zlistx_set_destructor (return_sensor_list, (czmq_destructor *) bios_proto_destroy);
-    zlistx_set_duplicator (return_sensor_list, (czmq_duplicator *) bios_proto_dup);
+    zlistx_set_destructor (return_sensor_list, (czmq_destructor *) fty_proto_destroy);
+    zlistx_set_duplicator (return_sensor_list, (czmq_duplicator *) fty_proto_dup);
 
-    bios_proto_t *one_sensor = (bios_proto_t *) zlistx_first (sensors);
+    fty_proto_t *one_sensor = (fty_proto_t *) zlistx_first (sensors);
     while (one_sensor) {
         if (!sensor_function) {
             zlistx_add_end (return_sensor_list, (void *) one_sensor);
         }
-        else if (streq (sensor_function, bios_proto_ext_string (one_sensor, "sensor_function", ""))) {
+        else if (streq (sensor_function, fty_proto_ext_string (one_sensor, "sensor_function", ""))) {
             zlistx_add_end (return_sensor_list, (void *) one_sensor);
         }
-        one_sensor = (bios_proto_t *) zlistx_next (sensors);
+        one_sensor = (fty_proto_t *) zlistx_next (sensors);
     }
     if ( zlistx_first (return_sensor_list) == NULL ) { // in other words if list is empty
         zlistx_destroy (&return_sensor_list);
@@ -248,55 +248,55 @@ data_get_assigned_sensors (
 //  Writes to log detailed information "what is wrong"
 
 static void
-s_check_sensor_correctness (bios_proto_t *sensor)
+s_check_sensor_correctness (fty_proto_t *sensor)
 {
     assert (sensor);
-    const char *logical_asset = bios_proto_ext_string (sensor, "logical_asset", NULL);
-    const char *port = bios_proto_ext_string (sensor, "port", NULL);
-    const char *parent_name = bios_proto_aux_string (sensor, "parent_name.1", NULL);
+    const char *logical_asset = fty_proto_ext_string (sensor, "logical_asset", NULL);
+    const char *port = fty_proto_ext_string (sensor, "port", NULL);
+    const char *parent_name = fty_proto_aux_string (sensor, "parent_name.1", NULL);
 
     if (!logical_asset) {
         log_error (
                 "Sensor='%s':Attribute '%s' is missing from '%s' field in the message.",
-                bios_proto_name (sensor), "logical_asset", "ext"); 
+                fty_proto_name (sensor), "logical_asset", "ext"); 
         return;
     }
     if (!parent_name) {
         log_error (
                 "Sensor='%s':Attribute '%s' is missing from '%s' field in the message.",
-                bios_proto_name (sensor), "parent_name.1", "aux");
+                fty_proto_name (sensor), "parent_name.1", "aux");
         return;
     }
     if (!port) {
         log_error (
                 "Sensor='%s':Attribute '%s' is missing from '%s' field in the message.",
-                bios_proto_name (sensor), "port", "ext");
+                fty_proto_name (sensor), "port", "ext");
         return;
     }
 }
 
 static bool
-s_check_container_info_changed (bios_proto_t *asset_old, bios_proto_t *asset_new)
+s_check_container_info_changed (fty_proto_t *asset_old, fty_proto_t *asset_new)
 {
     // BIOS-2484: start
     // update of the asset should trigger reconfiguration if topology changed
     // if asset is known we need to check, if physical topology had changed
     // Actually, the chain is: dc-room-row-rack-device-device -> max 5 level parents can be
     // But here, we start from rack -> only 3 level is available at maximum
-    if ( !streq (bios_proto_aux_string (asset_old,   "parent_name.1", ""),
-                 bios_proto_aux_string (asset_new, "parent_name.1", ""))
+    if ( !streq (fty_proto_aux_string (asset_old,   "parent_name.1", ""),
+                 fty_proto_aux_string (asset_new, "parent_name.1", ""))
         )
     {
         return true;
     }
-    if ( !streq (bios_proto_aux_string (asset_old,   "parent_name.2", ""),
-                 bios_proto_aux_string (asset_new, "parent_name.2", ""))
+    if ( !streq (fty_proto_aux_string (asset_old,   "parent_name.2", ""),
+                 fty_proto_aux_string (asset_new, "parent_name.2", ""))
         )
     {
         return true;
     }
-    if ( !streq (bios_proto_aux_string (asset_old,   "parent_name.3", ""),
-                 bios_proto_aux_string (asset_new, "parent_name.3", ""))
+    if ( !streq (fty_proto_aux_string (asset_old,   "parent_name.3", ""),
+                 fty_proto_aux_string (asset_new, "parent_name.3", ""))
         )
     {
         return true;
@@ -306,34 +306,34 @@ s_check_container_info_changed (bios_proto_t *asset_old, bios_proto_t *asset_new
 }
 
 static bool
-s_check_sensor_info_changed (bios_proto_t *asset_old, bios_proto_t *asset_new)
+s_check_sensor_info_changed (fty_proto_t *asset_old, fty_proto_t *asset_new)
 {
-    if ( !streq (bios_proto_ext_string (asset_old, "logical_asset", ""),
-                 bios_proto_ext_string (asset_new, "logical_asset", ""))
+    if ( !streq (fty_proto_ext_string (asset_old, "logical_asset", ""),
+                 fty_proto_ext_string (asset_new, "logical_asset", ""))
         )
     {
         return true;
     }
-    if ( !streq (bios_proto_ext_string (asset_old, "port", ""),
-                 bios_proto_ext_string (asset_new, "port", ""))
+    if ( !streq (fty_proto_ext_string (asset_old, "port", ""),
+                 fty_proto_ext_string (asset_new, "port", ""))
         )
     {
         return true;
     }
-    if ( !streq (bios_proto_ext_string (asset_old, "calibration_offset_t", ""),
-                 bios_proto_ext_string (asset_new, "calibration_offset_t", ""))
+    if ( !streq (fty_proto_ext_string (asset_old, "calibration_offset_t", ""),
+                 fty_proto_ext_string (asset_new, "calibration_offset_t", ""))
         )
     {
         return true;
     }
-    if ( !streq (bios_proto_ext_string (asset_old, "calibration_offset_h", ""),
-                 bios_proto_ext_string (asset_new, "calibration_offset_h", ""))
+    if ( !streq (fty_proto_ext_string (asset_old, "calibration_offset_h", ""),
+                 fty_proto_ext_string (asset_new, "calibration_offset_h", ""))
         )
     {
         return true;
     }
-    if ( !streq (bios_proto_ext_string (asset_old, "sensor_function", ""),
-                 bios_proto_ext_string (asset_new, "sensor_function", ""))
+    if ( !streq (fty_proto_ext_string (asset_old, "sensor_function", ""),
+                 fty_proto_ext_string (asset_new, "sensor_function", ""))
         )
     {
         return true;
@@ -346,20 +346,20 @@ s_check_sensor_info_changed (bios_proto_t *asset_old, bios_proto_t *asset_new)
 //  Store asset, takes ownership of the message
 
 bool
-data_asset_store (data_t *self, bios_proto_t **message_p)
+data_asset_store (data_t *self, fty_proto_t **message_p)
 {
     assert (self);
     assert (message_p);
     if (!*message_p)
         return false;
-    bios_proto_t *message = *message_p;
+    fty_proto_t *message = *message_p;
 
-    const char *operation = bios_proto_operation (message);
-    log_debug ("Process message: op='%s', asset_name='%s'", operation, bios_proto_name (message));
-    const char *type = bios_proto_aux_string (message, "type", "");
+    const char *operation = fty_proto_operation (message);
+    log_debug ("Process message: op='%s', asset_name='%s'", operation, fty_proto_name (message));
+    const char *type = fty_proto_aux_string (message, "type", "");
 
-    const char *subtype = bios_proto_aux_string (message, "subtype", "");
-    if (streq (operation, BIOS_PROTO_ASSET_OP_CREATE) ) {
+    const char *subtype = fty_proto_aux_string (message, "subtype", "");
+    if (streq (operation, FTY_PROTO_ASSET_OP_CREATE) ) {
         if ( streq (type, "datacenter") || 
              streq (type, "room") || 
              streq (type, "row") || 
@@ -380,11 +380,11 @@ data_asset_store (data_t *self, bios_proto_t **message_p)
             // here we are if message is for "group" or any "device" other than "sensor"
             // because they can not impact configuration
         }
-        zhashx_update (self->all_assets, bios_proto_name (message), (void *) message);
+        zhashx_update (self->all_assets, fty_proto_name (message), (void *) message);
         *message_p = NULL;
         return true;
     } else
-    if ( streq (operation, BIOS_PROTO_ASSET_OP_UPDATE) ) {
+    if ( streq (operation, FTY_PROTO_ASSET_OP_UPDATE) ) {
         if ( streq (type, "datacenter") || 
              streq (type, "room") || 
              streq (type, "row") || 
@@ -392,7 +392,7 @@ data_asset_store (data_t *self, bios_proto_t **message_p)
         {
             // So, if NOT "device" is UPDATED -> do reconfiguration only if TOPOLGY had changed
             // Look for the asset
-            bios_proto_t *asset = (bios_proto_t*) zhashx_lookup (self->all_assets, bios_proto_name (message));
+            fty_proto_t *asset = (fty_proto_t*) zhashx_lookup (self->all_assets, fty_proto_name (message));
             if ( asset == NULL ) { // if the asset was not known (for any reason)
                 self->is_reconfig_needed = true;
             }
@@ -412,7 +412,7 @@ data_asset_store (data_t *self, bios_proto_t **message_p)
             
             // do reconfiguration only if important info changes
             // Look for the asset
-            bios_proto_t *asset = (bios_proto_t*) zhashx_lookup (self->all_assets, bios_proto_name (message));
+            fty_proto_t *asset = (fty_proto_t*) zhashx_lookup (self->all_assets, fty_proto_name (message));
             if ( asset == NULL ) { // if it not known (for any reason)
                 self->is_reconfig_needed = true;
             }
@@ -426,24 +426,24 @@ data_asset_store (data_t *self, bios_proto_t **message_p)
             // here we are if message is for "group" or any "device" other than "sensor"
             // because they can not impact configuration
         }
-        zhashx_update (self->all_assets, bios_proto_name (message), (void *) message);
+        zhashx_update (self->all_assets, fty_proto_name (message), (void *) message);
         *message_p = NULL;
         return true;
     } else
-    if (streq (operation, BIOS_PROTO_ASSET_OP_DELETE) ||
-        streq (operation, BIOS_PROTO_ASSET_OP_RETIRE))
+    if (streq (operation, FTY_PROTO_ASSET_OP_DELETE) ||
+        streq (operation, FTY_PROTO_ASSET_OP_RETIRE))
     {
-        void *exists = zhashx_lookup (self->all_assets, bios_proto_name (message));
+        void *exists = zhashx_lookup (self->all_assets, fty_proto_name (message));
         if (exists)
             self->is_reconfig_needed = true;
-        zhashx_delete (self->all_assets, bios_proto_name (message));
-        bios_proto_destroy (message_p);
+        zhashx_delete (self->all_assets, fty_proto_name (message));
+        fty_proto_destroy (message_p);
         *message_p = NULL;
         return true;
     }
     else {
-        log_debug ("Msg: op='%s', asset_name='%s' is not interesting", operation, bios_proto_name (message));
-        bios_proto_destroy (message_p);
+        log_debug ("Msg: op='%s', asset_name='%s' is not interesting", operation, fty_proto_name (message));
+        fty_proto_destroy (message_p);
         *message_p = NULL;
         return false;
     }
@@ -499,12 +499,12 @@ data_asset_names (data_t *self)
 //  Get information for any given asset name if it is known or NULL otherwise
 //  Ownership is NOT transferred
 
-bios_proto_t *
+fty_proto_t *
 data_asset (data_t *self, const char *name)
 {
     assert (self);
     assert (name);
-    return (bios_proto_t *) zhashx_lookup (self->all_assets, name);
+    return (fty_proto_t *) zhashx_lookup (self->all_assets, name);
 }
 
 //  --------------------------------------------------------------------------
@@ -527,16 +527,16 @@ data_save (data_t *self, const char * filename)
         return -1;
     }
     int i = 1;
-    for (bios_proto_t *bmsg = (bios_proto_t*) zhashx_first (self->all_assets);
+    for (fty_proto_t *bmsg = (fty_proto_t*) zhashx_first (self->all_assets);
                        bmsg != NULL;
-                       bmsg = (bios_proto_t*) zhashx_next (self->all_assets))
+                       bmsg = (fty_proto_t*) zhashx_next (self->all_assets))
     {
         zconfig_t *item = zconfig_new (std::to_string (i).c_str(), assets);
         i++;
-        zconfig_put (item, "name", bios_proto_name (bmsg));
-        zconfig_put (item, "operation", bios_proto_operation (bmsg));
+        zconfig_put (item, "name", fty_proto_name (bmsg));
+        zconfig_put (item, "operation", fty_proto_operation (bmsg));
 
-        zhash_t *aux = bios_proto_aux (bmsg);
+        zhash_t *aux = fty_proto_aux (bmsg);
         if ( aux ) {
             for (const char *aux_value = (const char*) zhash_first (aux);
                     aux_value != NULL;
@@ -550,7 +550,7 @@ data_save (data_t *self, const char * filename)
                 zstr_free (&item_key);
             }
         }
-        zhash_t *ext = bios_proto_ext (bmsg);
+        zhash_t *ext = fty_proto_ext (bmsg);
         if ( ext ) {
             for (const char *value = (const char*) zhash_first (ext);
                     value != NULL;
@@ -608,9 +608,9 @@ data_load (const char *filename)
             for ( ; key_config != NULL; key_config = zconfig_next (key_config))
             {
                 // 1. create bmsg
-                bios_proto_t *bmsg = bios_proto_new (BIOS_PROTO_ASSET);
-                bios_proto_set_name (bmsg, zconfig_get (key_config, "name", ""));
-                bios_proto_set_operation (bmsg, zconfig_get (key_config, "operation", ""));
+                fty_proto_t *bmsg = fty_proto_new (FTY_PROTO_ASSET);
+                fty_proto_set_name (bmsg, zconfig_get (key_config, "name", ""));
+                fty_proto_set_operation (bmsg, zconfig_get (key_config, "operation", ""));
 
                 // 2. put aux things
                 zconfig_t *bmsg_config = zconfig_child (key_config);
@@ -618,9 +618,9 @@ data_load (const char *filename)
                 {
                     const char *bmsg_key = zconfig_name (bmsg_config);
                     if (strncmp (bmsg_key, "aux.", 4) == 0)
-                        bios_proto_aux_insert (bmsg, (bmsg_key+4), zconfig_value (bmsg_config));
+                        fty_proto_aux_insert (bmsg, (bmsg_key+4), zconfig_value (bmsg_config));
                     if (strncmp (bmsg_key, "ext.", 4) == 0)
-                        bios_proto_ext_insert (bmsg, (bmsg_key+4), zconfig_value (bmsg_config));
+                        fty_proto_ext_insert (bmsg, (bmsg_key+4), zconfig_value (bmsg_config));
                 }
                 zhashx_update (self->all_assets, zconfig_get (key_config, "name", ""), bmsg);
             }
@@ -669,16 +669,16 @@ data_destroy (data_t **self_p)
 //  Self test of this class
 
 //  Helper test function
-//  create new ASSET message of type bios_proto_t
-static bios_proto_t *
+//  create new ASSET message of type fty_proto_t
+static fty_proto_t *
 test_asset_new (const char *name, const char *operation)
 {
     assert (name);
     assert (operation);
 
-    bios_proto_t *asset = bios_proto_new (BIOS_PROTO_ASSET);
-    bios_proto_set_name (asset, "%s", name);
-    bios_proto_set_operation (asset, "%s", operation);
+    fty_proto_t *asset = fty_proto_new (FTY_PROTO_ASSET);
+    fty_proto_set_name (asset, "%s", name);
+    fty_proto_set_operation (asset, "%s", operation);
     return asset;
 }
 
@@ -731,27 +731,27 @@ data_compare (data_t *source, data_t *target, bool verbose) {
         // test all_assets
         assert ( source-> all_assets != NULL ); // by design, it should be not NULL!
         assert ( target-> all_assets != NULL ); // by design, it should be not NULL!
-        for ( bios_proto_t *source_asset = (bios_proto_t *) zhashx_first (source->all_assets);
+        for ( fty_proto_t *source_asset = (fty_proto_t *) zhashx_first (source->all_assets);
               source_asset != NULL;
-              source_asset = (bios_proto_t *) zhashx_next (source->all_assets)
+              source_asset = (fty_proto_t *) zhashx_next (source->all_assets)
             )
         {
-            void *handle = zhashx_lookup (target->all_assets, bios_proto_name (source_asset));
+            void *handle = zhashx_lookup (target->all_assets, fty_proto_name (source_asset));
             if ( handle == NULL ) {
                 if ( verbose )
-                    log_debug ("asset='%s' is NOT in target, but expected", bios_proto_name (source_asset));
+                    log_debug ("asset='%s' is NOT in target, but expected", fty_proto_name (source_asset));
                 assert ( false );
             }
         }
-        for ( bios_proto_t *target_asset = (bios_proto_t *) zhashx_first (target->all_assets);
+        for ( fty_proto_t *target_asset = (fty_proto_t *) zhashx_first (target->all_assets);
               target_asset != NULL;
-              target_asset = (bios_proto_t *) zhashx_next (target->all_assets)
+              target_asset = (fty_proto_t *) zhashx_next (target->all_assets)
             )
         {
-            void *handle = zhashx_lookup (source->all_assets, bios_proto_name (target_asset));
+            void *handle = zhashx_lookup (source->all_assets, fty_proto_name (target_asset));
             if ( handle == NULL ) {
                 if ( verbose )
-                    log_debug ("asset='%s' is in target, but NOT expected", bios_proto_name (target_asset));
+                    log_debug ("asset='%s' is in target, but NOT expected", fty_proto_name (target_asset));
                 assert ( false );
             }
         }
@@ -785,7 +785,7 @@ test4 (bool verbose)
          
     data_t *self = NULL;
     data_t *self_load = NULL;
-    bios_proto_t *asset = NULL;
+    fty_proto_t *asset = NULL;
     
     // empty
     self = data_new ();
@@ -799,7 +799,7 @@ test4 (bool verbose)
     data_destroy (&self_load);
 
     // one asset without AUX without EXT
-    asset = test_asset_new ("some_asset", BIOS_PROTO_ASSET_OP_CREATE);
+    asset = test_asset_new ("some_asset", FTY_PROTO_ASSET_OP_CREATE);
     self = data_new ();
     data_asset_store (self, &asset);
     
@@ -812,9 +812,9 @@ test4 (bool verbose)
     data_destroy (&self_load);
 
     // one asset without EXT
-    asset = test_asset_new ("some_asset_without_ext", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "type", "%s", "datacenter");
-    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    asset = test_asset_new ("some_asset_without_ext", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "type", "%s", "datacenter");
+    fty_proto_aux_insert (asset, "subtype", "%s", "unknown");
     self = data_new ();
 
     data_asset_store (self, &asset);
@@ -828,9 +828,9 @@ test4 (bool verbose)
     data_destroy (&self_load);
 
     // one asset without AUX
-    asset = test_asset_new ("some_asset_without_aux", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_ext_insert (asset, "type", "%s", "datacenter");
-    bios_proto_ext_insert (asset, "subtype", "%s", "unknown");
+    asset = test_asset_new ("some_asset_without_aux", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_ext_insert (asset, "type", "%s", "datacenter");
+    fty_proto_ext_insert (asset, "subtype", "%s", "unknown");
     self = data_new ();
 
     data_asset_store (self, &asset);
@@ -846,26 +846,26 @@ test4 (bool verbose)
     // three assets + reassign + metrics
     self = data_new ();
     
-    asset = test_asset_new ("TEST4_DC", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_ext_insert (asset, "type", "%s", "datacenter");
-    bios_proto_ext_insert (asset, "subtype", "%s", "unknown");
+    asset = test_asset_new ("TEST4_DC", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_ext_insert (asset, "type", "%s", "datacenter");
+    fty_proto_ext_insert (asset, "subtype", "%s", "unknown");
     data_asset_store (self, &asset);
 
-    asset = test_asset_new ("TEST4_RACK", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST4_DC");
-    bios_proto_aux_insert (asset, "type", "%s", "rack");
-    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    asset = test_asset_new ("TEST4_RACK", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST4_DC");
+    fty_proto_aux_insert (asset, "type", "%s", "rack");
+    fty_proto_aux_insert (asset, "subtype", "%s", "unknown");
     data_asset_store (self, &asset);
 
-    asset = test_asset_new ("TEST4_SENSOR", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST4_UPS");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH2");
-    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "2");
-    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "20");
-    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST4_RACK");
+    asset = test_asset_new ("TEST4_SENSOR", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST4_UPS");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_ext_insert (asset, "port", "%s", "TH2");
+    fty_proto_ext_insert (asset, "calibration_offset_t", "%s", "2");
+    fty_proto_ext_insert (asset, "calibration_offset_h", "%s", "20");
+    fty_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST4_RACK");
     data_asset_store (self, &asset);
     
     data_reassign_sensors (self, true);
@@ -894,7 +894,7 @@ test5 (bool verbose)
         log_debug ("Test5: Sensor arrived before logical asset for CREATE operation");
     
     data_t *self = data_new();
-    bios_proto_t *asset = NULL;
+    fty_proto_t *asset = NULL;
     zlistx_t *sensors = NULL;
 
     zlistx_t *assets_expected = zlistx_new ();
@@ -906,9 +906,9 @@ test5 (bool verbose)
     // DC->ROOM->ROW->RACK->UPS->SENSOR
     if ( verbose )
         log_debug ("\tCREATE 'TEST5_DC' as datacenter");
-    asset = test_asset_new ("TEST5_DC", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "type", "%s", "datacenter");
-    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    asset = test_asset_new ("TEST5_DC", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "type", "%s", "datacenter");
+    fty_proto_aux_insert (asset, "subtype", "%s", "unknown");
     data_asset_store (self, &asset);
     assert ( data_is_reconfig_needed (self) == true );
     data_reassign_sensors (self, true); // drop the flag "is reconfiguration needed"
@@ -917,10 +917,10 @@ test5 (bool verbose)
 
     if ( verbose )
         log_debug ("\tCREATE 'TEST5_ROOM' as room");
-    asset = test_asset_new ("TEST5_ROOM", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST5_DC");
-    bios_proto_aux_insert (asset, "type", "%s", "room");
-    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    asset = test_asset_new ("TEST5_ROOM", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST5_DC");
+    fty_proto_aux_insert (asset, "type", "%s", "room");
+    fty_proto_aux_insert (asset, "subtype", "%s", "unknown");
     data_asset_store (self, &asset);
     assert ( data_is_reconfig_needed (self) == true );
     data_reassign_sensors (self, true); // drop the flag "is reconfiguration needed"
@@ -929,11 +929,11 @@ test5 (bool verbose)
 
     if ( verbose )
         log_debug ("\tCREATE 'TEST5_ROW' as row");
-    asset = test_asset_new ("TEST5_ROW", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST5_ROOM");
-    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST5_DC");
-    bios_proto_aux_insert (asset, "type", "%s", "row");
-    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    asset = test_asset_new ("TEST5_ROW", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST5_ROOM");
+    fty_proto_aux_insert (asset, "parent_name.2", "%s", "TEST5_DC");
+    fty_proto_aux_insert (asset, "type", "%s", "row");
+    fty_proto_aux_insert (asset, "subtype", "%s", "unknown");
     data_asset_store (self, &asset);
     assert ( data_is_reconfig_needed (self) == true );
     data_reassign_sensors (self, true); // drop the flag "is reconfiguration needed"
@@ -944,19 +944,19 @@ test5 (bool verbose)
         log_debug ("\tCREATE 'TEST5_SENSOR' as sensor");
         log_debug ("\t\tSituation: sensor asset message arrives before asset specified in logical_asset");
     }
-    asset = test_asset_new ("TEST5_SENSOR", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST5_UPS");
-    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST5_RACK");
-    bios_proto_aux_insert (asset, "parent_name.3", "%s", "TEST5_ROW");
-    bios_proto_aux_insert (asset, "parent_name.4", "%s", "TEST5_ROOM");
-    bios_proto_aux_insert (asset, "parent_name.5", "%s", "TEST5_DC");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH1");
-    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
-    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "10");
-    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST5_RACK");
+    asset = test_asset_new ("TEST5_SENSOR", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST5_UPS");
+    fty_proto_aux_insert (asset, "parent_name.2", "%s", "TEST5_RACK");
+    fty_proto_aux_insert (asset, "parent_name.3", "%s", "TEST5_ROW");
+    fty_proto_aux_insert (asset, "parent_name.4", "%s", "TEST5_ROOM");
+    fty_proto_aux_insert (asset, "parent_name.5", "%s", "TEST5_DC");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_ext_insert (asset, "port", "%s", "TH1");
+    fty_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
+    fty_proto_ext_insert (asset, "calibration_offset_h", "%s", "10");
+    fty_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST5_RACK");
     data_asset_store (self, &asset);
     assert ( data_is_reconfig_needed (self) == true );
     
@@ -998,11 +998,11 @@ test5 (bool verbose)
         log_debug ("\tCREATE 'TEST5_RACK' as rack");
         log_debug ("\t\tSituation: finally message about logical_asset arrived");
     }
-    asset = test_asset_new ("TEST5_RACK", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST5_ROW");
-    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST5_ROOM");
-    bios_proto_aux_insert (asset, "parent_name.3", "%s", "TEST5_DC");
-    bios_proto_aux_insert (asset, "type", "%s", "rack");
+    asset = test_asset_new ("TEST5_RACK", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST5_ROW");
+    fty_proto_aux_insert (asset, "parent_name.2", "%s", "TEST5_ROOM");
+    fty_proto_aux_insert (asset, "parent_name.3", "%s", "TEST5_DC");
+    fty_proto_aux_insert (asset, "type", "%s", "rack");
     data_asset_store (self, &asset);
     assert ( data_is_reconfig_needed (self) == true );
 
@@ -1060,12 +1060,12 @@ test6 (bool verbose)
         log_debug ("Test6: Sensor important info is missing for CREATE operation");
 
     data_t *self = data_new();
-    bios_proto_t *asset = NULL;
+    fty_proto_t *asset = NULL;
 
     if ( verbose )
         log_debug ("\tCREATE 'TEST6_RACK' as rack");
-    asset = test_asset_new ("TEST6_RACK", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "type", "%s", "rack");
+    asset = test_asset_new ("TEST6_RACK", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "type", "%s", "rack");
     data_asset_store (self, &asset);
     assert ( data_is_reconfig_needed (self) == true );
     data_reassign_sensors (self, true);
@@ -1075,14 +1075,14 @@ test6 (bool verbose)
         log_debug ("\tCREATE 'TEST6_SENSOR01' as sensor");
         log_debug ("\t\tlogical_asset is missing");
     }
-    asset = test_asset_new ("TEST6_SENSOR01", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST6_UPS");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH3");
-    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "3");
-    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "30");
-    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    asset = test_asset_new ("TEST6_SENSOR01", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST6_UPS");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_ext_insert (asset, "port", "%s", "TH3");
+    fty_proto_ext_insert (asset, "calibration_offset_t", "%s", "3");
+    fty_proto_ext_insert (asset, "calibration_offset_h", "%s", "30");
+    fty_proto_ext_insert (asset, "sensor_function", "%s", "input");
     // logical_asset missing
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == true);
@@ -1093,15 +1093,15 @@ test6 (bool verbose)
         log_debug ("\tCREATE 'TEST6_SENSOR02' as sensor");
         log_debug ("\t\tparent_name.1 is missing");
     }
-    asset = test_asset_new ("TEST6_SENSOR02", BIOS_PROTO_ASSET_OP_CREATE);
+    asset = test_asset_new ("TEST6_SENSOR02", FTY_PROTO_ASSET_OP_CREATE);
     // parent_name.1 missing
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH3");
-    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "3");
-    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "30");
-    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST6_RACK");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_ext_insert (asset, "port", "%s", "TH3");
+    fty_proto_ext_insert (asset, "calibration_offset_t", "%s", "3");
+    fty_proto_ext_insert (asset, "calibration_offset_h", "%s", "30");
+    fty_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST6_RACK");
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == true);
     data_reassign_sensors (self, true);
@@ -1111,15 +1111,15 @@ test6 (bool verbose)
         log_debug ("\tCREATE 'TEST6_SENSOR03' as sensor");
         log_debug ("\t\tport is missing");
     }
-    asset = test_asset_new ("TEST6_SENSOR03", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST6_UPS");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    asset = test_asset_new ("TEST6_SENSOR03", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST6_UPS");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
     // port missing
-    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "3");
-    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "30");
-    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST6_RACK");
+    fty_proto_ext_insert (asset, "calibration_offset_t", "%s", "3");
+    fty_proto_ext_insert (asset, "calibration_offset_h", "%s", "30");
+    fty_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST6_RACK");
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == true);
     data_reassign_sensors (self, true);
@@ -1136,15 +1136,15 @@ test7 (bool verbose)
         log_debug ("Test7: Sensor important info is missing for UPDATE operation");
 
     data_t *self = data_new();
-    bios_proto_t *asset = NULL;
+    fty_proto_t *asset = NULL;
     zlistx_t *sensors = NULL;
 
     // SETUP
     if ( verbose )
         log_debug ("\tCREATE 'TEST7_DC' as datacenter");
-    asset = test_asset_new ("TEST7_DC", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "type", "%s", "datacenter");
-    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    asset = test_asset_new ("TEST7_DC", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "type", "%s", "datacenter");
+    fty_proto_aux_insert (asset, "subtype", "%s", "unknown");
     data_asset_store (self, &asset);
     assert ( data_is_reconfig_needed (self) == true );
     data_reassign_sensors (self, true); // drop the flag "is reconfiguration needed"
@@ -1152,9 +1152,9 @@ test7 (bool verbose)
 
     if ( verbose )
         log_debug ("\tCREATE 'TEST7_RACK' as rack");
-    asset = test_asset_new ("TEST7_RACK", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST7_DC");
-    bios_proto_aux_insert (asset, "type", "%s", "rack");
+    asset = test_asset_new ("TEST7_RACK", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST7_DC");
+    fty_proto_aux_insert (asset, "type", "%s", "rack");
     data_asset_store (self, &asset);
     assert ( data_is_reconfig_needed (self) == true );
     data_reassign_sensors (self, true); // drop the flag "is reconfiguration needed"
@@ -1162,15 +1162,15 @@ test7 (bool verbose)
 
     if ( verbose )
         log_debug ("\tCREATE 'TEST7_SENSOR01' as sensor");
-    asset = test_asset_new ("TEST7_SENSOR01", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST7_UPS");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH1");
-    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "3");
-    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "30");
-    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST7_RACK");
+    asset = test_asset_new ("TEST7_SENSOR01", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST7_UPS");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_ext_insert (asset, "port", "%s", "TH1");
+    fty_proto_ext_insert (asset, "calibration_offset_t", "%s", "3");
+    fty_proto_ext_insert (asset, "calibration_offset_h", "%s", "30");
+    fty_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST7_RACK");
     data_asset_store (self, &asset);
     assert ( data_is_reconfig_needed (self) == true );
     data_reassign_sensors (self, true); // drop the flag "is reconfiguration needed"
@@ -1178,15 +1178,15 @@ test7 (bool verbose)
 
     if ( verbose )
         log_debug ("\tCREATE 'TEST7_SENSOR02' as sensor");
-    asset = test_asset_new ("TEST7_SENSOR02", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST7_UPS");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH2");
-    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "3");
-    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "30");
-    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST7_RACK");
+    asset = test_asset_new ("TEST7_SENSOR02", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST7_UPS");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_ext_insert (asset, "port", "%s", "TH2");
+    fty_proto_ext_insert (asset, "calibration_offset_t", "%s", "3");
+    fty_proto_ext_insert (asset, "calibration_offset_h", "%s", "30");
+    fty_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST7_RACK");
     data_asset_store (self, &asset);
     assert ( data_is_reconfig_needed (self) == true );
     data_reassign_sensors (self, true); // drop the flag "is reconfiguration needed"
@@ -1194,15 +1194,15 @@ test7 (bool verbose)
 
     if ( verbose )
         log_debug ("\tCREATE 'TEST7_SENSOR03' as sensor");
-    asset = test_asset_new ("TEST7_SENSOR03", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST7_UPS");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH3");
-    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "3");
-    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "30");
-    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST7_RACK");
+    asset = test_asset_new ("TEST7_SENSOR03", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST7_UPS");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_ext_insert (asset, "port", "%s", "TH3");
+    fty_proto_ext_insert (asset, "calibration_offset_t", "%s", "3");
+    fty_proto_ext_insert (asset, "calibration_offset_h", "%s", "30");
+    fty_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST7_RACK");
     data_asset_store (self, &asset);
     assert ( data_is_reconfig_needed (self) == true );
     data_reassign_sensors (self, true); // drop the flag "is reconfiguration needed"
@@ -1213,14 +1213,14 @@ test7 (bool verbose)
         log_debug ("\tUPDATE 'TEST7_SENSOR01' as sensor");
         log_debug ("\t\tlogical_asset is missing");
     }
-    asset = test_asset_new ("TEST7_SENSOR01", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST7_UPS");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH3");
-    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "3");
-    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "30");
-    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    asset = test_asset_new ("TEST7_SENSOR01", FTY_PROTO_ASSET_OP_UPDATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST7_UPS");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_ext_insert (asset, "port", "%s", "TH3");
+    fty_proto_ext_insert (asset, "calibration_offset_t", "%s", "3");
+    fty_proto_ext_insert (asset, "calibration_offset_h", "%s", "30");
+    fty_proto_ext_insert (asset, "sensor_function", "%s", "input");
     // logical_asset missing
     data_asset_store (self, &asset);
     assert ( data_is_reconfig_needed (self) == true );
@@ -1231,15 +1231,15 @@ test7 (bool verbose)
         log_debug ("\tUPDATE 'TEST7_SENSOR02' as sensor");
         log_debug ("\t\tparent_name.1 is missing");
     }
-    asset = test_asset_new ("TEST7_SENSOR02", BIOS_PROTO_ASSET_OP_UPDATE);
+    asset = test_asset_new ("TEST7_SENSOR02", FTY_PROTO_ASSET_OP_UPDATE);
     // parent_name.1 missing
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH3");
-    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "3");
-    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "30");
-    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST7_DC");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_ext_insert (asset, "port", "%s", "TH3");
+    fty_proto_ext_insert (asset, "calibration_offset_t", "%s", "3");
+    fty_proto_ext_insert (asset, "calibration_offset_h", "%s", "30");
+    fty_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST7_DC");
     data_asset_store (self, &asset);
     assert ( data_is_reconfig_needed (self) == true );
     data_reassign_sensors (self, true); // drop the flag "is reconfiguration needed"
@@ -1249,15 +1249,15 @@ test7 (bool verbose)
         log_debug ("\tCREATE 'TEST7_SENSOR03' as sensor");
         log_debug ("\t\tport is missing");
     }
-    asset = test_asset_new ("TEST7_SENSOR03", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST7_UPS");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    asset = test_asset_new ("TEST7_SENSOR03", FTY_PROTO_ASSET_OP_UPDATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST7_UPS");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
     // port missing
-    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "3");
-    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "30");
-    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST7_RACK");
+    fty_proto_ext_insert (asset, "calibration_offset_t", "%s", "3");
+    fty_proto_ext_insert (asset, "calibration_offset_h", "%s", "30");
+    fty_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST7_RACK");
     data_asset_store (self, &asset);
     assert ( data_is_reconfig_needed (self) == true );
 
@@ -1295,73 +1295,73 @@ test8 (bool verbose)
         log_debug ("Test8: data_get_assigned_sensors");
 
     data_t *self = data_new();
-    bios_proto_t *asset = NULL;
+    fty_proto_t *asset = NULL;
     zlistx_t *sensors = NULL;
-    bios_proto_t *item = NULL;
+    fty_proto_t *item = NULL;
 
     if ( verbose )
         log_debug ("\tCREATE 'TEST8_DC' as datacenter");
-    asset = test_asset_new ("TEST8_DC", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "type", "%s", "datacenter");
-    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    asset = test_asset_new ("TEST8_DC", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "type", "%s", "datacenter");
+    fty_proto_aux_insert (asset, "subtype", "%s", "unknown");
     data_asset_store (self, &asset);
 
     if ( verbose )
         log_debug ("\tCREATE 'TEST8_RACK' as rack");
-    asset = test_asset_new ("TEST8_RACK", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST8_DC");
-    bios_proto_aux_insert (asset, "type", "%s", "rack");
+    asset = test_asset_new ("TEST8_RACK", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST8_DC");
+    fty_proto_aux_insert (asset, "type", "%s", "rack");
     data_asset_store (self, &asset);
 
     if ( verbose )
         log_debug ("\tCREATE 'TEST8_SENSOR01' as sensor");
-    asset = test_asset_new ("TEST8_SENSOR01", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST8_UPS");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH1");
-    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
-    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "10");
-    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST8_RACK");
+    asset = test_asset_new ("TEST8_SENSOR01", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST8_UPS");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_ext_insert (asset, "port", "%s", "TH1");
+    fty_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
+    fty_proto_ext_insert (asset, "calibration_offset_h", "%s", "10");
+    fty_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST8_RACK");
     data_asset_store (self, &asset);
 
     if ( verbose )
         log_debug ("\tCREATE 'TEST8_SENSOR02' as sensor");
-    asset = test_asset_new ("TEST8_SENSOR02", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST8_UPS");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH2");
-    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "2");
-    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "20");
-    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST8_RACK");
+    asset = test_asset_new ("TEST8_SENSOR02", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST8_UPS");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_ext_insert (asset, "port", "%s", "TH2");
+    fty_proto_ext_insert (asset, "calibration_offset_t", "%s", "2");
+    fty_proto_ext_insert (asset, "calibration_offset_h", "%s", "20");
+    fty_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST8_RACK");
     data_asset_store (self, &asset);
 
     if ( verbose )
         log_debug ("\tCREATE 'TEST8_SENSOR03' as sensor");
-    asset = test_asset_new ("TEST8_SENSOR03", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST8_UPS");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH3");
-    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "3");
-    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "30");
-    bios_proto_ext_insert (asset, "sensor_function", "%s", "output");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST8_RACK");
+    asset = test_asset_new ("TEST8_SENSOR03", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST8_UPS");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_ext_insert (asset, "port", "%s", "TH3");
+    fty_proto_ext_insert (asset, "calibration_offset_t", "%s", "3");
+    fty_proto_ext_insert (asset, "calibration_offset_h", "%s", "30");
+    fty_proto_ext_insert (asset, "sensor_function", "%s", "output");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST8_RACK");
     data_asset_store (self, &asset);
 
     if ( verbose )
         log_debug ("\tCREATE 'TEST8_SENSOR04' as sensor");
-    asset = test_asset_new ("TEST8_SENSOR04", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST8_UPS");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH4");
-    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
-    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "1");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST8_RACK");
+    asset = test_asset_new ("TEST8_SENSOR04", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST8_UPS");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_ext_insert (asset, "port", "%s", "TH4");
+    fty_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
+    fty_proto_ext_insert (asset, "calibration_offset_h", "%s", "1");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST8_RACK");
     data_asset_store (self, &asset);
 
     data_reassign_sensors (self, false);
@@ -1384,10 +1384,10 @@ test8 (bool verbose)
     sensors = data_get_assigned_sensors (self, "TEST8_RACK", "input");
     assert (sensors != NULL);
     assert (zlistx_size (sensors) == 2);
-    item = (bios_proto_t *) zlistx_first (sensors);
-    const char *name1 = bios_proto_name (item);
-    item = (bios_proto_t *) zlistx_next (sensors);
-    const char *name2 = bios_proto_name (item);
+    item = (fty_proto_t *) zlistx_first (sensors);
+    const char *name1 = fty_proto_name (item);
+    item = (fty_proto_t *) zlistx_next (sensors);
+    const char *name2 = fty_proto_name (item);
     assert
         (   (streq(name1, "TEST8_SENSOR01") || (streq(name2, "TEST8_SENSOR02")) ) 
             ||
@@ -1401,15 +1401,15 @@ test8 (bool verbose)
     sensors = data_get_assigned_sensors (self, "TEST8_RACK", "output");
     assert (sensors != NULL);
     assert (zlistx_size (sensors) == 1);
-    item = (bios_proto_t *) zlistx_first (sensors);
-    assert ( streq(bios_proto_name (item), "TEST8_SENSOR03") );
+    item = (fty_proto_t *) zlistx_first (sensors);
+    assert ( streq(fty_proto_name (item), "TEST8_SENSOR03") );
     zlistx_destroy (&sensors);
 
     sensors = data_get_assigned_sensors (self, "TEST8_RACK", "");
     assert (sensors != NULL);
     assert (zlistx_size (sensors) == 1);
-    item = (bios_proto_t *) zlistx_first (sensors);
-    assert ( streq(bios_proto_name (item), "TEST8_SENSOR04") );
+    item = (fty_proto_t *) zlistx_first (sensors);
+    assert ( streq(fty_proto_name (item), "TEST8_SENSOR04") );
     zlistx_destroy (&sensors);
 
     sensors = data_get_assigned_sensors (self, "TEST8_SENSOR03", NULL);
@@ -1426,7 +1426,7 @@ test9 (bool verbose)
         log_debug ("Test9: Check that sensor logically assigned to device/group is skipped");
     
     data_t *self = data_new();
-    bios_proto_t *asset = NULL;
+    fty_proto_t *asset = NULL;
     zlistx_t *sensors = NULL;
 
     // Physical topology: 
@@ -1435,87 +1435,87 @@ test9 (bool verbose)
     //   ->GROUP
     if ( verbose )
         log_debug ("\tCREATE 'TEST9_DC' as datacenter");
-    asset = test_asset_new ("TEST9_DC", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "type", "%s", "datacenter");
-    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    asset = test_asset_new ("TEST9_DC", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "type", "%s", "datacenter");
+    fty_proto_aux_insert (asset, "subtype", "%s", "unknown");
     data_asset_store (self, &asset);
 
     if ( verbose )
         log_debug ("\tCREATE 'TEST9_GROUP' as group");
-    asset = test_asset_new ("TEST9_GROUP", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST9_DC");
-    bios_proto_aux_insert (asset, "type", "%s", "group");
-    bios_proto_aux_insert (asset, "subtype", "%s", "power_input");
+    asset = test_asset_new ("TEST9_GROUP", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST9_DC");
+    fty_proto_aux_insert (asset, "type", "%s", "group");
+    fty_proto_aux_insert (asset, "subtype", "%s", "power_input");
     data_asset_store (self, &asset);
 
     if ( verbose )
         log_debug ("\tCREATE 'TEST9_RACK' as rack");
-    asset = test_asset_new ("TEST9_RACK", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST9_DC");
-    bios_proto_aux_insert (asset, "type", "%s", "rack");
+    asset = test_asset_new ("TEST9_RACK", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST9_DC");
+    fty_proto_aux_insert (asset, "type", "%s", "rack");
     data_asset_store (self, &asset);
 
     if ( verbose )
         log_debug ("\tCREATE 'TEST9_UPS' as ups");
-    asset = test_asset_new ("TEST9_UPS", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST9_RACK");
-    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST9_DC");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "ups");
+    asset = test_asset_new ("TEST9_UPS", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST9_RACK");
+    fty_proto_aux_insert (asset, "parent_name.2", "%s", "TEST9_DC");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "ups");
     data_asset_store (self, &asset);
 
     if ( verbose )
         log_debug ("\tCREATE 'TEST9_RC' as rack controller");
-    asset = test_asset_new ("TEST9_RC", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST9_RACK");
-    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST9_DC");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "rack controller");
+    asset = test_asset_new ("TEST9_RC", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST9_RACK");
+    fty_proto_aux_insert (asset, "parent_name.2", "%s", "TEST9_DC");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "rack controller");
     data_asset_store (self, &asset);
 
     if ( verbose )
         log_debug ("\tCREATE 'TEST9_SENSOR01' as sensor");
-    asset = test_asset_new ("TEST9_SENSOR01", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST9_UPS");
-    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST9_RACK");
-    bios_proto_aux_insert (asset, "parent_name.3", "%s", "TEST9_DC");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH1");
-    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
-    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "10");
-    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST9_RACK");
+    asset = test_asset_new ("TEST9_SENSOR01", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST9_UPS");
+    fty_proto_aux_insert (asset, "parent_name.2", "%s", "TEST9_RACK");
+    fty_proto_aux_insert (asset, "parent_name.3", "%s", "TEST9_DC");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_ext_insert (asset, "port", "%s", "TH1");
+    fty_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
+    fty_proto_ext_insert (asset, "calibration_offset_h", "%s", "10");
+    fty_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST9_RACK");
     data_asset_store (self, &asset);
 
     if ( verbose ) {
         log_debug ("\tCREATE 'TEST9_SENSOR02' as sensor");
         log_debug ("\t\tSituation: sensor logically assigned to device");
     }
-    asset = test_asset_new ("TEST9_SENSOR02", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST9_RC");
-    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST9_RACK");
-    bios_proto_aux_insert (asset, "parent_name.3", "%s", "TEST9_DC");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH2");
-    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
-    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "10");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST9_UPS");
+    asset = test_asset_new ("TEST9_SENSOR02", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST9_RC");
+    fty_proto_aux_insert (asset, "parent_name.2", "%s", "TEST9_RACK");
+    fty_proto_aux_insert (asset, "parent_name.3", "%s", "TEST9_DC");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_ext_insert (asset, "port", "%s", "TH2");
+    fty_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
+    fty_proto_ext_insert (asset, "calibration_offset_h", "%s", "10");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST9_UPS");
     data_asset_store (self, &asset);
 
     if ( verbose ) {
         log_debug ("\tCREATE 'TEST9_SENSOR03' as sensor");
         log_debug ("\t\tSituation: sensor logically assigned to group");
     }
-    asset = test_asset_new ("TEST9_SENSOR03", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST9_DC");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH3");
-    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
-    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "10");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST9_GROUP");
+    asset = test_asset_new ("TEST9_SENSOR03", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST9_DC");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_ext_insert (asset, "port", "%s", "TH3");
+    fty_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
+    fty_proto_ext_insert (asset, "calibration_offset_h", "%s", "10");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST9_GROUP");
     data_asset_store (self, &asset);
 
     // test assigned sensors: propagated
@@ -1566,18 +1566,18 @@ test10 (bool verbose)
         log_debug ("Test10: Check that UPDATE sensor will trigger reconfig only if needed");
     
     data_t *self = data_new();
-    bios_proto_t *asset = NULL;
+    fty_proto_t *asset = NULL;
 
     if ( verbose )
         log_debug ("\tCREATE 'TEST10_RACK01' as rack");
-    asset = test_asset_new ("TEST10_RACK01", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "type", "%s", "rack");
+    asset = test_asset_new ("TEST10_RACK01", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "type", "%s", "rack");
     data_asset_store (self, &asset);
 
     if ( verbose )
         log_debug ("\tCREATE 'TEST10_RACK02' as rack");
-    asset = test_asset_new ("TEST10_RACK02", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "type", "%s", "rack");
+    asset = test_asset_new ("TEST10_RACK02", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "type", "%s", "rack");
     data_asset_store (self, &asset);
     data_reassign_sensors (self, false); // drop the flag "is reconfiguration needed"
     assert ( data_is_reconfig_needed (self) == false );
@@ -1586,16 +1586,16 @@ test10 (bool verbose)
         log_debug ("\tUPDATE 'TEST10_SENSOR01' as sensor");
         log_debug ("\t\tSituation: UPDATE message came, but CREATE message was missing");
     }
-    asset = test_asset_new ("TEST10_SENSOR01", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST10_UPS");
-    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST10_DC");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH1");
-    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
-    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "10");
-    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST10_RACK01");
+    asset = test_asset_new ("TEST10_SENSOR01", FTY_PROTO_ASSET_OP_UPDATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST10_UPS");
+    fty_proto_aux_insert (asset, "parent_name.2", "%s", "TEST10_DC");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_ext_insert (asset, "port", "%s", "TH1");
+    fty_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
+    fty_proto_ext_insert (asset, "calibration_offset_h", "%s", "10");
+    fty_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST10_RACK01");
     data_asset_store (self, &asset);
     assert ( data_is_reconfig_needed (self) == true );
     data_reassign_sensors (self, false); // drop the flag "is reconfiguration needed"
@@ -1605,17 +1605,17 @@ test10 (bool verbose)
         log_debug ("\tUPDATE 'TEST10_SENSOR01' as sensor");
         log_debug ("\t\tSituation: UPDATE message has the same important info but other different EXT attributes");
     }
-    asset = test_asset_new ("TEST10_SENSOR01", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST10_UPS");
-    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST10_DC");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH1");
-    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
-    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "10");
-    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST10_RACK01");
-    bios_proto_ext_insert (asset, "notimportant_ext_attribute", "%s", "WOW");
+    asset = test_asset_new ("TEST10_SENSOR01", FTY_PROTO_ASSET_OP_UPDATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST10_UPS");
+    fty_proto_aux_insert (asset, "parent_name.2", "%s", "TEST10_DC");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_ext_insert (asset, "port", "%s", "TH1");
+    fty_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
+    fty_proto_ext_insert (asset, "calibration_offset_h", "%s", "10");
+    fty_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST10_RACK01");
+    fty_proto_ext_insert (asset, "notimportant_ext_attribute", "%s", "WOW");
     data_asset_store (self, &asset);
     assert ( data_is_reconfig_needed (self) == false );
 
@@ -1623,17 +1623,17 @@ test10 (bool verbose)
         log_debug ("\tUPDATE 'TEST10_SENSOR01' as sensor");
         log_debug ("\t\tSituation: UPDATE message has the same important info but other different AUX attributes");
     }
-    asset = test_asset_new ("TEST10_SENSOR01", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST10_UPS");
-    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST10_DC");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_aux_insert (asset, "notimportant_aux_attribute", "%s", "WOW");
-    bios_proto_ext_insert (asset, "port", "%s", "TH1");
-    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
-    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "10");
-    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST10_RACK01");
+    asset = test_asset_new ("TEST10_SENSOR01", FTY_PROTO_ASSET_OP_UPDATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST10_UPS");
+    fty_proto_aux_insert (asset, "parent_name.2", "%s", "TEST10_DC");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_aux_insert (asset, "notimportant_aux_attribute", "%s", "WOW");
+    fty_proto_ext_insert (asset, "port", "%s", "TH1");
+    fty_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
+    fty_proto_ext_insert (asset, "calibration_offset_h", "%s", "10");
+    fty_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST10_RACK01");
     data_asset_store (self, &asset);
     assert ( data_is_reconfig_needed (self) == false );
 
@@ -1641,16 +1641,16 @@ test10 (bool verbose)
         log_debug ("\tUPDATE 'TEST10_SENSOR01' as sensor");
         log_debug ("\t\tSituation: UPDATE message important info ('port') changed");
     }
-    asset = test_asset_new ("TEST10_SENSOR01", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST10_UPS");
-    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST10_DC");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH2");
-    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
-    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "10");
-    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST10_RACK01");
+    asset = test_asset_new ("TEST10_SENSOR01", FTY_PROTO_ASSET_OP_UPDATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST10_UPS");
+    fty_proto_aux_insert (asset, "parent_name.2", "%s", "TEST10_DC");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_ext_insert (asset, "port", "%s", "TH2");
+    fty_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
+    fty_proto_ext_insert (asset, "calibration_offset_h", "%s", "10");
+    fty_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST10_RACK01");
     data_asset_store (self, &asset);
     assert ( data_is_reconfig_needed (self) == true );
     data_reassign_sensors (self, false); // drop the flag "is reconfiguration needed"
@@ -1660,16 +1660,16 @@ test10 (bool verbose)
         log_debug ("\tUPDATE 'TEST10_SENSOR01' as sensor");
         log_debug ("\t\tSituation: UPDATE message important info ('logical_asset') changed");
     }
-    asset = test_asset_new ("TEST10_SENSOR01", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST10_UPS");
-    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST10_DC");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH2");
-    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
-    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "10");
-    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST10_RACK02");
+    asset = test_asset_new ("TEST10_SENSOR01", FTY_PROTO_ASSET_OP_UPDATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST10_UPS");
+    fty_proto_aux_insert (asset, "parent_name.2", "%s", "TEST10_DC");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_ext_insert (asset, "port", "%s", "TH2");
+    fty_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
+    fty_proto_ext_insert (asset, "calibration_offset_h", "%s", "10");
+    fty_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST10_RACK02");
     data_asset_store (self, &asset);
     assert ( data_is_reconfig_needed (self) == true );
     data_reassign_sensors (self, false); // drop the flag "is reconfiguration needed"
@@ -1679,16 +1679,16 @@ test10 (bool verbose)
         log_debug ("\tUPDATE 'TEST10_SENSOR01' as sensor");
         log_debug ("\t\tSituation: UPDATE message important info ('calibration_offset_h') changed");
     }
-    asset = test_asset_new ("TEST10_SENSOR01", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST10_UPS");
-    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST10_DC");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH2");
-    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
-    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "100");
-    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST10_RACK02");
+    asset = test_asset_new ("TEST10_SENSOR01", FTY_PROTO_ASSET_OP_UPDATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST10_UPS");
+    fty_proto_aux_insert (asset, "parent_name.2", "%s", "TEST10_DC");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_ext_insert (asset, "port", "%s", "TH2");
+    fty_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
+    fty_proto_ext_insert (asset, "calibration_offset_h", "%s", "100");
+    fty_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST10_RACK02");
     data_asset_store (self, &asset);
     assert ( data_is_reconfig_needed (self) == true );
     data_reassign_sensors (self, false); // drop the flag "is reconfiguration needed"
@@ -1698,16 +1698,16 @@ test10 (bool verbose)
         log_debug ("\tUPDATE 'TEST10_SENSOR01' as sensor");
         log_debug ("\t\tSituation: UPDATE message important info ('calibration_offset_t') changed");
     }
-    asset = test_asset_new ("TEST10_SENSOR01", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST10_UPS");
-    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST10_DC");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH2");
-    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "10");
-    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "100");
-    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST10_RACK02");
+    asset = test_asset_new ("TEST10_SENSOR01", FTY_PROTO_ASSET_OP_UPDATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST10_UPS");
+    fty_proto_aux_insert (asset, "parent_name.2", "%s", "TEST10_DC");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_ext_insert (asset, "port", "%s", "TH2");
+    fty_proto_ext_insert (asset, "calibration_offset_t", "%s", "10");
+    fty_proto_ext_insert (asset, "calibration_offset_h", "%s", "100");
+    fty_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST10_RACK02");
     data_asset_store (self, &asset);
     assert ( data_is_reconfig_needed (self) == true );
     data_reassign_sensors (self, false); // drop the flag "is reconfiguration needed"
@@ -1717,16 +1717,16 @@ test10 (bool verbose)
         log_debug ("\tUPDATE 'TEST10_SENSOR01' as sensor");
         log_debug ("\t\tSituation: UPDATE message important info ('sensor_function') changed");
     }
-    asset = test_asset_new ("TEST10_SENSOR01", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST10_UPS");
-    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST10_DC");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH2");
-    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "10");
-    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "100");
-    bios_proto_ext_insert (asset, "sensor_function", "%s", "output");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST10_RACK02");
+    asset = test_asset_new ("TEST10_SENSOR01", FTY_PROTO_ASSET_OP_UPDATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST10_UPS");
+    fty_proto_aux_insert (asset, "parent_name.2", "%s", "TEST10_DC");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_ext_insert (asset, "port", "%s", "TH2");
+    fty_proto_ext_insert (asset, "calibration_offset_t", "%s", "10");
+    fty_proto_ext_insert (asset, "calibration_offset_h", "%s", "100");
+    fty_proto_ext_insert (asset, "sensor_function", "%s", "output");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST10_RACK02");
     data_asset_store (self, &asset);
     assert ( data_is_reconfig_needed (self) == true );
     data_reassign_sensors (self, false); // drop the flag "is reconfiguration needed"
@@ -1736,15 +1736,15 @@ test10 (bool verbose)
         log_debug ("\tUPDATE 'TEST10_SENSOR01' as sensor");
         log_debug ("\t\tSituation: UPDATE message not important info ('parent_name.1') changed");
     }
-    asset = test_asset_new ("TEST10_SENSOR01", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST10_DC");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH2");
-    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "10");
-    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "100");
-    bios_proto_ext_insert (asset, "sensor_function", "%s", "output");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST10_RACK02");
+    asset = test_asset_new ("TEST10_SENSOR01", FTY_PROTO_ASSET_OP_UPDATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST10_DC");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_ext_insert (asset, "port", "%s", "TH2");
+    fty_proto_ext_insert (asset, "calibration_offset_t", "%s", "10");
+    fty_proto_ext_insert (asset, "calibration_offset_h", "%s", "100");
+    fty_proto_ext_insert (asset, "sensor_function", "%s", "output");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST10_RACK02");
     data_asset_store (self, &asset);
     assert ( data_is_reconfig_needed (self) == false );
 
@@ -1758,31 +1758,31 @@ test11 (bool verbose)
         log_debug ("Test11: Check that UPDATE container will trigger reconfig only if needed");
     
     data_t *self = data_new();
-    bios_proto_t *asset = NULL;
+    fty_proto_t *asset = NULL;
 
     // this one is used in UPDATE operations
     if ( verbose )
         log_debug ("\tCREATE 'TEST11_DC_NEW' as datacenter");
-    asset = test_asset_new ("TEST11_DC_NEW", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "type", "%s", "datacenter");
-    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    asset = test_asset_new ("TEST11_DC_NEW", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "type", "%s", "datacenter");
+    fty_proto_aux_insert (asset, "subtype", "%s", "unknown");
     data_asset_store (self, &asset);
 
     if ( verbose )
         log_debug ("\tCREATE 'TEST11_ROOM_NEW' as room");
-    asset = test_asset_new ("TEST11_ROOM_NEW", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_DC_NEW");
-    bios_proto_aux_insert (asset, "type", "%s", "room");
-    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    asset = test_asset_new ("TEST11_ROOM_NEW", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_DC_NEW");
+    fty_proto_aux_insert (asset, "type", "%s", "room");
+    fty_proto_aux_insert (asset, "subtype", "%s", "unknown");
     data_asset_store (self, &asset);
 
     if ( verbose )
         log_debug ("\tCREATE 'TEST11_ROW_NEW' as row");
-    asset = test_asset_new ("TEST11_ROW_NEW", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_ROOM_NEW");
-    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST11_DC_NEW");
-    bios_proto_aux_insert (asset, "type", "%s", "row");
-    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    asset = test_asset_new ("TEST11_ROW_NEW", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_ROOM_NEW");
+    fty_proto_aux_insert (asset, "parent_name.2", "%s", "TEST11_DC_NEW");
+    fty_proto_aux_insert (asset, "type", "%s", "row");
+    fty_proto_aux_insert (asset, "subtype", "%s", "unknown");
     data_asset_store (self, &asset);
 
     data_reassign_sensors (self, false); // drop the flag "is reconfiguration needed"
@@ -1793,9 +1793,9 @@ test11 (bool verbose)
         log_debug ("\tUPDATE 'TEST11_DC' as datacenter");
         log_debug ("\t\tSituation: UPDATE message came, but CREATE message was missing");
     }
-    asset = test_asset_new ("TEST11_DC", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "type", "%s", "datacenter");
-    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    asset = test_asset_new ("TEST11_DC", FTY_PROTO_ASSET_OP_UPDATE);
+    fty_proto_aux_insert (asset, "type", "%s", "datacenter");
+    fty_proto_aux_insert (asset, "subtype", "%s", "unknown");
     data_asset_store (self, &asset);
     assert ( data_is_reconfig_needed (self) == true );
     data_reassign_sensors (self, false); // drop the flag "is reconfiguration needed"
@@ -1805,10 +1805,10 @@ test11 (bool verbose)
         log_debug ("\tUPDATE 'TEST11_DC' as datacenter");
         log_debug ("\t\tSituation: UPDATE message has the same important info but other different EXT attributes");
     }
-    asset = test_asset_new ("TEST11_DC", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "type", "%s", "datacenter");
-    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
-    bios_proto_ext_insert (asset, "notimportant_ext_attribute", "%s", "WOW");
+    asset = test_asset_new ("TEST11_DC", FTY_PROTO_ASSET_OP_UPDATE);
+    fty_proto_aux_insert (asset, "type", "%s", "datacenter");
+    fty_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    fty_proto_ext_insert (asset, "notimportant_ext_attribute", "%s", "WOW");
     data_asset_store (self, &asset);
     assert ( data_is_reconfig_needed (self) == false );
 
@@ -1816,11 +1816,11 @@ test11 (bool verbose)
         log_debug ("\tUPDATE 'TEST11_DC' as datacenter");
         log_debug ("\t\tSituation: UPDATE message has the same important info but other different AUX attributes");
     }
-    asset = test_asset_new ("TEST11_DC", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "type", "%s", "datacenter");
-    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
-    bios_proto_ext_insert (asset, "notimportant_ext_attribute", "%s", "WOW"); // as it was in previous
-    bios_proto_aux_insert (asset, "notimportant_aux_attribute", "%s", "WOW");
+    asset = test_asset_new ("TEST11_DC", FTY_PROTO_ASSET_OP_UPDATE);
+    fty_proto_aux_insert (asset, "type", "%s", "datacenter");
+    fty_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    fty_proto_ext_insert (asset, "notimportant_ext_attribute", "%s", "WOW"); // as it was in previous
+    fty_proto_aux_insert (asset, "notimportant_aux_attribute", "%s", "WOW");
     data_asset_store (self, &asset);
     assert ( data_is_reconfig_needed (self) == false );
 
@@ -1829,10 +1829,10 @@ test11 (bool verbose)
         log_debug ("\tUPDATE 'TEST11_ROOM' as room");
         log_debug ("\t\tSituation: UPDATE message came, but CREATE message was missing");
     }
-    asset = test_asset_new ("TEST11_ROOM", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_DC");
-    bios_proto_aux_insert (asset, "type", "%s", "room");
-    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    asset = test_asset_new ("TEST11_ROOM", FTY_PROTO_ASSET_OP_UPDATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_DC");
+    fty_proto_aux_insert (asset, "type", "%s", "room");
+    fty_proto_aux_insert (asset, "subtype", "%s", "unknown");
     data_asset_store (self, &asset);
     assert ( data_is_reconfig_needed (self) == true );
     data_reassign_sensors (self, false); // drop the flag "is reconfiguration needed"
@@ -1842,11 +1842,11 @@ test11 (bool verbose)
         log_debug ("\tUPDATE 'TEST11_ROOM' as room");
         log_debug ("\t\tSituation: UPDATE message has the same important info but other different EXT attributes");
     }
-    asset = test_asset_new ("TEST11_ROOM", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_DC");
-    bios_proto_aux_insert (asset, "type", "%s", "room");
-    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
-    bios_proto_ext_insert (asset, "notimportant_ext_attribute", "%s", "WOW");
+    asset = test_asset_new ("TEST11_ROOM", FTY_PROTO_ASSET_OP_UPDATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_DC");
+    fty_proto_aux_insert (asset, "type", "%s", "room");
+    fty_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    fty_proto_ext_insert (asset, "notimportant_ext_attribute", "%s", "WOW");
     data_asset_store (self, &asset);
     assert ( data_is_reconfig_needed (self) == false );
 
@@ -1854,12 +1854,12 @@ test11 (bool verbose)
         log_debug ("\tUPDATE 'TEST11_ROOM' as room");
         log_debug ("\t\tSituation: UPDATE message has the same important info but other different AUX attributes");
     }
-    asset = test_asset_new ("TEST11_ROOM", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_DC");
-    bios_proto_aux_insert (asset, "type", "%s", "room");
-    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
-    bios_proto_ext_insert (asset, "notimportant_ext_attribute", "%s", "WOW"); // as it was in previous
-    bios_proto_aux_insert (asset, "notimportant_aux_attribute", "%s", "WOW");
+    asset = test_asset_new ("TEST11_ROOM", FTY_PROTO_ASSET_OP_UPDATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_DC");
+    fty_proto_aux_insert (asset, "type", "%s", "room");
+    fty_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    fty_proto_ext_insert (asset, "notimportant_ext_attribute", "%s", "WOW"); // as it was in previous
+    fty_proto_aux_insert (asset, "notimportant_aux_attribute", "%s", "WOW");
     data_asset_store (self, &asset);
     assert ( data_is_reconfig_needed (self) == false );
 
@@ -1867,12 +1867,12 @@ test11 (bool verbose)
         log_debug ("\tUPDATE 'TEST11_ROOM' as room");
         log_debug ("\t\tSituation: UPDATE message not important info ('parent_name.1') changed");
     }
-    asset = test_asset_new ("TEST11_ROOM", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_DC_NEW");
-    bios_proto_aux_insert (asset, "type", "%s", "room");
-    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
-    bios_proto_ext_insert (asset, "notimportant_ext_attribute", "%s", "WOW"); // as it was in previous
-    bios_proto_aux_insert (asset, "notimportant_aux_attribute", "%s", "WOW"); // as it was in previous
+    asset = test_asset_new ("TEST11_ROOM", FTY_PROTO_ASSET_OP_UPDATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_DC_NEW");
+    fty_proto_aux_insert (asset, "type", "%s", "room");
+    fty_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    fty_proto_ext_insert (asset, "notimportant_ext_attribute", "%s", "WOW"); // as it was in previous
+    fty_proto_aux_insert (asset, "notimportant_aux_attribute", "%s", "WOW"); // as it was in previous
     data_asset_store (self, &asset);
     assert ( data_is_reconfig_needed (self) == true );
     data_reassign_sensors (self, false); // drop the flag "is reconfiguration needed"
@@ -1883,11 +1883,11 @@ test11 (bool verbose)
         log_debug ("\tUPDATE 'TEST11_ROW' as row");
         log_debug ("\t\tSituation: UPDATE message came, but CREATE message was missing");
     }
-    asset = test_asset_new ("TEST11_ROW", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_ROOM");
-    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST11_DC");
-    bios_proto_aux_insert (asset, "type", "%s", "row");
-    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    asset = test_asset_new ("TEST11_ROW", FTY_PROTO_ASSET_OP_UPDATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_ROOM");
+    fty_proto_aux_insert (asset, "parent_name.2", "%s", "TEST11_DC");
+    fty_proto_aux_insert (asset, "type", "%s", "row");
+    fty_proto_aux_insert (asset, "subtype", "%s", "unknown");
     data_asset_store (self, &asset);
     assert ( data_is_reconfig_needed (self) == true );
     data_reassign_sensors (self, false); // drop the flag "is reconfiguration needed"
@@ -1897,12 +1897,12 @@ test11 (bool verbose)
         log_debug ("\tUPDATE 'TEST11_ROW' as row");
         log_debug ("\t\tSituation: UPDATE message has the same important info but other different EXT attributes");
     }
-    asset = test_asset_new ("TEST11_ROW", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_ROOM");
-    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST11_DC");
-    bios_proto_aux_insert (asset, "type", "%s", "row");
-    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
-    bios_proto_ext_insert (asset, "notimportant_ext_attribute", "%s", "WOW");
+    asset = test_asset_new ("TEST11_ROW", FTY_PROTO_ASSET_OP_UPDATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_ROOM");
+    fty_proto_aux_insert (asset, "parent_name.2", "%s", "TEST11_DC");
+    fty_proto_aux_insert (asset, "type", "%s", "row");
+    fty_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    fty_proto_ext_insert (asset, "notimportant_ext_attribute", "%s", "WOW");
     data_asset_store (self, &asset);
     assert ( data_is_reconfig_needed (self) == false );
 
@@ -1910,13 +1910,13 @@ test11 (bool verbose)
         log_debug ("\tUPDATE 'TEST11_ROW' as row");
         log_debug ("\t\tSituation: UPDATE message has the same important info but other different AUX attributes");
     }
-    asset = test_asset_new ("TEST11_ROW", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_ROOM");
-    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST11_DC");
-    bios_proto_aux_insert (asset, "type", "%s", "row");
-    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
-    bios_proto_ext_insert (asset, "notimportant_ext_attribute", "%s", "WOW"); // as it was in previous
-    bios_proto_aux_insert (asset, "notimportant_aux_attribute", "%s", "WOW");
+    asset = test_asset_new ("TEST11_ROW", FTY_PROTO_ASSET_OP_UPDATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_ROOM");
+    fty_proto_aux_insert (asset, "parent_name.2", "%s", "TEST11_DC");
+    fty_proto_aux_insert (asset, "type", "%s", "row");
+    fty_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    fty_proto_ext_insert (asset, "notimportant_ext_attribute", "%s", "WOW"); // as it was in previous
+    fty_proto_aux_insert (asset, "notimportant_aux_attribute", "%s", "WOW");
     data_asset_store (self, &asset);
     assert ( data_is_reconfig_needed (self) == false );
 
@@ -1924,13 +1924,13 @@ test11 (bool verbose)
         log_debug ("\tUPDATE 'TEST11_ROW' as row");
         log_debug ("\t\tSituation: UPDATE message not important info ('parent_name.1') changed");
     }
-    asset = test_asset_new ("TEST11_ROW", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_ROOM_NEW");
-    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST11_DC");
-    bios_proto_aux_insert (asset, "type", "%s", "row");
-    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
-    bios_proto_ext_insert (asset, "notimportant_ext_attribute", "%s", "WOW"); // as it was in previous
-    bios_proto_aux_insert (asset, "notimportant_aux_attribute", "%s", "WOW"); // as it was in previous
+    asset = test_asset_new ("TEST11_ROW", FTY_PROTO_ASSET_OP_UPDATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_ROOM_NEW");
+    fty_proto_aux_insert (asset, "parent_name.2", "%s", "TEST11_DC");
+    fty_proto_aux_insert (asset, "type", "%s", "row");
+    fty_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    fty_proto_ext_insert (asset, "notimportant_ext_attribute", "%s", "WOW"); // as it was in previous
+    fty_proto_aux_insert (asset, "notimportant_aux_attribute", "%s", "WOW"); // as it was in previous
     data_asset_store (self, &asset);
     assert ( data_is_reconfig_needed (self) == true );
     data_reassign_sensors (self, false); // drop the flag "is reconfiguration needed"
@@ -1940,13 +1940,13 @@ test11 (bool verbose)
         log_debug ("\tUPDATE 'TEST11_ROW' as row");
         log_debug ("\t\tSituation: UPDATE message not important info ('parent_name.2') changed");
     }
-    asset = test_asset_new ("TEST11_ROW", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_ROOM_NEW");
-    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST11_DC_NEW");
-    bios_proto_aux_insert (asset, "type", "%s", "row");
-    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
-    bios_proto_ext_insert (asset, "notimportant_ext_attribute", "%s", "WOW"); // as it was in previous
-    bios_proto_aux_insert (asset, "notimportant_aux_attribute", "%s", "WOW"); // as it was in previous
+    asset = test_asset_new ("TEST11_ROW", FTY_PROTO_ASSET_OP_UPDATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_ROOM_NEW");
+    fty_proto_aux_insert (asset, "parent_name.2", "%s", "TEST11_DC_NEW");
+    fty_proto_aux_insert (asset, "type", "%s", "row");
+    fty_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    fty_proto_ext_insert (asset, "notimportant_ext_attribute", "%s", "WOW"); // as it was in previous
+    fty_proto_aux_insert (asset, "notimportant_aux_attribute", "%s", "WOW"); // as it was in previous
     data_asset_store (self, &asset);
     assert ( data_is_reconfig_needed (self) == true );
     data_reassign_sensors (self, false); // drop the flag "is reconfiguration needed"
@@ -1957,12 +1957,12 @@ test11 (bool verbose)
         log_debug ("\tUPDATE 'TEST11_RACK' as rack");
         log_debug ("\t\tSituation: UPDATE message came, but CREATE message was missing");
     }
-    asset = test_asset_new ("TEST11_RACK", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_ROW");
-    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST11_ROOM");
-    bios_proto_aux_insert (asset, "parent_name.3", "%s", "TEST11_DC");
-    bios_proto_aux_insert (asset, "type", "%s", "rack");
-    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    asset = test_asset_new ("TEST11_RACK", FTY_PROTO_ASSET_OP_UPDATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_ROW");
+    fty_proto_aux_insert (asset, "parent_name.2", "%s", "TEST11_ROOM");
+    fty_proto_aux_insert (asset, "parent_name.3", "%s", "TEST11_DC");
+    fty_proto_aux_insert (asset, "type", "%s", "rack");
+    fty_proto_aux_insert (asset, "subtype", "%s", "unknown");
     data_asset_store (self, &asset);
     assert ( data_is_reconfig_needed (self) == true );
     data_reassign_sensors (self, false); // drop the flag "is reconfiguration needed"
@@ -1972,13 +1972,13 @@ test11 (bool verbose)
         log_debug ("\tUPDATE 'TEST11_RACK' as rack");
         log_debug ("\t\tSituation: UPDATE message has the same important info but other different EXT attributes");
     }
-    asset = test_asset_new ("TEST11_RACK", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_ROW");
-    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST11_ROOM");
-    bios_proto_aux_insert (asset, "parent_name.3", "%s", "TEST11_DC");
-    bios_proto_aux_insert (asset, "type", "%s", "rack");
-    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
-    bios_proto_ext_insert (asset, "notimportant_ext_attribute", "%s", "WOW");
+    asset = test_asset_new ("TEST11_RACK", FTY_PROTO_ASSET_OP_UPDATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_ROW");
+    fty_proto_aux_insert (asset, "parent_name.2", "%s", "TEST11_ROOM");
+    fty_proto_aux_insert (asset, "parent_name.3", "%s", "TEST11_DC");
+    fty_proto_aux_insert (asset, "type", "%s", "rack");
+    fty_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    fty_proto_ext_insert (asset, "notimportant_ext_attribute", "%s", "WOW");
     data_asset_store (self, &asset);
     assert ( data_is_reconfig_needed (self) == false );
 
@@ -1986,14 +1986,14 @@ test11 (bool verbose)
         log_debug ("\tUPDATE 'TEST11_RACK' as rack");
         log_debug ("\t\tSituation: UPDATE message has the same important info but other different AUX attributes");
     }
-    asset = test_asset_new ("TEST11_RACK", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_ROW");
-    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST11_ROOM");
-    bios_proto_aux_insert (asset, "parent_name.3", "%s", "TEST11_DC");
-    bios_proto_aux_insert (asset, "type", "%s", "rack");
-    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
-    bios_proto_ext_insert (asset, "notimportant_ext_attribute", "%s", "WOW"); // as it was in previous
-    bios_proto_aux_insert (asset, "notimportant_aux_attribute", "%s", "WOW");
+    asset = test_asset_new ("TEST11_RACK", FTY_PROTO_ASSET_OP_UPDATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_ROW");
+    fty_proto_aux_insert (asset, "parent_name.2", "%s", "TEST11_ROOM");
+    fty_proto_aux_insert (asset, "parent_name.3", "%s", "TEST11_DC");
+    fty_proto_aux_insert (asset, "type", "%s", "rack");
+    fty_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    fty_proto_ext_insert (asset, "notimportant_ext_attribute", "%s", "WOW"); // as it was in previous
+    fty_proto_aux_insert (asset, "notimportant_aux_attribute", "%s", "WOW");
     data_asset_store (self, &asset);
     assert ( data_is_reconfig_needed (self) == false );
 
@@ -2001,14 +2001,14 @@ test11 (bool verbose)
         log_debug ("\tUPDATE 'TEST11_RACK' as rack");
         log_debug ("\t\tSituation: UPDATE message not important info ('parent_name.1') changed");
     }
-    asset = test_asset_new ("TEST11_RACK", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_ROW_NEW");
-    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST11_ROOM");
-    bios_proto_aux_insert (asset, "parent_name.3", "%s", "TEST11_DC");
-    bios_proto_aux_insert (asset, "type", "%s", "rack");
-    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
-    bios_proto_ext_insert (asset, "notimportant_ext_attribute", "%s", "WOW"); // as it was in previous
-    bios_proto_aux_insert (asset, "notimportant_aux_attribute", "%s", "WOW"); // as it was in previous
+    asset = test_asset_new ("TEST11_RACK", FTY_PROTO_ASSET_OP_UPDATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_ROW_NEW");
+    fty_proto_aux_insert (asset, "parent_name.2", "%s", "TEST11_ROOM");
+    fty_proto_aux_insert (asset, "parent_name.3", "%s", "TEST11_DC");
+    fty_proto_aux_insert (asset, "type", "%s", "rack");
+    fty_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    fty_proto_ext_insert (asset, "notimportant_ext_attribute", "%s", "WOW"); // as it was in previous
+    fty_proto_aux_insert (asset, "notimportant_aux_attribute", "%s", "WOW"); // as it was in previous
     data_asset_store (self, &asset);
     assert ( data_is_reconfig_needed (self) == true );
     data_reassign_sensors (self, false); // drop the flag "is reconfiguration needed"
@@ -2018,14 +2018,14 @@ test11 (bool verbose)
         log_debug ("\tUPDATE 'TEST11_RACK' as rack");
         log_debug ("\t\tSituation: UPDATE message not important info ('parent_name.2') changed");
     }
-    asset = test_asset_new ("TEST11_RACK", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_ROW_NEW");
-    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST11_ROOM_NEW");
-    bios_proto_aux_insert (asset, "parent_name.3", "%s", "TEST11_DC");
-    bios_proto_aux_insert (asset, "type", "%s", "rack");
-    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
-    bios_proto_ext_insert (asset, "notimportant_ext_attribute", "%s", "WOW"); // as it was in previous
-    bios_proto_aux_insert (asset, "notimportant_aux_attribute", "%s", "WOW"); // as it was in previous
+    asset = test_asset_new ("TEST11_RACK", FTY_PROTO_ASSET_OP_UPDATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_ROW_NEW");
+    fty_proto_aux_insert (asset, "parent_name.2", "%s", "TEST11_ROOM_NEW");
+    fty_proto_aux_insert (asset, "parent_name.3", "%s", "TEST11_DC");
+    fty_proto_aux_insert (asset, "type", "%s", "rack");
+    fty_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    fty_proto_ext_insert (asset, "notimportant_ext_attribute", "%s", "WOW"); // as it was in previous
+    fty_proto_aux_insert (asset, "notimportant_aux_attribute", "%s", "WOW"); // as it was in previous
     data_asset_store (self, &asset);
     assert ( data_is_reconfig_needed (self) == true );
     data_reassign_sensors (self, false); // drop the flag "is reconfiguration needed"
@@ -2035,14 +2035,14 @@ test11 (bool verbose)
         log_debug ("\tUPDATE 'TEST11_RACK' as rack");
         log_debug ("\t\tSituation: UPDATE message not important info ('parent_name.3') changed");
     }
-    asset = test_asset_new ("TEST11_RACK", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_ROW_NEW");
-    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST11_ROOM_NEW");
-    bios_proto_aux_insert (asset, "parent_name.3", "%s", "TEST11_DC_NEW");
-    bios_proto_aux_insert (asset, "type", "%s", "rack");
-    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
-    bios_proto_ext_insert (asset, "notimportant_ext_attribute", "%s", "WOW"); // as it was in previous
-    bios_proto_aux_insert (asset, "notimportant_aux_attribute", "%s", "WOW"); // as it was in previous
+    asset = test_asset_new ("TEST11_RACK", FTY_PROTO_ASSET_OP_UPDATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST11_ROW_NEW");
+    fty_proto_aux_insert (asset, "parent_name.2", "%s", "TEST11_ROOM_NEW");
+    fty_proto_aux_insert (asset, "parent_name.3", "%s", "TEST11_DC_NEW");
+    fty_proto_aux_insert (asset, "type", "%s", "rack");
+    fty_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    fty_proto_ext_insert (asset, "notimportant_ext_attribute", "%s", "WOW"); // as it was in previous
+    fty_proto_aux_insert (asset, "notimportant_aux_attribute", "%s", "WOW"); // as it was in previous
     data_asset_store (self, &asset);
     assert ( data_is_reconfig_needed (self) == true );
     data_reassign_sensors (self, false); // drop the flag "is reconfiguration needed"
@@ -2085,14 +2085,14 @@ data_test (bool verbose)
     zlistx_set_duplicator (assets_expected, (czmq_duplicator *) strdup);
 
     zlistx_set_comparator (assets_expected, (czmq_comparator *) strcmp);
-    bios_proto_t *item = NULL; 
-    bios_proto_t *asset = NULL;
+    fty_proto_t *item = NULL; 
+    fty_proto_t *asset = NULL;
 
     if ( verbose )
         log_debug ("\tCREATE 'TEST1_DC' as datacenter");
-    asset = test_asset_new ("TEST1_DC", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "type", "%s", "datacenter");
-    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    asset = test_asset_new ("TEST1_DC", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "type", "%s", "datacenter");
+    fty_proto_aux_insert (asset, "subtype", "%s", "unknown");
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == true);
     data_reassign_sensors (self, true);
@@ -2101,10 +2101,10 @@ data_test (bool verbose)
 
     if ( verbose )
         log_debug ("\tCREATE 'TEST1_ROOM01' as room");
-    asset = test_asset_new ("TEST1_ROOM01", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_DC");
-    bios_proto_aux_insert (asset, "type", "%s", "room");
-    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    asset = test_asset_new ("TEST1_ROOM01", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_DC");
+    fty_proto_aux_insert (asset, "type", "%s", "room");
+    fty_proto_aux_insert (asset, "subtype", "%s", "unknown");
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == true);
     data_reassign_sensors (self, true);
@@ -2113,10 +2113,10 @@ data_test (bool verbose)
 
     if ( verbose )
         log_debug ("\tCREATE 'TEST1_ROOM02 with spaces' as room");
-    asset = test_asset_new ("TEST1_ROOM02 with spaces", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_DC");
-    bios_proto_aux_insert (asset, "type", "%s", "room");
-    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    asset = test_asset_new ("TEST1_ROOM02 with spaces", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_DC");
+    fty_proto_aux_insert (asset, "type", "%s", "room");
+    fty_proto_aux_insert (asset, "subtype", "%s", "unknown");
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == true);
     data_reassign_sensors (self, true);
@@ -2125,11 +2125,11 @@ data_test (bool verbose)
 
     if ( verbose )
         log_debug ("\tCREATE 'TEST1_ROW01' as row");
-    asset = test_asset_new ("TEST1_ROW01", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_ROOM01");
-    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST1_DC");
-    bios_proto_aux_insert (asset, "type", "%s", "row");
-    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    asset = test_asset_new ("TEST1_ROW01", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_ROOM01");
+    fty_proto_aux_insert (asset, "parent_name.2", "%s", "TEST1_DC");
+    fty_proto_aux_insert (asset, "type", "%s", "row");
+    fty_proto_aux_insert (asset, "subtype", "%s", "unknown");
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == true);
     data_reassign_sensors (self, true);
@@ -2138,11 +2138,11 @@ data_test (bool verbose)
 
     if ( verbose )
         log_debug ("\tCREATE 'TEST1_RACK01' as rack");
-    asset = test_asset_new ("TEST1_RACK01", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_ROW01");
-    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST1_ROOM01");
-    bios_proto_aux_insert (asset, "parent_name.3", "%s", "TEST1_DC");
-    bios_proto_aux_insert (asset, "type", "%s", "rack");
+    asset = test_asset_new ("TEST1_RACK01", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_ROW01");
+    fty_proto_aux_insert (asset, "parent_name.2", "%s", "TEST1_ROOM01");
+    fty_proto_aux_insert (asset, "parent_name.3", "%s", "TEST1_DC");
+    fty_proto_aux_insert (asset, "type", "%s", "rack");
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == true);
     data_reassign_sensors (self, true);
@@ -2151,12 +2151,12 @@ data_test (bool verbose)
 
     if ( verbose )
         log_debug ("\tCREATE 'TEST1_RACK02' as rack");
-    asset = test_asset_new ("TEST1_RACK02", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_ROW01");
-    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST1_ROOM01");
-    bios_proto_aux_insert (asset, "parent_name.3", "%s", "TEST1_DC");
-    bios_proto_aux_insert (asset, "type", "%s", "rack");
-    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    asset = test_asset_new ("TEST1_RACK02", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_ROW01");
+    fty_proto_aux_insert (asset, "parent_name.2", "%s", "TEST1_ROOM01");
+    fty_proto_aux_insert (asset, "parent_name.3", "%s", "TEST1_DC");
+    fty_proto_aux_insert (asset, "type", "%s", "rack");
+    fty_proto_aux_insert (asset, "subtype", "%s", "unknown");
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == true);
     data_reassign_sensors (self, true);
@@ -2165,11 +2165,11 @@ data_test (bool verbose)
 
     if ( verbose )
         log_debug ("\tCREATE 'TEST1_ROW02' as row");
-    asset = test_asset_new ("TEST1_ROW02", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_ROOM02");
-    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST1_DC");
-    bios_proto_aux_insert (asset, "type", "%s", "row");
-    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    asset = test_asset_new ("TEST1_ROW02", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_ROOM02");
+    fty_proto_aux_insert (asset, "parent_name.2", "%s", "TEST1_DC");
+    fty_proto_aux_insert (asset, "type", "%s", "row");
+    fty_proto_aux_insert (asset, "subtype", "%s", "unknown");
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == true);
     data_reassign_sensors (self, true);
@@ -2178,11 +2178,11 @@ data_test (bool verbose)
 
     if ( verbose )
         log_debug ("\tCREATE 'TEST1_ROW03' as row");
-    asset = test_asset_new ("TEST1_ROW03", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_ROOM02");
-    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST1_DC");
-    bios_proto_aux_insert (asset, "type", "%s", "row");
-    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    asset = test_asset_new ("TEST1_ROW03", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_ROOM02");
+    fty_proto_aux_insert (asset, "parent_name.2", "%s", "TEST1_DC");
+    fty_proto_aux_insert (asset, "type", "%s", "row");
+    fty_proto_aux_insert (asset, "subtype", "%s", "unknown");
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == true);
     data_reassign_sensors (self, true);
@@ -2191,12 +2191,12 @@ data_test (bool verbose)
 
     if ( verbose )
         log_debug ("\tCREATE 'TEST1_RACK03' as rack");
-    asset = test_asset_new ("TEST1_RACK03", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_ROW02");
-    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST1_ROOM02");
-    bios_proto_aux_insert (asset, "parent_name.3", "%s", "TEST1_DC");
-    bios_proto_aux_insert (asset, "type", "%s", "rack");
-    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    asset = test_asset_new ("TEST1_RACK03", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_ROW02");
+    fty_proto_aux_insert (asset, "parent_name.2", "%s", "TEST1_ROOM02");
+    fty_proto_aux_insert (asset, "parent_name.3", "%s", "TEST1_DC");
+    fty_proto_aux_insert (asset, "type", "%s", "rack");
+    fty_proto_aux_insert (asset, "subtype", "%s", "unknown");
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == true);
     data_reassign_sensors (self, true);
@@ -2205,12 +2205,12 @@ data_test (bool verbose)
 
     if ( verbose )
         log_debug ("\tCREATE 'TEST1_RACK04' as rack");
-    asset = test_asset_new ("TEST1_RACK04", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_ROW03");
-    bios_proto_aux_insert (asset, "parent_name.2", "%s", "TEST1_ROOM02");
-    bios_proto_aux_insert (asset, "parent_name.3", "%s", "TEST1_DC");
-    bios_proto_aux_insert (asset, "type", "%s", "rack");
-    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    asset = test_asset_new ("TEST1_RACK04", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_ROW03");
+    fty_proto_aux_insert (asset, "parent_name.2", "%s", "TEST1_ROOM02");
+    fty_proto_aux_insert (asset, "parent_name.3", "%s", "TEST1_DC");
+    fty_proto_aux_insert (asset, "type", "%s", "rack");
+    fty_proto_aux_insert (asset, "subtype", "%s", "unknown");
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == true);
     data_reassign_sensors (self, true);
@@ -2219,10 +2219,10 @@ data_test (bool verbose)
 
     if ( verbose )
         log_debug ("\tCREATE 'TEST1_RACK01.ups1' as ups");
-    asset = test_asset_new ("TEST1_RACK01.ups1", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "ups");
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01");
+    asset = test_asset_new ("TEST1_RACK01.ups1", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "ups");
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01");
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == false);
     data_reassign_sensors (self, true);
@@ -2231,9 +2231,9 @@ data_test (bool verbose)
 
     if ( verbose )
         log_debug ("\tCREATE 'TEST1_GROUP' as group");
-    asset = test_asset_new ("TEST1_GROUP", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "type", "%s", "group");
-    bios_proto_aux_insert (asset, "subtype", "%s", "power_input");
+    asset = test_asset_new ("TEST1_GROUP", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "type", "%s", "group");
+    fty_proto_aux_insert (asset, "subtype", "%s", "power_input");
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == false);
     data_reassign_sensors (self, true);
@@ -2242,15 +2242,15 @@ data_test (bool verbose)
 
     if ( verbose )
         log_debug ("\tCREATE 'Sensor01' as sensor");
-    asset = test_asset_new ("Sensor01", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH1");
-    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
-    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "10");
-    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_RACK01");
+    asset = test_asset_new ("Sensor01", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_ext_insert (asset, "port", "%s", "TH1");
+    fty_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
+    fty_proto_ext_insert (asset, "calibration_offset_h", "%s", "10");
+    fty_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_RACK01");
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == true);
     data_reassign_sensors (self, true);
@@ -2259,15 +2259,15 @@ data_test (bool verbose)
 
     if ( verbose )
         log_debug ("\tCREATE 'Sensor02' as sensor");
-    asset = test_asset_new ("Sensor02", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH2");
-    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "2");
-    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "20");
-    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_RACK01");
+    asset = test_asset_new ("Sensor02", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_ext_insert (asset, "port", "%s", "TH2");
+    fty_proto_ext_insert (asset, "calibration_offset_t", "%s", "2");
+    fty_proto_ext_insert (asset, "calibration_offset_h", "%s", "20");
+    fty_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_RACK01");
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == true);
     data_reassign_sensors (self, true);
@@ -2276,15 +2276,15 @@ data_test (bool verbose)
 
     if ( verbose )
         log_debug ("\tCREATE 'Sensor03' as sensor");
-    asset = test_asset_new ("Sensor03", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH3");
-    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "3");
-    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "30");
-    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_RACK01");
+    asset = test_asset_new ("Sensor03", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_ext_insert (asset, "port", "%s", "TH3");
+    fty_proto_ext_insert (asset, "calibration_offset_t", "%s", "3");
+    fty_proto_ext_insert (asset, "calibration_offset_h", "%s", "30");
+    fty_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_RACK01");
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == true);
     data_reassign_sensors (self, true);
@@ -2293,15 +2293,15 @@ data_test (bool verbose)
 
     if ( verbose )
         log_debug ("\tCREATE 'Sensor08' as sensor");
-    asset = test_asset_new ("Sensor08", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH4");
-    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
-    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "1");
-    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_RACK02");
+    asset = test_asset_new ("Sensor08", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_ext_insert (asset, "port", "%s", "TH4");
+    fty_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
+    fty_proto_ext_insert (asset, "calibration_offset_h", "%s", "1");
+    fty_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_RACK02");
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == true);
     data_reassign_sensors (self, true);
@@ -2310,15 +2310,15 @@ data_test (bool verbose)
 
     if ( verbose )
         log_debug ("\tCREATE 'Sensor09' as sensor");
-    asset = test_asset_new ("Sensor09", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH5");
-    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "2.0");
-    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "2.0");
-    bios_proto_ext_insert (asset, "sensor_function", "%s", "output");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_RACK02");
+    asset = test_asset_new ("Sensor09", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_ext_insert (asset, "port", "%s", "TH5");
+    fty_proto_ext_insert (asset, "calibration_offset_t", "%s", "2.0");
+    fty_proto_ext_insert (asset, "calibration_offset_h", "%s", "2.0");
+    fty_proto_ext_insert (asset, "sensor_function", "%s", "output");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_RACK02");
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == true);
     data_reassign_sensors (self, true);
@@ -2327,13 +2327,13 @@ data_test (bool verbose)
 
     if ( verbose )
         log_debug ("\tCREATE 'Sensor10' as sensor");
-    asset = test_asset_new ("Sensor10", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH6");
-    bios_proto_ext_insert (asset, "sensor_function", "%s", "output");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_RACK01");
+    asset = test_asset_new ("Sensor10", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_ext_insert (asset, "port", "%s", "TH6");
+    fty_proto_ext_insert (asset, "sensor_function", "%s", "output");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_RACK01");
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == true);
     data_reassign_sensors (self, true);
@@ -2342,15 +2342,15 @@ data_test (bool verbose)
 
     if ( verbose )
         log_debug ("\tCREATE 'Sensor11' as sensor");
-    asset = test_asset_new ("Sensor11", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH7");
-    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "15.5");
-    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "20.7");
-    bios_proto_ext_insert (asset, "sensor_function", "%s", "output");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_RACK01");
+    asset = test_asset_new ("Sensor11", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_ext_insert (asset, "port", "%s", "TH7");
+    fty_proto_ext_insert (asset, "calibration_offset_t", "%s", "15.5");
+    fty_proto_ext_insert (asset, "calibration_offset_h", "%s", "20.7");
+    fty_proto_ext_insert (asset, "sensor_function", "%s", "output");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_RACK01");
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == true);
     data_reassign_sensors (self, true);
@@ -2359,15 +2359,15 @@ data_test (bool verbose)
 
     if ( verbose )
         log_debug ("\tCREATE 'Sensor12' as sensor");
-    asset = test_asset_new ("Sensor12", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH8");
-    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "0");
-    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "0");
-    bios_proto_ext_insert (asset, "sensor_function", "%s", "neuvedeno");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_RACK01");
+    asset = test_asset_new ("Sensor12", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_ext_insert (asset, "port", "%s", "TH8");
+    fty_proto_ext_insert (asset, "calibration_offset_t", "%s", "0");
+    fty_proto_ext_insert (asset, "calibration_offset_h", "%s", "0");
+    fty_proto_ext_insert (asset, "sensor_function", "%s", "neuvedeno");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_RACK01");
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == true);
     data_reassign_sensors (self, true);
@@ -2376,15 +2376,15 @@ data_test (bool verbose)
 
     if ( verbose )
         log_debug ("\tCREATE 'Sensor13' as sensor");
-    asset = test_asset_new ("Sensor13", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH9");
-    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "-1");
-    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "1");
-    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_ROW03");
+    asset = test_asset_new ("Sensor13", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_ext_insert (asset, "port", "%s", "TH9");
+    fty_proto_ext_insert (asset, "calibration_offset_t", "%s", "-1");
+    fty_proto_ext_insert (asset, "calibration_offset_h", "%s", "1");
+    fty_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_ROW03");
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == true);
     data_reassign_sensors (self, true);
@@ -2393,12 +2393,12 @@ data_test (bool verbose)
 
     if ( verbose )
         log_debug ("\tCREATE 'Sensor14' as sensor");
-    asset = test_asset_new ("Sensor14", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH10");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_ROOM02 with spaces");
+    asset = test_asset_new ("Sensor14", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_ext_insert (asset, "port", "%s", "TH10");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_ROOM02 with spaces");
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == true);
     data_reassign_sensors (self, true);
@@ -2407,15 +2407,15 @@ data_test (bool verbose)
 
     if ( verbose )
         log_debug ("\tCREATE 'Sensor15' as sensor");
-    asset = test_asset_new ("Sensor15", BIOS_PROTO_ASSET_OP_CREATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH11");
-    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "1.4");
-    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "-1");
-    bios_proto_ext_insert (asset, "sensor_function", "%s", "output");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_ROW03");
+    asset = test_asset_new ("Sensor15", FTY_PROTO_ASSET_OP_CREATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_ext_insert (asset, "port", "%s", "TH11");
+    fty_proto_ext_insert (asset, "calibration_offset_t", "%s", "1.4");
+    fty_proto_ext_insert (asset, "calibration_offset_h", "%s", "-1");
+    fty_proto_ext_insert (asset, "sensor_function", "%s", "output");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_ROW03");
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == true);
     data_reassign_sensors (self, false);
@@ -2433,23 +2433,23 @@ data_test (bool verbose)
         // check functionality of the data_asset 
         asset = data_asset (self, "TEST1_DC");
         assert (asset);
-        assert (streq (bios_proto_aux_string (asset, "type", ""), "datacenter"));
-        assert (streq (bios_proto_name (asset), "TEST1_DC"));
+        assert (streq (fty_proto_aux_string (asset, "type", ""), "datacenter"));
+        assert (streq (fty_proto_name (asset), "TEST1_DC"));
 
         asset = data_asset (self, "TEST1_ROOM01");
         assert (asset);
-        assert (streq (bios_proto_aux_string (asset, "type", ""), "room"));
-        assert (streq (bios_proto_name (asset), "TEST1_ROOM01"));
+        assert (streq (fty_proto_aux_string (asset, "type", ""), "room"));
+        assert (streq (fty_proto_name (asset), "TEST1_ROOM01"));
 
         asset = data_asset (self, "TEST1_ROOM02 with spaces");
         assert (asset);
-        assert (streq (bios_proto_aux_string (asset, "type", ""), "room"));
-        assert (streq (bios_proto_name (asset), "TEST1_ROOM02 with spaces"));
+        assert (streq (fty_proto_aux_string (asset, "type", ""), "room"));
+        assert (streq (fty_proto_name (asset), "TEST1_ROOM02 with spaces"));
 
         asset = data_asset (self, "TEST1_ROW01");
         assert (asset);
-        assert (streq (bios_proto_aux_string (asset, "type", ""), "row"));
-        assert (streq (bios_proto_name (asset), "TEST1_ROW01"));
+        assert (streq (fty_proto_aux_string (asset, "type", ""), "row"));
+        assert (streq (fty_proto_name (asset), "TEST1_ROW01"));
 
         asset = data_asset (self, "TEST1_RACK01");
         assert (asset);
@@ -2472,8 +2472,8 @@ data_test (bool verbose)
         sensors = data_get_assigned_sensors (self, "TEST1_ROOM02 with spaces", NULL);
         assert (sensors != NULL);
         assert (zlistx_size (sensors) == 1);
-        item = (bios_proto_t *) zlistx_first (sensors);
-        assert (streq (bios_proto_name (item), "Sensor14"));
+        item = (fty_proto_t *) zlistx_first (sensors);
+        assert (streq (fty_proto_name (item), "Sensor14"));
         zlistx_destroy (&sensors);
 
         sensors = data_get_assigned_sensors (self, "TEST1_ROW01", NULL);
@@ -2485,10 +2485,10 @@ data_test (bool verbose)
         sensors = data_get_assigned_sensors (self, "TEST1_ROW03", NULL);
         assert (sensors != NULL);
         assert (zlistx_size (sensors) == 2);
-        item = (bios_proto_t *) zlistx_first (sensors);
-        const char *name1 = bios_proto_name (item);
-        item = (bios_proto_t *) zlistx_next (sensors);
-        const char *name2 = bios_proto_name (item);
+        item = (fty_proto_t *) zlistx_first (sensors);
+        const char *name1 = fty_proto_name (item);
+        item = (fty_proto_t *) zlistx_next (sensors);
+        const char *name2 = fty_proto_name (item);
         assert
             (   (streq(name1, "Sensor13") || (streq(name2, "Sensor15")) ) 
               ||
@@ -2500,24 +2500,24 @@ data_test (bool verbose)
         sensors = data_get_assigned_sensors (self, "TEST1_RACK02", NULL);
         assert (zlistx_size (sensors) == 2);
         {
-            bios_proto_t *item = (bios_proto_t *) zlistx_first (sensors);
-            assert (streq (bios_proto_name (item), "Sensor08"));
-            assert (streq (bios_proto_aux_string (item, "parent_name.1", ""), "TEST1_RACK01.ups1"));
-            assert (streq (bios_proto_ext_string (item, "port", ""), "TH4"));
-            assert (streq (bios_proto_ext_string (item, "vertical_position", ""), "bottom"));
-            assert (streq (bios_proto_ext_string (item, "sensor_function", ""), "input"));
-            assert (streq (bios_proto_ext_string (item, "calibration_offset_t", ""), "1"));
-            assert (streq (bios_proto_ext_string (item, "calibration_offset_h", ""), "1"));
-            item = (bios_proto_t *) zlistx_next (sensors);
+            fty_proto_t *item = (fty_proto_t *) zlistx_first (sensors);
+            assert (streq (fty_proto_name (item), "Sensor08"));
+            assert (streq (fty_proto_aux_string (item, "parent_name.1", ""), "TEST1_RACK01.ups1"));
+            assert (streq (fty_proto_ext_string (item, "port", ""), "TH4"));
+            assert (streq (fty_proto_ext_string (item, "vertical_position", ""), "bottom"));
+            assert (streq (fty_proto_ext_string (item, "sensor_function", ""), "input"));
+            assert (streq (fty_proto_ext_string (item, "calibration_offset_t", ""), "1"));
+            assert (streq (fty_proto_ext_string (item, "calibration_offset_h", ""), "1"));
+            item = (fty_proto_t *) zlistx_next (sensors);
 
-            assert (streq (bios_proto_name (item), "Sensor09"));
-            assert (streq (bios_proto_aux_string (item, "parent_name.1", ""), "TEST1_RACK01.ups1"));
-            assert (streq (bios_proto_ext_string (item, "port", ""), "TH5"));
-            assert (streq (bios_proto_ext_string (item, "vertical_position", ""), "top"));
-            assert (streq (bios_proto_ext_string (item, "sensor_function", ""), "output"));
-            assert (streq (bios_proto_ext_string (item, "calibration_offset_t", ""), "2.0"));
-            assert (streq (bios_proto_ext_string (item, "calibration_offset_h", ""), "2.0"));
-            item = (bios_proto_t *) zlistx_next (sensors);
+            assert (streq (fty_proto_name (item), "Sensor09"));
+            assert (streq (fty_proto_aux_string (item, "parent_name.1", ""), "TEST1_RACK01.ups1"));
+            assert (streq (fty_proto_ext_string (item, "port", ""), "TH5"));
+            assert (streq (fty_proto_ext_string (item, "vertical_position", ""), "top"));
+            assert (streq (fty_proto_ext_string (item, "sensor_function", ""), "output"));
+            assert (streq (fty_proto_ext_string (item, "calibration_offset_t", ""), "2.0"));
+            assert (streq (fty_proto_ext_string (item, "calibration_offset_h", ""), "2.0"));
+            item = (fty_proto_t *) zlistx_next (sensors);
         }
         zlistx_destroy (&sensors);
 
@@ -2532,59 +2532,59 @@ data_test (bool verbose)
         sensors = data_get_assigned_sensors (self, "TEST1_RACK01", NULL);
         assert (zlistx_size (sensors) == 6);
         {
-            bios_proto_t *item = (bios_proto_t *) zlistx_first (sensors);
-            assert (streq (bios_proto_name (item), "Sensor01"));
-            assert (streq (bios_proto_aux_string (item, "parent_name.1", ""), "TEST1_RACK01.ups1"));
-            assert (streq (bios_proto_ext_string (item, "port", ""), "TH1"));
-            assert (streq (bios_proto_ext_string (item, "vertical_position", ""), "bottom"));
-            assert (streq (bios_proto_ext_string (item, "sensor_function", ""), "input"));
-            assert (streq (bios_proto_ext_string (item, "calibration_offset_t", ""), "1"));
-            assert (streq (bios_proto_ext_string (item, "calibration_offset_h", ""), "10"));
+            fty_proto_t *item = (fty_proto_t *) zlistx_first (sensors);
+            assert (streq (fty_proto_name (item), "Sensor01"));
+            assert (streq (fty_proto_aux_string (item, "parent_name.1", ""), "TEST1_RACK01.ups1"));
+            assert (streq (fty_proto_ext_string (item, "port", ""), "TH1"));
+            assert (streq (fty_proto_ext_string (item, "vertical_position", ""), "bottom"));
+            assert (streq (fty_proto_ext_string (item, "sensor_function", ""), "input"));
+            assert (streq (fty_proto_ext_string (item, "calibration_offset_t", ""), "1"));
+            assert (streq (fty_proto_ext_string (item, "calibration_offset_h", ""), "10"));
 
-            item = (bios_proto_t *) zlistx_next (sensors);
-            assert (streq (bios_proto_name (item), "Sensor02"));
-            assert (streq (bios_proto_aux_string (item, "parent_name.1", ""), "TEST1_RACK01.ups1"));
-            assert (streq (bios_proto_ext_string (item, "port", ""), "TH2"));
-            assert (streq (bios_proto_ext_string (item, "vertical_position", ""), "bottom"));
-            assert (streq (bios_proto_ext_string (item, "sensor_function", ""), "input"));
-            assert (streq (bios_proto_ext_string (item, "calibration_offset_t", ""), "2"));
-            assert (streq (bios_proto_ext_string (item, "calibration_offset_h", ""), "20"));
+            item = (fty_proto_t *) zlistx_next (sensors);
+            assert (streq (fty_proto_name (item), "Sensor02"));
+            assert (streq (fty_proto_aux_string (item, "parent_name.1", ""), "TEST1_RACK01.ups1"));
+            assert (streq (fty_proto_ext_string (item, "port", ""), "TH2"));
+            assert (streq (fty_proto_ext_string (item, "vertical_position", ""), "bottom"));
+            assert (streq (fty_proto_ext_string (item, "sensor_function", ""), "input"));
+            assert (streq (fty_proto_ext_string (item, "calibration_offset_t", ""), "2"));
+            assert (streq (fty_proto_ext_string (item, "calibration_offset_h", ""), "20"));
 
-            item = (bios_proto_t *) zlistx_next (sensors);
-            assert (streq (bios_proto_name (item), "Sensor03"));
-            assert (streq (bios_proto_aux_string (item, "parent_name.1", ""), "TEST1_RACK01.ups1"));
-            assert (streq (bios_proto_ext_string (item, "port", ""), "TH3"));
-            assert (streq (bios_proto_ext_string (item, "vertical_position", ""), "middle"));
-            assert (streq (bios_proto_ext_string (item, "sensor_function", ""), "input"));
-            assert (streq (bios_proto_ext_string (item, "calibration_offset_t", ""), "3"));
-            assert (streq (bios_proto_ext_string (item, "calibration_offset_h", ""), "30"));
+            item = (fty_proto_t *) zlistx_next (sensors);
+            assert (streq (fty_proto_name (item), "Sensor03"));
+            assert (streq (fty_proto_aux_string (item, "parent_name.1", ""), "TEST1_RACK01.ups1"));
+            assert (streq (fty_proto_ext_string (item, "port", ""), "TH3"));
+            assert (streq (fty_proto_ext_string (item, "vertical_position", ""), "middle"));
+            assert (streq (fty_proto_ext_string (item, "sensor_function", ""), "input"));
+            assert (streq (fty_proto_ext_string (item, "calibration_offset_t", ""), "3"));
+            assert (streq (fty_proto_ext_string (item, "calibration_offset_h", ""), "30"));
 
-            item = (bios_proto_t *) zlistx_next (sensors);
-            assert (streq (bios_proto_name (item), "Sensor10"));
-            assert (streq (bios_proto_aux_string (item, "parent_name.1", ""), "TEST1_RACK01.ups1"));
-            assert (streq (bios_proto_ext_string (item, "port", ""), "TH6"));
-            assert (streq (bios_proto_ext_string (item, "vertical_position", ""), "top"));
-            assert (streq (bios_proto_ext_string (item, "sensor_function", ""), "output"));
-            assert (streq (bios_proto_ext_string (item, "calibration_offset_t", ""), ""));
-            assert (streq (bios_proto_ext_string (item, "calibration_offset_h", ""), ""));
+            item = (fty_proto_t *) zlistx_next (sensors);
+            assert (streq (fty_proto_name (item), "Sensor10"));
+            assert (streq (fty_proto_aux_string (item, "parent_name.1", ""), "TEST1_RACK01.ups1"));
+            assert (streq (fty_proto_ext_string (item, "port", ""), "TH6"));
+            assert (streq (fty_proto_ext_string (item, "vertical_position", ""), "top"));
+            assert (streq (fty_proto_ext_string (item, "sensor_function", ""), "output"));
+            assert (streq (fty_proto_ext_string (item, "calibration_offset_t", ""), ""));
+            assert (streq (fty_proto_ext_string (item, "calibration_offset_h", ""), ""));
 
-            item = (bios_proto_t *) zlistx_next (sensors);
-            assert (streq (bios_proto_name (item), "Sensor11"));
-            assert (streq (bios_proto_aux_string (item, "parent_name.1", ""), "TEST1_RACK01.ups1"));
-            assert (streq (bios_proto_ext_string (item, "port", ""), "TH7"));
-            assert (streq (bios_proto_ext_string (item, "vertical_position", ""), "top"));
-            assert (streq (bios_proto_ext_string (item, "sensor_function", ""), "output"));
-            assert (streq (bios_proto_ext_string (item, "calibration_offset_t", ""), "15.5"));
-            assert (streq (bios_proto_ext_string (item, "calibration_offset_h", ""), "20.7"));
+            item = (fty_proto_t *) zlistx_next (sensors);
+            assert (streq (fty_proto_name (item), "Sensor11"));
+            assert (streq (fty_proto_aux_string (item, "parent_name.1", ""), "TEST1_RACK01.ups1"));
+            assert (streq (fty_proto_ext_string (item, "port", ""), "TH7"));
+            assert (streq (fty_proto_ext_string (item, "vertical_position", ""), "top"));
+            assert (streq (fty_proto_ext_string (item, "sensor_function", ""), "output"));
+            assert (streq (fty_proto_ext_string (item, "calibration_offset_t", ""), "15.5"));
+            assert (streq (fty_proto_ext_string (item, "calibration_offset_h", ""), "20.7"));
 
-            item = (bios_proto_t *) zlistx_next (sensors);
-            assert (streq (bios_proto_name (item), "Sensor12"));
-            assert (streq (bios_proto_aux_string (item, "parent_name.1", ""), "TEST1_RACK01.ups1"));
-            assert (streq (bios_proto_ext_string (item, "port", ""), "TH8"));
-            assert (streq (bios_proto_ext_string (item, "vertical_position", ""), ""));
-            assert (streq (bios_proto_ext_string (item, "sensor_function", ""), "neuvedeno"));
-            assert (streq (bios_proto_ext_string (item, "calibration_offset_t", ""), "0"));
-            assert (streq (bios_proto_ext_string (item, "calibration_offset_h", ""), "0"));
+            item = (fty_proto_t *) zlistx_next (sensors);
+            assert (streq (fty_proto_name (item), "Sensor12"));
+            assert (streq (fty_proto_aux_string (item, "parent_name.1", ""), "TEST1_RACK01.ups1"));
+            assert (streq (fty_proto_ext_string (item, "port", ""), "TH8"));
+            assert (streq (fty_proto_ext_string (item, "vertical_position", ""), ""));
+            assert (streq (fty_proto_ext_string (item, "sensor_function", ""), "neuvedeno"));
+            assert (streq (fty_proto_ext_string (item, "calibration_offset_t", ""), "0"));
+            assert (streq (fty_proto_ext_string (item, "calibration_offset_h", ""), "0"));
 
         }
         zlistx_destroy (&sensors);
@@ -2593,10 +2593,10 @@ data_test (bool verbose)
 
     if ( verbose )
         log_debug ("\tCREATE 'ups2' as ups");
-    asset = test_asset_new ("ups2", BIOS_PROTO_ASSET_OP_CREATE); // 12
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "ups");
-    bios_proto_aux_insert (asset, "parent", "%s", "10");
+    asset = test_asset_new ("ups2", FTY_PROTO_ASSET_OP_CREATE); // 12
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "ups");
+    fty_proto_aux_insert (asset, "parent", "%s", "10");
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == false);
     data_reassign_sensors (self, true);
@@ -2605,14 +2605,14 @@ data_test (bool verbose)
 
     if ( verbose )
         log_debug ("\tUPDATE 'Sensor01'");
-    asset = test_asset_new ("Sensor01", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH1");
-    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "-5.2");
-    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_RACK01");
+    asset = test_asset_new ("Sensor01", FTY_PROTO_ASSET_OP_UPDATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_ext_insert (asset, "port", "%s", "TH1");
+    fty_proto_ext_insert (asset, "calibration_offset_t", "%s", "-5.2");
+    fty_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_RACK01");
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == true);
     data_reassign_sensors (self, true);
@@ -2620,18 +2620,18 @@ data_test (bool verbose)
 
     if ( verbose )
         log_debug ("\tUPDATE 'Sensor02'");
-    asset = test_asset_new ("Sensor02", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent", "%s", "12");
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "ups2");
-    bios_proto_aux_insert (asset, "status", "%s", "active");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH1");
-    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "-7");
-    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "-4.14");
-    bios_proto_ext_insert (asset, "vertical_position", "%s", "middle");
-    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_RACK01");
+    asset = test_asset_new ("Sensor02", FTY_PROTO_ASSET_OP_UPDATE);
+    fty_proto_aux_insert (asset, "parent", "%s", "12");
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "ups2");
+    fty_proto_aux_insert (asset, "status", "%s", "active");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_ext_insert (asset, "port", "%s", "TH1");
+    fty_proto_ext_insert (asset, "calibration_offset_t", "%s", "-7");
+    fty_proto_ext_insert (asset, "calibration_offset_h", "%s", "-4.14");
+    fty_proto_ext_insert (asset, "vertical_position", "%s", "middle");
+    fty_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_RACK01");
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == true);
     data_reassign_sensors (self, true);
@@ -2639,15 +2639,15 @@ data_test (bool verbose)
 
     if ( verbose )
         log_debug ("\tUPDATE 'Sensor03'");
-    asset = test_asset_new ("Sensor03", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent", "%s", "11");
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
-    bios_proto_aux_insert (asset, "status", "%s", "active");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH3");
-    bios_proto_ext_insert (asset, "sensor_function", "%s", "output");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_RACK01");
+    asset = test_asset_new ("Sensor03", FTY_PROTO_ASSET_OP_UPDATE);
+    fty_proto_aux_insert (asset, "parent", "%s", "11");
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
+    fty_proto_aux_insert (asset, "status", "%s", "active");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_ext_insert (asset, "port", "%s", "TH3");
+    fty_proto_ext_insert (asset, "sensor_function", "%s", "output");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_RACK01");
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == true);
     data_reassign_sensors (self, true);
@@ -2655,14 +2655,14 @@ data_test (bool verbose)
 
     if ( verbose )
         log_debug ("\tUPDATE 'Sensor10'");
-    asset = test_asset_new ("Sensor10", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH2");
-    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "-0.16");
-    bios_proto_ext_insert (asset, "sensor_function", "%s", "output");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_RACK01");
+    asset = test_asset_new ("Sensor10", FTY_PROTO_ASSET_OP_UPDATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_ext_insert (asset, "port", "%s", "TH2");
+    fty_proto_ext_insert (asset, "calibration_offset_h", "%s", "-0.16");
+    fty_proto_ext_insert (asset, "sensor_function", "%s", "output");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_RACK01");
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == true);
     data_reassign_sensors (self, true);
@@ -2670,9 +2670,9 @@ data_test (bool verbose)
 
     if ( verbose )
         log_debug ("\tRETIRE 'Sensor11'");
-    asset = test_asset_new ("Sensor11", BIOS_PROTO_ASSET_OP_RETIRE);
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    asset = test_asset_new ("Sensor11", FTY_PROTO_ASSET_OP_RETIRE);
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == true);
     data_reassign_sensors (self, true);
@@ -2682,15 +2682,15 @@ data_test (bool verbose)
 
     if ( verbose )
         log_debug ("\tUPDATE 'Sensor08'");
-    asset = test_asset_new ("Sensor08", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH4");
-    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "2.0");
-    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "12");
-    bios_proto_ext_insert (asset, "sensor_function", "%s", "input");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_DC");
+    asset = test_asset_new ("Sensor08", FTY_PROTO_ASSET_OP_UPDATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_ext_insert (asset, "port", "%s", "TH4");
+    fty_proto_ext_insert (asset, "calibration_offset_t", "%s", "2.0");
+    fty_proto_ext_insert (asset, "calibration_offset_h", "%s", "12");
+    fty_proto_ext_insert (asset, "sensor_function", "%s", "input");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_DC");
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == true);
     data_reassign_sensors (self, true);
@@ -2698,14 +2698,14 @@ data_test (bool verbose)
 
     if ( verbose )
         log_debug ("\tUPDATE 'Sensor09'");
-    asset = test_asset_new ("Sensor09", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH5");
-    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "5");
-    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "50");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_ROW03");
+    asset = test_asset_new ("Sensor09", FTY_PROTO_ASSET_OP_UPDATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_ext_insert (asset, "port", "%s", "TH5");
+    fty_proto_ext_insert (asset, "calibration_offset_t", "%s", "5");
+    fty_proto_ext_insert (asset, "calibration_offset_h", "%s", "50");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_ROW03");
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == true);
     data_reassign_sensors (self, true);
@@ -2713,14 +2713,14 @@ data_test (bool verbose)
 
     if ( verbose )
         log_debug ("\tUPDATE 'Sensor04'");
-    asset = test_asset_new ("Sensor04", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH12");
-    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
-    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "1");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_ROOM01");
+    asset = test_asset_new ("Sensor04", FTY_PROTO_ASSET_OP_UPDATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_ext_insert (asset, "port", "%s", "TH12");
+    fty_proto_ext_insert (asset, "calibration_offset_t", "%s", "1");
+    fty_proto_ext_insert (asset, "calibration_offset_h", "%s", "1");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_ROOM01");
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == true);
     data_reassign_sensors (self, true);
@@ -2729,15 +2729,15 @@ data_test (bool verbose)
 
     if ( verbose )
         log_debug ("\tUPDATE 'Sensor05'");
-    asset = test_asset_new ("Sensor05", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH13");
-    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "4");
-    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "-6");
-    bios_proto_ext_insert (asset, "sensor_function", "%s", "output");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_DC");
+    asset = test_asset_new ("Sensor05", FTY_PROTO_ASSET_OP_UPDATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_ext_insert (asset, "port", "%s", "TH13");
+    fty_proto_ext_insert (asset, "calibration_offset_t", "%s", "4");
+    fty_proto_ext_insert (asset, "calibration_offset_h", "%s", "-6");
+    fty_proto_ext_insert (asset, "sensor_function", "%s", "output");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_DC");
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == true);
     data_reassign_sensors (self, true);
@@ -2746,15 +2746,15 @@ data_test (bool verbose)
 
     if ( verbose )
         log_debug ("\tUPDATE 'Sensor06'");
-    asset = test_asset_new ("Sensor06", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH14");
-    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "-1.2");
-    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "-1.4");
-    bios_proto_ext_insert (asset, "sensor_function", "%s", "output");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_ROOM01");
+    asset = test_asset_new ("Sensor06", FTY_PROTO_ASSET_OP_UPDATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_ext_insert (asset, "port", "%s", "TH14");
+    fty_proto_ext_insert (asset, "calibration_offset_t", "%s", "-1.2");
+    fty_proto_ext_insert (asset, "calibration_offset_h", "%s", "-1.4");
+    fty_proto_ext_insert (asset, "sensor_function", "%s", "output");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_ROOM01");
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == true);
     data_reassign_sensors (self, true);
@@ -2763,15 +2763,15 @@ data_test (bool verbose)
 
     if ( verbose )
         log_debug ("\tUPDATE 'Sensor07'");
-    asset = test_asset_new ("Sensor07", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH15");
-    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "4");
-    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "-25");
-    bios_proto_ext_insert (asset, "sensor_function", "%s", "ambient");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_ROW03");
+    asset = test_asset_new ("Sensor07", FTY_PROTO_ASSET_OP_UPDATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_ext_insert (asset, "port", "%s", "TH15");
+    fty_proto_ext_insert (asset, "calibration_offset_t", "%s", "4");
+    fty_proto_ext_insert (asset, "calibration_offset_h", "%s", "-25");
+    fty_proto_ext_insert (asset, "sensor_function", "%s", "ambient");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_ROW03");
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == true);
     data_reassign_sensors (self, true);
@@ -2780,9 +2780,9 @@ data_test (bool verbose)
 
     if ( verbose )
         log_debug ("\tDELETE 'Sensor12'");
-    asset = test_asset_new ("Sensor12", BIOS_PROTO_ASSET_OP_DELETE);
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    asset = test_asset_new ("Sensor12", FTY_PROTO_ASSET_OP_DELETE);
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == true);
     data_reassign_sensors (self, true);
@@ -2792,12 +2792,12 @@ data_test (bool verbose)
 
     if ( verbose )
         log_debug ("\tUPDATE 'Sensor14'");
-    asset = test_asset_new ("Sensor14", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "ups2");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH10");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "This-asset-does-not-exist");
+    asset = test_asset_new ("Sensor14", FTY_PROTO_ASSET_OP_UPDATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "ups2");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_ext_insert (asset, "port", "%s", "TH10");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "This-asset-does-not-exist");
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == true);
     data_reassign_sensors (self, true);
@@ -2805,23 +2805,23 @@ data_test (bool verbose)
 
     if ( verbose )
         log_debug ("\tUPDATE 'Sensor15'");
-    asset = test_asset_new ("Sensor15", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH11");
-    bios_proto_ext_insert (asset, "calibration_offset_t", "%s", "2");
-    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "-3");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_ROOM02 with spaces");
+    asset = test_asset_new ("Sensor15", FTY_PROTO_ASSET_OP_UPDATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01.ups1");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_ext_insert (asset, "port", "%s", "TH11");
+    fty_proto_ext_insert (asset, "calibration_offset_t", "%s", "2");
+    fty_proto_ext_insert (asset, "calibration_offset_h", "%s", "-3");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_ROOM02 with spaces");
     data_asset_store (self, &asset);
     data_reassign_sensors (self, true);
     assert (data_is_reconfig_needed (self) == true);
 
     if ( verbose )
         log_debug ("\tDELETE 'Sensor13'");
-    asset = test_asset_new ("Sensor13", BIOS_PROTO_ASSET_OP_DELETE);
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    asset = test_asset_new ("Sensor13", FTY_PROTO_ASSET_OP_DELETE);
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
     data_asset_store (self, &asset);
     data_reassign_sensors (self, true);
     handle = zlistx_find (assets_expected, (void *) "Sensor13");
@@ -2846,63 +2846,63 @@ data_test (bool verbose)
         sensors = data_get_assigned_sensors (self, "TEST1_DC", NULL);
         assert (zlistx_size (sensors) == 2);
         {
-            bios_proto_t *item = (bios_proto_t *) zlistx_first (sensors);
-            assert (streq (bios_proto_name (item), "Sensor08"));
-            assert (streq (bios_proto_aux_string (item, "parent_name.1", ""), "TEST1_RACK01.ups1"));
-            assert (streq (bios_proto_ext_string (item, "port", ""), "TH4"));
-            assert (streq (bios_proto_ext_string (item, "vertical_position", ""), "middle"));
-            assert (streq (bios_proto_ext_string (item, "sensor_function", ""), "input"));
-            assert (streq (bios_proto_ext_string (item, "calibration_offset_t", ""), "2.0"));
-            assert (streq (bios_proto_ext_string (item, "calibration_offset_h", ""), "12"));
-            item = (bios_proto_t *) zlistx_next (sensors);
+            fty_proto_t *item = (fty_proto_t *) zlistx_first (sensors);
+            assert (streq (fty_proto_name (item), "Sensor08"));
+            assert (streq (fty_proto_aux_string (item, "parent_name.1", ""), "TEST1_RACK01.ups1"));
+            assert (streq (fty_proto_ext_string (item, "port", ""), "TH4"));
+            assert (streq (fty_proto_ext_string (item, "vertical_position", ""), "middle"));
+            assert (streq (fty_proto_ext_string (item, "sensor_function", ""), "input"));
+            assert (streq (fty_proto_ext_string (item, "calibration_offset_t", ""), "2.0"));
+            assert (streq (fty_proto_ext_string (item, "calibration_offset_h", ""), "12"));
+            item = (fty_proto_t *) zlistx_next (sensors);
 
-            assert (streq (bios_proto_name (item), "Sensor05"));
-            assert (streq (bios_proto_aux_string (item, "parent_name.1", ""), "TEST1_RACK01.ups1"));
-            assert (streq (bios_proto_ext_string (item, "port", ""), "TH13"));
-            assert (streq (bios_proto_ext_string (item, "vertical_position", ""), "top"));
-            assert (streq (bios_proto_ext_string (item, "sensor_function", ""), "output"));
-            assert (streq (bios_proto_ext_string (item, "calibration_offset_t", ""), "4"));
-            assert (streq (bios_proto_ext_string (item, "calibration_offset_h", ""), "-6"));
-            item = (bios_proto_t *) zlistx_next (sensors);
+            assert (streq (fty_proto_name (item), "Sensor05"));
+            assert (streq (fty_proto_aux_string (item, "parent_name.1", ""), "TEST1_RACK01.ups1"));
+            assert (streq (fty_proto_ext_string (item, "port", ""), "TH13"));
+            assert (streq (fty_proto_ext_string (item, "vertical_position", ""), "top"));
+            assert (streq (fty_proto_ext_string (item, "sensor_function", ""), "output"));
+            assert (streq (fty_proto_ext_string (item, "calibration_offset_t", ""), "4"));
+            assert (streq (fty_proto_ext_string (item, "calibration_offset_h", ""), "-6"));
+            item = (fty_proto_t *) zlistx_next (sensors);
         }
         zlistx_destroy (&sensors);
 
         sensors = data_get_assigned_sensors (self, "TEST1_ROOM01", NULL);
         assert (zlistx_size (sensors) == 2);
         {
-            bios_proto_t *item = (bios_proto_t *) zlistx_first (sensors);
-            assert (streq (bios_proto_name (item), "Sensor04"));
-            assert (streq (bios_proto_aux_string (item, "parent_name.1", ""), "TEST1_RACK01.ups1"));
-            assert (streq (bios_proto_ext_string (item, "port", ""), "TH12"));
-            assert (streq (bios_proto_ext_string (item, "vertical_position", ""), ""));
-            assert (streq (bios_proto_ext_string (item, "sensor_function", ""), ""));
-            assert (streq (bios_proto_ext_string (item, "calibration_offset_t", ""), "1"));
-            assert (streq (bios_proto_ext_string (item, "calibration_offset_h", ""), "1"));
-            item = (bios_proto_t *) zlistx_next (sensors);
+            fty_proto_t *item = (fty_proto_t *) zlistx_first (sensors);
+            assert (streq (fty_proto_name (item), "Sensor04"));
+            assert (streq (fty_proto_aux_string (item, "parent_name.1", ""), "TEST1_RACK01.ups1"));
+            assert (streq (fty_proto_ext_string (item, "port", ""), "TH12"));
+            assert (streq (fty_proto_ext_string (item, "vertical_position", ""), ""));
+            assert (streq (fty_proto_ext_string (item, "sensor_function", ""), ""));
+            assert (streq (fty_proto_ext_string (item, "calibration_offset_t", ""), "1"));
+            assert (streq (fty_proto_ext_string (item, "calibration_offset_h", ""), "1"));
+            item = (fty_proto_t *) zlistx_next (sensors);
 
-            assert (streq (bios_proto_name (item), "Sensor06"));
-            assert (streq (bios_proto_aux_string (item, "parent_name.1", ""), "TEST1_RACK01.ups1"));
-            assert (streq (bios_proto_ext_string (item, "port", ""), "TH14"));
-            assert (streq (bios_proto_ext_string (item, "vertical_position", ""), ""));
-            assert (streq (bios_proto_ext_string (item, "sensor_function", ""), "output"));
-            assert (streq (bios_proto_ext_string (item, "calibration_offset_t", ""), "-1.2"));
-            assert (streq (bios_proto_ext_string (item, "calibration_offset_h", ""), "-1.4"));
-            item = (bios_proto_t *) zlistx_next (sensors);
+            assert (streq (fty_proto_name (item), "Sensor06"));
+            assert (streq (fty_proto_aux_string (item, "parent_name.1", ""), "TEST1_RACK01.ups1"));
+            assert (streq (fty_proto_ext_string (item, "port", ""), "TH14"));
+            assert (streq (fty_proto_ext_string (item, "vertical_position", ""), ""));
+            assert (streq (fty_proto_ext_string (item, "sensor_function", ""), "output"));
+            assert (streq (fty_proto_ext_string (item, "calibration_offset_t", ""), "-1.2"));
+            assert (streq (fty_proto_ext_string (item, "calibration_offset_h", ""), "-1.4"));
+            item = (fty_proto_t *) zlistx_next (sensors);
         }
         zlistx_destroy (&sensors);
 
         sensors = data_get_assigned_sensors (self, "TEST1_ROOM02 with spaces", NULL);
         assert (zlistx_size (sensors) == 1);
         {
-            bios_proto_t *item = (bios_proto_t *) zlistx_first (sensors);
-            assert (streq (bios_proto_name (item), "Sensor15"));
-            assert (streq (bios_proto_aux_string (item, "parent_name.1", ""), "TEST1_RACK01.ups1"));
-            assert (streq (bios_proto_ext_string (item, "port", ""), "TH11"));
-            assert (streq (bios_proto_ext_string (item, "vertical_position", ""), ""));
-            assert (streq (bios_proto_ext_string (item, "sensor_function", ""), ""));
-            assert (streq (bios_proto_ext_string (item, "calibration_offset_t", ""), "2"));
-            assert (streq (bios_proto_ext_string (item, "calibration_offset_h", ""), "-3"));
-            item = (bios_proto_t *) zlistx_next (sensors);
+            fty_proto_t *item = (fty_proto_t *) zlistx_first (sensors);
+            assert (streq (fty_proto_name (item), "Sensor15"));
+            assert (streq (fty_proto_aux_string (item, "parent_name.1", ""), "TEST1_RACK01.ups1"));
+            assert (streq (fty_proto_ext_string (item, "port", ""), "TH11"));
+            assert (streq (fty_proto_ext_string (item, "vertical_position", ""), ""));
+            assert (streq (fty_proto_ext_string (item, "sensor_function", ""), ""));
+            assert (streq (fty_proto_ext_string (item, "calibration_offset_t", ""), "2"));
+            assert (streq (fty_proto_ext_string (item, "calibration_offset_h", ""), "-3"));
+            item = (fty_proto_t *) zlistx_next (sensors);
 
         }
         zlistx_destroy (&sensors);
@@ -2918,24 +2918,24 @@ data_test (bool verbose)
         sensors = data_get_assigned_sensors (self, "TEST1_ROW03", NULL);
         assert (zlistx_size (sensors) == 2);
         {
-            bios_proto_t *item = (bios_proto_t *) zlistx_first (sensors);
-            assert (streq (bios_proto_name (item), "Sensor09"));
-            assert (streq (bios_proto_aux_string (item, "parent_name.1", ""), "TEST1_RACK01.ups1"));
-            assert (streq (bios_proto_ext_string (item, "port", ""), "TH5"));
-            assert (streq (bios_proto_ext_string (item, "vertical_position", ""), ""));
-            assert (streq (bios_proto_ext_string (item, "sensor_function", ""), ""));
-            assert (streq (bios_proto_ext_string (item, "calibration_offset_t", ""), "5"));
-            assert (streq (bios_proto_ext_string (item, "calibration_offset_h", ""), "50"));
-            item = (bios_proto_t *) zlistx_next (sensors);
+            fty_proto_t *item = (fty_proto_t *) zlistx_first (sensors);
+            assert (streq (fty_proto_name (item), "Sensor09"));
+            assert (streq (fty_proto_aux_string (item, "parent_name.1", ""), "TEST1_RACK01.ups1"));
+            assert (streq (fty_proto_ext_string (item, "port", ""), "TH5"));
+            assert (streq (fty_proto_ext_string (item, "vertical_position", ""), ""));
+            assert (streq (fty_proto_ext_string (item, "sensor_function", ""), ""));
+            assert (streq (fty_proto_ext_string (item, "calibration_offset_t", ""), "5"));
+            assert (streq (fty_proto_ext_string (item, "calibration_offset_h", ""), "50"));
+            item = (fty_proto_t *) zlistx_next (sensors);
 
-            assert (streq (bios_proto_name (item), "Sensor07"));
-            assert (streq (bios_proto_aux_string (item, "parent_name.1", ""), "TEST1_RACK01.ups1"));
-            assert (streq (bios_proto_ext_string (item, "port", ""), "TH15"));
-            assert (streq (bios_proto_ext_string (item, "vertical_position", ""), ""));
-            assert (streq (bios_proto_ext_string (item, "sensor_function", ""), "ambient"));
-            assert (streq (bios_proto_ext_string (item, "calibration_offset_t", ""), "4"));
-            assert (streq (bios_proto_ext_string (item, "calibration_offset_h", ""), "-25"));
-            item = (bios_proto_t *) zlistx_next (sensors);
+            assert (streq (fty_proto_name (item), "Sensor07"));
+            assert (streq (fty_proto_aux_string (item, "parent_name.1", ""), "TEST1_RACK01.ups1"));
+            assert (streq (fty_proto_ext_string (item, "port", ""), "TH15"));
+            assert (streq (fty_proto_ext_string (item, "vertical_position", ""), ""));
+            assert (streq (fty_proto_ext_string (item, "sensor_function", ""), "ambient"));
+            assert (streq (fty_proto_ext_string (item, "calibration_offset_t", ""), "4"));
+            assert (streq (fty_proto_ext_string (item, "calibration_offset_h", ""), "-25"));
+            item = (fty_proto_t *) zlistx_next (sensors);
         }
         zlistx_destroy (&sensors);
 
@@ -2954,41 +2954,41 @@ data_test (bool verbose)
         sensors = data_get_assigned_sensors (self, "TEST1_RACK01", NULL);
         assert (zlistx_size (sensors) == 4);
         {
-            bios_proto_t *item = (bios_proto_t *) zlistx_first (sensors);
-            assert (streq (bios_proto_name (item), "Sensor01"));
-            assert (streq (bios_proto_aux_string (item, "parent_name.1", ""), "TEST1_RACK01.ups1"));
-            assert (streq (bios_proto_ext_string (item, "port", ""), "TH1"));
-            assert (streq (bios_proto_ext_string (item, "vertical_position", ""), "bottom"));
-            assert (streq (bios_proto_ext_string (item, "sensor_function", ""), "input"));
-            assert (streq (bios_proto_ext_string (item, "calibration_offset_t", ""), "-5.2"));
-            assert (streq (bios_proto_ext_string (item, "calibration_offset_h", ""), ""));
+            fty_proto_t *item = (fty_proto_t *) zlistx_first (sensors);
+            assert (streq (fty_proto_name (item), "Sensor01"));
+            assert (streq (fty_proto_aux_string (item, "parent_name.1", ""), "TEST1_RACK01.ups1"));
+            assert (streq (fty_proto_ext_string (item, "port", ""), "TH1"));
+            assert (streq (fty_proto_ext_string (item, "vertical_position", ""), "bottom"));
+            assert (streq (fty_proto_ext_string (item, "sensor_function", ""), "input"));
+            assert (streq (fty_proto_ext_string (item, "calibration_offset_t", ""), "-5.2"));
+            assert (streq (fty_proto_ext_string (item, "calibration_offset_h", ""), ""));
 
-            item = (bios_proto_t *) zlistx_next (sensors);
-            assert (streq (bios_proto_name (item), "Sensor02"));
-            assert (streq (bios_proto_aux_string (item, "parent_name.1", ""), "ups2"));
-            assert (streq (bios_proto_ext_string (item, "port", ""), "TH1"));
-            assert (streq (bios_proto_ext_string (item, "vertical_position", ""), "middle"));
-            assert (streq (bios_proto_ext_string (item, "sensor_function", ""), "input"));
-            assert (streq (bios_proto_ext_string (item, "calibration_offset_t", ""), "-7"));
-            assert (streq (bios_proto_ext_string (item, "calibration_offset_h", ""), "-4.14"));
+            item = (fty_proto_t *) zlistx_next (sensors);
+            assert (streq (fty_proto_name (item), "Sensor02"));
+            assert (streq (fty_proto_aux_string (item, "parent_name.1", ""), "ups2"));
+            assert (streq (fty_proto_ext_string (item, "port", ""), "TH1"));
+            assert (streq (fty_proto_ext_string (item, "vertical_position", ""), "middle"));
+            assert (streq (fty_proto_ext_string (item, "sensor_function", ""), "input"));
+            assert (streq (fty_proto_ext_string (item, "calibration_offset_t", ""), "-7"));
+            assert (streq (fty_proto_ext_string (item, "calibration_offset_h", ""), "-4.14"));
 
-            item = (bios_proto_t *) zlistx_next (sensors);
-            assert (streq (bios_proto_name (item), "Sensor03"));
-            assert (streq (bios_proto_aux_string (item, "parent_name.1", ""), "TEST1_RACK01.ups1"));
-            assert (streq (bios_proto_ext_string (item, "port", ""), "TH3"));
-            assert (streq (bios_proto_ext_string (item, "vertical_position", ""), ""));
-            assert (streq (bios_proto_ext_string (item, "sensor_function", ""), "output"));
-            assert (streq (bios_proto_ext_string (item, "calibration_offset_t", ""), ""));
-            assert (streq (bios_proto_ext_string (item, "calibration_offset_h", ""), ""));
+            item = (fty_proto_t *) zlistx_next (sensors);
+            assert (streq (fty_proto_name (item), "Sensor03"));
+            assert (streq (fty_proto_aux_string (item, "parent_name.1", ""), "TEST1_RACK01.ups1"));
+            assert (streq (fty_proto_ext_string (item, "port", ""), "TH3"));
+            assert (streq (fty_proto_ext_string (item, "vertical_position", ""), ""));
+            assert (streq (fty_proto_ext_string (item, "sensor_function", ""), "output"));
+            assert (streq (fty_proto_ext_string (item, "calibration_offset_t", ""), ""));
+            assert (streq (fty_proto_ext_string (item, "calibration_offset_h", ""), ""));
 
-            item = (bios_proto_t *) zlistx_next (sensors);
-            assert (streq (bios_proto_name (item), "Sensor10"));
-            assert (streq (bios_proto_aux_string (item, "parent_name.1", ""), "TEST1_RACK01.ups1"));
-            assert (streq (bios_proto_ext_string (item, "port", ""), "TH2"));
-            assert (streq (bios_proto_ext_string (item, "vertical_position", ""), "top"));
-            assert (streq (bios_proto_ext_string (item, "sensor_function", ""), "output"));
-            assert (streq (bios_proto_ext_string (item, "calibration_offset_t", ""), ""));
-            assert (streq (bios_proto_ext_string (item, "calibration_offset_h", ""), "-0.16"));
+            item = (fty_proto_t *) zlistx_next (sensors);
+            assert (streq (fty_proto_name (item), "Sensor10"));
+            assert (streq (fty_proto_aux_string (item, "parent_name.1", ""), "TEST1_RACK01.ups1"));
+            assert (streq (fty_proto_ext_string (item, "port", ""), "TH2"));
+            assert (streq (fty_proto_ext_string (item, "vertical_position", ""), "top"));
+            assert (streq (fty_proto_ext_string (item, "sensor_function", ""), "output"));
+            assert (streq (fty_proto_ext_string (item, "calibration_offset_t", ""), ""));
+            assert (streq (fty_proto_ext_string (item, "calibration_offset_h", ""), "-0.16"));
         }
         zlistx_destroy (&sensors);
         */
@@ -2996,9 +2996,9 @@ data_test (bool verbose)
 
     if ( verbose )
         log_debug ("\tDELETE 'Sensor15'");
-    asset = test_asset_new ("Sensor15", BIOS_PROTO_ASSET_OP_DELETE);
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    asset = test_asset_new ("Sensor15", FTY_PROTO_ASSET_OP_DELETE);
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
     data_asset_store (self, &asset);
     data_reassign_sensors (self, true);
     handle = zlistx_find (assets_expected, (void *) "Sensor15");
@@ -3007,9 +3007,9 @@ data_test (bool verbose)
 
     if ( verbose )
         log_debug ("\tDELETE 'TEST1_ROW03'");
-    asset = test_asset_new ("TEST1_ROW03", BIOS_PROTO_ASSET_OP_DELETE);
-    bios_proto_aux_insert (asset, "type", "%s", "row");
-    bios_proto_aux_insert (asset, "subtype", "%s", "unknown");
+    asset = test_asset_new ("TEST1_ROW03", FTY_PROTO_ASSET_OP_DELETE);
+    fty_proto_aux_insert (asset, "type", "%s", "row");
+    fty_proto_aux_insert (asset, "subtype", "%s", "unknown");
     data_asset_store (self, &asset);
     data_reassign_sensors (self, true);
 
@@ -3021,13 +3021,13 @@ data_test (bool verbose)
 
     if ( verbose )
         log_debug ("\tCREATE 'Sensor16' as sensor");
-    asset = test_asset_new ("Sensor16", BIOS_PROTO_ASSET_OP_UPDATE);
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "nas rack controller");
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "sensor");
-    bios_proto_ext_insert (asset, "port", "%s", "TH2");
-    bios_proto_ext_insert (asset, "calibration_offset_h", "%s", "-3.51");
-    bios_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_DC");
+    asset = test_asset_new ("Sensor16", FTY_PROTO_ASSET_OP_UPDATE);
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "nas rack controller");
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "sensor");
+    fty_proto_ext_insert (asset, "port", "%s", "TH2");
+    fty_proto_ext_insert (asset, "calibration_offset_h", "%s", "-3.51");
+    fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_DC");
     data_asset_store (self, &asset);
     data_reassign_sensors (self, true);
     zlistx_add_end (assets_expected, (void *) "Sensor16");
@@ -3035,10 +3035,10 @@ data_test (bool verbose)
 
     if ( verbose )
         log_debug ("\tCREATE 'nas rack constroller' as rack controller");
-    asset = test_asset_new ("nas rack controller", BIOS_PROTO_ASSET_OP_CREATE); // 12
-    bios_proto_aux_insert (asset, "type", "%s", "device");
-    bios_proto_aux_insert (asset, "subtype", "%s", "rack controller");
-    bios_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01");
+    asset = test_asset_new ("nas rack controller", FTY_PROTO_ASSET_OP_CREATE); // 12
+    fty_proto_aux_insert (asset, "type", "%s", "device");
+    fty_proto_aux_insert (asset, "subtype", "%s", "rack controller");
+    fty_proto_aux_insert (asset, "parent_name.1", "%s", "TEST1_RACK01");
     data_asset_store (self, &asset);
     data_reassign_sensors (self, true);
     // "true" is expected, because data_reassign_sensors also changes the "is_reconfig_needed"
@@ -3056,41 +3056,41 @@ data_test (bool verbose)
         zlistx_t *sensors = data_get_assigned_sensors (self, "TEST1_DC", NULL);
         assert (zlistx_size (sensors) == 3);
         {
-            bios_proto_t *item = (bios_proto_t *) zlistx_first (sensors);
-            assert (streq (bios_proto_name (item), "Sensor08"));
-            assert (streq (bios_proto_aux_string (item, "parent_name.1", ""), "TEST1_RACK01.ups1"));
-            assert (streq (bios_proto_ext_string (item, "port", ""), "TH4"));
-            assert (streq (bios_proto_ext_string (item, "vertical_position", ""), "middle"));
-            assert (streq (bios_proto_ext_string (item, "sensor_function", ""), "input"));
-            assert (streq (bios_proto_ext_string (item, "calibration_offset_t", ""), "2.0"));
-            assert (streq (bios_proto_ext_string (item, "calibration_offset_h", ""), "12"));
-            item = (bios_proto_t *) zlistx_next (sensors);
+            fty_proto_t *item = (fty_proto_t *) zlistx_first (sensors);
+            assert (streq (fty_proto_name (item), "Sensor08"));
+            assert (streq (fty_proto_aux_string (item, "parent_name.1", ""), "TEST1_RACK01.ups1"));
+            assert (streq (fty_proto_ext_string (item, "port", ""), "TH4"));
+            assert (streq (fty_proto_ext_string (item, "vertical_position", ""), "middle"));
+            assert (streq (fty_proto_ext_string (item, "sensor_function", ""), "input"));
+            assert (streq (fty_proto_ext_string (item, "calibration_offset_t", ""), "2.0"));
+            assert (streq (fty_proto_ext_string (item, "calibration_offset_h", ""), "12"));
+            item = (fty_proto_t *) zlistx_next (sensors);
 
-            assert (streq (bios_proto_name (item), "Sensor05"));
-            assert (streq (bios_proto_aux_string (item, "parent_name.1", ""), "TEST1_RACK01.ups1"));
-            assert (streq (bios_proto_ext_string (item, "port", ""), "TH13"));
-            assert (streq (bios_proto_ext_string (item, "vertical_position", ""), "top"));
-            assert (streq (bios_proto_ext_string (item, "sensor_function", ""), "output"));
-            assert (streq (bios_proto_ext_string (item, "calibration_offset_t", ""), "4"));
-            assert (streq (bios_proto_ext_string (item, "calibration_offset_h", ""), "-6"));
-            item = (bios_proto_t *) zlistx_next (sensors);
+            assert (streq (fty_proto_name (item), "Sensor05"));
+            assert (streq (fty_proto_aux_string (item, "parent_name.1", ""), "TEST1_RACK01.ups1"));
+            assert (streq (fty_proto_ext_string (item, "port", ""), "TH13"));
+            assert (streq (fty_proto_ext_string (item, "vertical_position", ""), "top"));
+            assert (streq (fty_proto_ext_string (item, "sensor_function", ""), "output"));
+            assert (streq (fty_proto_ext_string (item, "calibration_offset_t", ""), "4"));
+            assert (streq (fty_proto_ext_string (item, "calibration_offset_h", ""), "-6"));
+            item = (fty_proto_t *) zlistx_next (sensors);
 
-            assert (streq (bios_proto_name (item), "Sensor16"));
-            assert (streq (bios_proto_aux_string (item, "parent_name.1", ""), "nas rack controller"));
-            assert (streq (bios_proto_ext_string (item, "port", ""), "TH2"));
-            assert (streq (bios_proto_ext_string (item, "vertical_position", ""), ""));
-            assert (streq (bios_proto_ext_string (item, "sensor_function", ""), ""));
-            assert (streq (bios_proto_ext_string (item, "calibration_offset_t", ""), ""));
-            assert (streq (bios_proto_ext_string (item, "calibration_offset_h", ""), "-3.51"));
-            item = (bios_proto_t *) zlistx_next (sensors);
+            assert (streq (fty_proto_name (item), "Sensor16"));
+            assert (streq (fty_proto_aux_string (item, "parent_name.1", ""), "nas rack controller"));
+            assert (streq (fty_proto_ext_string (item, "port", ""), "TH2"));
+            assert (streq (fty_proto_ext_string (item, "vertical_position", ""), ""));
+            assert (streq (fty_proto_ext_string (item, "sensor_function", ""), ""));
+            assert (streq (fty_proto_ext_string (item, "calibration_offset_t", ""), ""));
+            assert (streq (fty_proto_ext_string (item, "calibration_offset_h", ""), "-3.51"));
+            item = (fty_proto_t *) zlistx_next (sensors);
         }
         zlistx_destroy (&sensors);
 
         asset = data_asset (self, "TEST1_ROOM02 with spaces");
         assert (asset);
-        assert (streq (bios_proto_aux_string (asset, "type", ""), "room"));
-        assert (streq (bios_proto_name (asset), "TEST1_ROOM02 with spaces"));
-        assert (streq (bios_proto_aux_string (asset, "parent", ""), "1"));
+        assert (streq (fty_proto_aux_string (asset, "type", ""), "room"));
+        assert (streq (fty_proto_name (asset), "TEST1_ROOM02 with spaces"));
+        assert (streq (fty_proto_aux_string (asset, "parent", ""), "1"));
 
         sensors = data_get_assigned_sensors (self, "TEST1_ROOM02 with spaces", NULL);
         assert (zlistx_size (sensors) == 0);
