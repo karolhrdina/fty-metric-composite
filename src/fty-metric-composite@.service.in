@@ -12,7 +12,7 @@ EnvironmentFile=-/usr/share/bios/etc/default/bios
 EnvironmentFile=-/usr/share/bios/etc/default/fty__%n.conf
 EnvironmentFile=-/etc/default/bios
 EnvironmentFile=-/etc/default/fty__fty-metric-composite__%i.conf
-ExecStart=@prefix@/bin/fty-metric-composite /var/lib/bios/@PACKAGE@/%i.cfg
+ExecStart=@prefix@/bin/fty-metric-composite /var/lib/bios/composite-metrics/%i.cfg
 Restart=always
 
 [Install]
