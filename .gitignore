@@ -82,3 +82,7 @@ src/app/jni/output
 # Temporary files
 *.swp
 *~
+
+# Archives	
+*.tar.gz
+*.zip

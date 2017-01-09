@@ -61,17 +61,17 @@ BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 %description
 fty-metric-composite agent that computes new metrics from bunch of other metrics.
 
-%package -n libfty_metric_composite1
+%package -n libfty_metric_composite0
 Group:          System/Libraries
 Summary:        agent that computes new metrics from bunch of other metrics shared library
 
-%description -n libfty_metric_composite1
+%description -n libfty_metric_composite0
 This package contains shared library for fty-metric-composite: agent that computes new metrics from bunch of other metrics
 
-%post -n libfty_metric_composite1 -p /sbin/ldconfig
-%postun -n libfty_metric_composite1 -p /sbin/ldconfig
+%post -n libfty_metric_composite0 -p /sbin/ldconfig
+%postun -n libfty_metric_composite0 -p /sbin/ldconfig
 
-%files -n libfty_metric_composite1
+%files -n libfty_metric_composite0
 %defattr(-,root,root)
 %doc COPYING
 %{_libdir}/libfty_metric_composite.so.*
@@ -79,7 +79,7 @@ This package contains shared library for fty-metric-composite: agent that comput
 %package devel
 Summary:        agent that computes new metrics from bunch of other metrics
 Group:          System/Libraries
-Requires:       libfty_metric_composite1 = %{version}
+Requires:       libfty_metric_composite0 = %{version}
 Requires:       zeromq-devel
 Requires:       czmq-devel
 Requires:       malamute-devel
@@ -118,6 +118,7 @@ find %{buildroot} -name '*.la' | xargs rm -f
 %doc COPYING
 %{_bindir}/fty-metric-composite
 %{_mandir}/man1/fty-metric-composite*
+%{_sysconfdir}/fty-metric-composite/fty-metric-composite.cfg.example
 %{_bindir}/fty-metric-composite-configurator
 %{_mandir}/man1/fty-metric-composite-configurator*
 %config(noreplace) %{_sysconfdir}/fty-metric-composite/fty-metric-composite.cfg

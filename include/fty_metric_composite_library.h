@@ -34,9 +34,7 @@
 #include <malamute.h>
 #include <ftyproto.h>
 #include <cxxtools/allocator.h>
-extern "C" {
 #include <lua.h>
-}
 
 //  FTY_METRIC_COMPOSITE version macros for compile-time API detection
 #define FTY_METRIC_COMPOSITE_VERSION_MAJOR 1

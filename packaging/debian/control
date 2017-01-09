@@ -30,8 +30,7 @@ Build-Depends: debhelper (>= 9),
     libmlm-dev,
     libfty-proto-dev,
     libcxxtools-dev,
-    liblua5.1-0-dev,
-# necessary for systemd.pc to get unit install path
+    liblua-dev,
     systemd,
     dh-systemd,
 Build-Depends-Indep: asciidoc,
@@ -52,14 +51,14 @@ Depends:
     libmlm-dev,
     libfty-proto-dev,
     libcxxtools-dev,
-    liblua5.1-0-dev,
+    liblua-dev,
     libfty-metric-composite1 (= ${binary:Version})
 Description: agent that computes new metrics from bunch of other metrics development tools
  This package contains development files for fty-metric-composite: agent that computes new metrics from bunch of other metrics
 
 Package: fty-metric-composite
 Architecture: any
-Depends: ${misc:Depends}, ${shlibs:Depends}
+Depends: ${misc:Depends}, ${shlibs:Depends},
 Description: agent that computes new metrics from bunch of other metrics
  Main package for fty-metric-composite: agent that computes new metrics from bunch of other metrics
 

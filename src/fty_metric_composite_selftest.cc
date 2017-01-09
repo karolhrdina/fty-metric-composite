@@ -36,12 +36,6 @@ typedef struct {
 
 static test_item_t
 all_tests [] = {
-    { "logger", logger_test },
-    { "subprocess", subprocess_test },
-    { "actor_commands", actor_commands_test },
-    { "data", data_test },
-    { "c_metric_conf", c_metric_conf_test },
-    { "proto_metric_unavailable", proto_metric_unavailable_test },    
 #ifdef FTY_METRIC_COMPOSITE_BUILD_DRAFT_API
     { "fty_metric_composite_server", fty_metric_composite_server_test },
     { "fty_metric_composite_configurator_server", fty_metric_composite_configurator_server_test },
