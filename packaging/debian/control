@@ -24,7 +24,6 @@ Maintainer:     fty-metric-composite Developers <eatonipcopensource@eaton.com>
 Standards-Version: 3.9.7
 Build-Depends: debhelper (>= 9),
     pkg-config,
-    dh-autoreconf,
     libzmq3-dev,
     libczmq-dev,
     libmlm-dev,
@@ -33,10 +32,10 @@ Build-Depends: debhelper (>= 9),
     liblua5.1-0-dev,
     systemd,
     dh-systemd,
-Build-Depends-Indep: asciidoc,
-                     xmlto
+    asciidoc-base | asciidoc, xmlto,
+    dh-autoreconf
 
-Package: libfty-metric-composite1
+Package: libfty-metric-composite0
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: agent that computes new metrics from bunch of other metrics shared library
@@ -52,7 +51,7 @@ Depends:
     libfty-proto-dev,
     libcxxtools-dev,
     liblua5.1-0-dev,
-    libfty-metric-composite1 (= ${binary:Version})
+    libfty-metric-composite0 (= ${binary:Version})
 Description: agent that computes new metrics from bunch of other metrics development tools
  This package contains development files for fty-metric-composite: agent that computes new metrics from bunch of other metrics
 
