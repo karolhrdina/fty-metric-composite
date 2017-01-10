@@ -37,8 +37,12 @@ typedef struct {
 static test_item_t
 all_tests [] = {
 #ifdef FTY_METRIC_COMPOSITE_BUILD_DRAFT_API
+// Tests for draft public classes:
     { "fty_metric_composite_server", fty_metric_composite_server_test },
     { "fty_metric_composite_configurator_server", fty_metric_composite_configurator_server_test },
+#endif // FTY_METRIC_COMPOSITE_BUILD_DRAFT_API
+#ifdef FTY_METRIC_COMPOSITE_BUILD_DRAFT_API
+    { "private_classes", fty_metric_composite_private_selftest },
 #endif // FTY_METRIC_COMPOSITE_BUILD_DRAFT_API
     {0, 0}          //  Sentinel
 };
@@ -104,14 +108,9 @@ main (int argc, char **argv)
         if (streq (argv [argn], "--list")
         ||  streq (argv [argn], "-l")) {
             puts ("Available tests:");
-            puts ("    actor_commands");
-            puts ("    logger");
-            puts ("    subprocess");
-            puts ("    data");
-            puts ("    proto_metric_unavailable");
-            puts ("    c_metric_conf");
-            puts ("    fty_metric_composite_server");
-            puts ("    fty_metric_composite_configurator_server");
+            puts ("    fty_metric_composite_server\t\t- draft");
+            puts ("    fty_metric_composite_configurator_server\t\t- draft");
+            puts ("    private_classes\t- draft");
             return 0;
         }
         else
