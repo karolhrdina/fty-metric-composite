@@ -337,11 +337,11 @@ PKG_CHECK_MODULES([lua], [lua >= 5.1.0],
         lua_synthetic_libs="-llua"
 
         if test "x$search_lua" = "xyes"; then
-            if test -r "${with_lua}/include/stdio.h"; then
+            if test -r "${with_lua}/include/lua.hpp"; then
                 lua_synthetic_cflags="-I${with_lua}/include"
                 lua_synthetic_libs="-L${with_lua}/lib -llua"
             else
-                AC_MSG_ERROR([${with_lua}/include/stdio.h not found. Please check lua prefix])
+                AC_MSG_ERROR([${with_lua}/include/lua.hpp not found. Please check lua prefix])
             fi
         fi
 

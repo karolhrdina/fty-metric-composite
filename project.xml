@@ -33,8 +33,8 @@
 
     <use project = "lua" libname = "lua" prefix = "lua"
         min_major = "5" min_minor = "1" mit_patch = "0"
-	debian_name="liblua5.1-0-dev"
-	header="stdio.h"
+	    debian_name="liblua5.1-0-dev"
+    	header="lua.hpp"
         test = "lua_close"
         />
 
