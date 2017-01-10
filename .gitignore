@@ -86,3 +86,11 @@ src/app/jni/output
 # Archives	
 *.tar.gz
 *.zip
+
+# state files
+state_file
+state_file1
+test_state_file
+
+# test directory
+test_dir
