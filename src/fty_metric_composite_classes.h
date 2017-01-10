@@ -73,6 +73,10 @@ FTY_METRIC_COMPOSITE_PRIVATE void
 FTY_METRIC_COMPOSITE_PRIVATE void
     c_metric_conf_test (bool verbose);
 
+//  Self test for private classes
+FTY_METRIC_COMPOSITE_PRIVATE void
+    fty_metric_composite_private_selftest (bool verbose);
+
 #endif // FTY_METRIC_COMPOSITE_BUILD_DRAFT_API
 
 #endif

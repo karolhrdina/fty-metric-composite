@@ -91,6 +91,12 @@ typedef struct _fty_metric_composite_configurator_server_t fty_metric_composite_
 #include "fty_metric_composite_configurator_server.h"
 #endif // FTY_METRIC_COMPOSITE_BUILD_DRAFT_API
 
+#ifdef FTY_METRIC_COMPOSITE_BUILD_DRAFT_API
+//  Self test for private classes
+FTY_METRIC_COMPOSITE_EXPORT void
+    fty_metric_composite_private_selftest (bool verbose);
+#endif // FTY_METRIC_COMPOSITE_BUILD_DRAFT_API
+
 #endif
 /*
 ################################################################################

@@ -84,6 +84,7 @@ PKG_CHECK_MODULES([libzmq], [libzmq >= 0.0.0],
         PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $libzmq_LIBS"
     ],
     [
+        AC_MSG_NOTICE([Package libzmq not found; falling back to defined compilability tests])
         AC_ARG_WITH([libzmq],
             [
                 AS_HELP_STRING([--with-libzmq],
@@ -131,6 +132,7 @@ PKG_CHECK_MODULES([czmq], [libczmq >= 0.0.0],
         PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $czmq_LIBS"
     ],
     [
+        AC_MSG_NOTICE([Package libczmq not found; falling back to defined compilability tests])
         AC_ARG_WITH([libczmq],
             [
                 AS_HELP_STRING([--with-libczmq],
@@ -178,6 +180,7 @@ PKG_CHECK_MODULES([malamute], [libmlm >= 0.0.0],
         PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $malamute_LIBS"
     ],
     [
+        AC_MSG_NOTICE([Package libmlm not found; falling back to defined compilability tests])
         AC_ARG_WITH([libmlm],
             [
                 AS_HELP_STRING([--with-libmlm],
@@ -225,7 +228,40 @@ PKG_CHECK_MODULES([fty_proto], [libfty_proto >= 1.0.0],
         PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $fty_proto_LIBS"
     ],
     [
-        AC_MSG_ERROR([Cannot find libfty_proto 1.0.0 or higher])
+        AC_MSG_NOTICE([Package libfty_proto not found with needed constraints; falling back to defined compilability tests])
+        AC_ARG_WITH([libfty_proto],
+            [
+                AS_HELP_STRING([--with-libfty_proto],
+                [Specify libfty_proto prefix])
+            ],
+            [search_libfty_proto="yes"],
+            [])
+
+        fty_proto_synthetic_cflags=""
+        fty_proto_synthetic_libs="-lfty_proto"
+
+        if test "x$search_libfty_proto" = "xyes"; then
+            if test -r "${with_libfty_proto}/include/ftyproto.h"; then
+                fty_proto_synthetic_cflags="-I${with_libfty_proto}/include"
+                fty_proto_synthetic_libs="-L${with_libfty_proto}/lib -lfty_proto"
+            else
+                AC_MSG_ERROR([${with_libfty_proto}/include/ftyproto.h not found. Please check libfty_proto prefix])
+            fi
+        fi
+
+
+        AC_CHECK_LIB([fty_proto], [fty_proto_test],
+            [
+                CFLAGS="${fty_proto_synthetic_cflags} ${CFLAGS}"
+                LDFLAGS="${fty_proto_synthetic_libs} ${LDFLAGS}"
+                LIBS="${fty_proto_synthetic_libs} ${LIBS}"
+
+                AC_SUBST([fty_proto_CFLAGS],[${fty_proto_synthetic_cflags}])
+                AC_SUBST([fty_proto_LIBS],[${fty_proto_synthetic_libs}])
+                was_fty_proto_check_lib_detected=yes
+                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -lfty_proto"
+            ],
+            [AC_MSG_ERROR([cannot link with -lfty_proto, install libfty_proto])])
     ])
 
 if test "x$was_fty_proto_check_lib_detected" = "xno"; then
@@ -240,6 +276,7 @@ PKG_CHECK_MODULES([cxxtools], [cxxtools >= 0.0.0],
         PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $cxxtools_LIBS"
     ],
     [
+        AC_MSG_NOTICE([Package cxxtools not found; falling back to defined compilability tests])
         AC_ARG_WITH([cxxtools],
             [
                 AS_HELP_STRING([--with-cxxtools],
@@ -287,7 +324,40 @@ PKG_CHECK_MODULES([lua], [lua >= 5.1.0],
         PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $lua_LIBS"
     ],
     [
-        AC_MSG_ERROR([Cannot find lua 5.1.0 or higher])
+        AC_MSG_NOTICE([Package lua not found with needed constraints; falling back to defined compilability tests])
+        AC_ARG_WITH([lua],
+            [
+                AS_HELP_STRING([--with-lua],
+                [Specify lua prefix])
+            ],
+            [search_lua="yes"],
+            [])
+
+        lua_synthetic_cflags=""
+        lua_synthetic_libs="-llua"
+
+        if test "x$search_lua" = "xyes"; then
+            if test -r "${with_lua}/include/stdio.h"; then
+                lua_synthetic_cflags="-I${with_lua}/include"
+                lua_synthetic_libs="-L${with_lua}/lib -llua"
+            else
+                AC_MSG_ERROR([${with_lua}/include/stdio.h not found. Please check lua prefix])
+            fi
+        fi
+
+
+        AC_CHECK_LIB([lua], [lua_close],
+            [
+                CFLAGS="${lua_synthetic_cflags} ${CFLAGS}"
+                LDFLAGS="${lua_synthetic_libs} ${LDFLAGS}"
+                LIBS="${lua_synthetic_libs} ${LIBS}"
+
+                AC_SUBST([lua_CFLAGS],[${lua_synthetic_cflags}])
+                AC_SUBST([lua_LIBS],[${lua_synthetic_libs}])
+                was_lua_check_lib_detected=yes
+                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -llua"
+            ],
+            [AC_MSG_ERROR([cannot link with -llua, install lua])])
     ])
 
 if test "x$was_lua_check_lib_detected" = "xno"; then
@@ -611,6 +681,7 @@ AM_COND_IF([WITH_SYSTEMD_UNITS],
                  src/fty-metric-composite-configurator.service
     ])],
     [])
+
 
 
 AC_OUTPUT
