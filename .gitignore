@@ -19,9 +19,9 @@
 *.lo
 
 # Executables
-composite-metrics_selftest
-composite_metrics
-composite-metrics
+src/fty-metric-composite
+src/fty-metric-composite-configurator
+src/fty_metric_composite_selftest
 *.exe
 *.out
 *.app
@@ -31,6 +31,7 @@ generate.sh
 # Service units
 src/composite-metrics-configurator.cfg
 src/composite-metrics.cfg
+src/fty-metric-composite@.service
 
 # Man pages
 doc/*.1

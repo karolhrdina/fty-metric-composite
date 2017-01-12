@@ -30,13 +30,25 @@
         release = "42ity"
         test = "cxxtools::Utf8Codec::Utf8Codec"
         />
-
-    <use project = "lua" libname = "lua" prefix = "lua"
-        min_major = "5" min_minor = "1" mit_patch = "0"
-	    debian_name="liblua5.1-0-dev"
-    	header="lua.hpp"
-        test = "lua_close"
-        />
+    <!-- Note: the optional flag causes "configure" script to not fail
+        if pkg-config metadata (or tests) do not succeed on a distro;
+        the project build would fail if no LUA-5.1 library if present.
+        This also causes some duplicates in generated code, but these
+        "should" be harmless in practice. Also, these packages are not
+        generated into the list of "required" for a build in spec/dsc
+        files and have to be plugged there manually. -->
+     <use project = "lua-5.1-redhat" libname = "lua" prefix="lua"
+         optional = "1" am_lib_macro = "LUA_5_1"
+         min_major = "5" min_minor = "1" mit_patch = "0"
+         debian_name="" redhat_name="lua-devel"
+         test = "lua_close"
+         />
+     <use project = "lua-5.1-debian" libname = "lua5.1" prefix="lua"
+         optional = "1" am_lib_macro = "LUA_5_1"
+         min_major = "5" min_minor = "1" mit_patch = "0"
+         debian_name="liblua5.1-0-dev" redhat_name=""
+         test = "lua_close"
+         />
 
     <class name = "actor commands"              private = "1">actor commands</class>
     <class name = "logger"                      private = "1">logging api</class>

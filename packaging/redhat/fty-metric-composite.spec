@@ -119,7 +119,6 @@ find %{buildroot} -name '*.la' | xargs rm -f
 %doc COPYING
 %{_bindir}/fty-metric-composite
 %{_mandir}/man1/fty-metric-composite*
-%{_sysconfdir}/fty-metric-composite/fty-metric-composite.cfg.example
 %{_bindir}/fty-metric-composite-configurator
 %{_mandir}/man1/fty-metric-composite-configurator*
 %config(noreplace) %{_sysconfdir}/fty-metric-composite/fty-metric-composite.cfg
