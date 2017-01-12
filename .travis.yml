@@ -27,6 +27,8 @@ matrix:
         packages:
         - valgrind
         - liblua5.1-0-dev
+        - asciidoc
+        - xmlto
 
 addons:
   apt:

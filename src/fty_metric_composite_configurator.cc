@@ -164,6 +164,8 @@ int main (int argc, char *argv [])
     zactor_t *server = zactor_new (fty_metric_composite_configurator_server, (void *) AGENT_NAME);
     if (!server) {
         log_critical ("zactor_new (task = 'fty_metric_composite_configurator_server', args = 'NULL') failed");
+        zstr_free (&state_file);
+        zstr_free (&output_dir);
         return EXIT_FAILURE;
     }
     zstr_sendx (server,  "STATE_FILE", state_file, NULL);
