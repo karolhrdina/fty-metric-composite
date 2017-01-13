@@ -609,8 +609,8 @@ data_load (const char *filename)
             {
                 // 1. create bmsg
                 fty_proto_t *bmsg = fty_proto_new (FTY_PROTO_ASSET);
-                fty_proto_set_name (bmsg, zconfig_get (key_config, "name", ""));
-                fty_proto_set_operation (bmsg, zconfig_get (key_config, "operation", ""));
+                fty_proto_set_name (bmsg, "%s", zconfig_get (key_config, "name", ""));
+                fty_proto_set_operation (bmsg, "%s", zconfig_get (key_config, "operation", ""));
 
                 // 2. put aux things
                 zconfig_t *bmsg_config = zconfig_child (key_config);
@@ -618,9 +618,9 @@ data_load (const char *filename)
                 {
                     const char *bmsg_key = zconfig_name (bmsg_config);
                     if (strncmp (bmsg_key, "aux.", 4) == 0)
-                        fty_proto_aux_insert (bmsg, (bmsg_key+4), zconfig_value (bmsg_config));
+                        fty_proto_aux_insert (bmsg, (bmsg_key+4), "%s", zconfig_value (bmsg_config));
                     if (strncmp (bmsg_key, "ext.", 4) == 0)
-                        fty_proto_ext_insert (bmsg, (bmsg_key+4), zconfig_value (bmsg_config));
+                        fty_proto_ext_insert (bmsg, (bmsg_key+4), "%s", zconfig_value (bmsg_config));
                 }
                 zhashx_update (self->all_assets, zconfig_get (key_config, "name", ""), bmsg);
             }
