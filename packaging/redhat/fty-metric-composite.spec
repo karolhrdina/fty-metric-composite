@@ -53,9 +53,9 @@ BuildRequires:  gcc-c++
 BuildRequires:  zeromq-devel
 BuildRequires:  czmq-devel
 BuildRequires:  malamute-devel
+BuildRequires:  lua-devel
 BuildRequires:  fty-proto-devel
 BuildRequires:  cxxtools-devel
-BuildRequires:  lua-devel
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 
 %description
@@ -83,9 +83,9 @@ Requires:       libfty_metric_composite0 = %{version}
 Requires:       zeromq-devel
 Requires:       czmq-devel
 Requires:       malamute-devel
+Requires:       lua-devel
 Requires:       fty-proto-devel
 Requires:       cxxtools-devel
-Requires:       lua-devel
 
 %description devel
 agent that computes new metrics from bunch of other metrics development tools
