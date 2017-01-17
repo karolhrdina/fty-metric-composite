@@ -32,16 +32,9 @@
 //  External dependencies
 #include <czmq.h>
 #include <malamute.h>
+#include <lua.h>
 #include <ftyproto.h>
 #include <cxxtools/allocator.h>
-extern "C" {
-#if defined (HAVE_LUA_5_1)
-#include <lua.h>
-#endif
-#if defined (HAVE_LUA_5_1)
-#include <lua.h>
-#endif
-}
 
 //  FTY_METRIC_COMPOSITE version macros for compile-time API detection
 #define FTY_METRIC_COMPOSITE_VERSION_MAJOR 1

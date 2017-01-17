@@ -267,6 +267,16 @@ if [ "$BUILD_TYPE" == "default" ] || [ "$BUILD_TYPE" == "default-Werror" ] || [ 
         cd "${BASE_PWD}"
     fi
 
+    # Start of recipe for dependency: lua-5.1
+    if ! (command -v dpkg-query >/dev/null 2>&1 && dpkg-query --list liblua5.1-0-dev >/dev/null 2>&1) || \
+           (command -v brew >/dev/null 2>&1 && brew ls --versions lua-5.1 >/dev/null 2>&1) \
+    ; then
+        echo ""
+        echo "WARNING: Can not build prerequisite 'lua-5.1'" >&2
+        echo "because neither tarball nor repository sources are known for it," >&2
+        echo "and it was not isntalled as a package; this may cause the test to fail!" >&2
+    fi
+
     # Start of recipe for dependency: fty-proto
     if ! (command -v dpkg-query >/dev/null 2>&1 && dpkg-query --list libfty_proto-dev >/dev/null 2>&1) || \
            (command -v brew >/dev/null 2>&1 && brew ls --versions fty-proto >/dev/null 2>&1) \
@@ -329,25 +339,6 @@ if [ "$BUILD_TYPE" == "default" ] || [ "$BUILD_TYPE" == "default-Werror" ] || [ 
         $CI_TIME make -j4
         $CI_TIME make install
         cd "${BASE_PWD}"
-    fi
-
-    # Start of recipe for dependency: lua-5.1-redhat
-    if     (command -v brew >/dev/null 2>&1 && brew ls --versions lua-5.1-redhat >/dev/null 2>&1) \
-    ; then
-        echo ""
-        echo "WARNING: Can not build prerequisite 'lua-5.1-redhat'" >&2
-        echo "because neither tarball nor repository sources are known for it," >&2
-        echo "and it was not isntalled as a package; this may cause the test to fail!" >&2
-    fi
-
-    # Start of recipe for dependency: lua-5.1-debian
-    if ! (command -v dpkg-query >/dev/null 2>&1 && dpkg-query --list liblua5.1-0-dev >/dev/null 2>&1) || \
-           (command -v brew >/dev/null 2>&1 && brew ls --versions lua-5.1-debian >/dev/null 2>&1) \
-    ; then
-        echo ""
-        echo "WARNING: Can not build prerequisite 'lua-5.1-debian'" >&2
-        echo "because neither tarball nor repository sources are known for it," >&2
-        echo "and it was not isntalled as a package; this may cause the test to fail!" >&2
     fi
 
     # Build and check this project; note that zprojects always have an autogen.sh

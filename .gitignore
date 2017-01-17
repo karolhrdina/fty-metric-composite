@@ -1,3 +1,6 @@
+# This is a skeleton created by zproject.
+# You can add hand-written code here.
+save.xml
 # Object files
 *.o
 *.so
@@ -19,6 +22,7 @@
 *.lo
 
 # Executables
+src/fty-metric-composite_selftest
 src/fty-metric-composite
 src/fty-metric-composite-configurator
 src/fty_metric_composite_selftest
@@ -33,6 +37,11 @@ src/composite-metrics-configurator.cfg
 src/composite-metrics.cfg
 src/fty-metric-composite@.service
 
+ # Distcheck workspace and archives
+fty-metric-composite-1.0.0/
+fty-metric-composite-1.0.0.tar.gz
+fty-metric-composite-1.0.0.zip
+
 # Man pages
 doc/*.1
 doc/*.3
@@ -45,6 +54,7 @@ doc/*.7
 *.trs
 Makefile
 Makefile.in
+!builds/openwrt/Makefile
 aclocal.m4
 autom4te.cache/
 config.log
@@ -63,8 +73,46 @@ src/.dirstamp
 CMakeLists.txt
 *.cmake
 
+# CMake cache
+CMakeCache.txt
+CMakeFiles/
+CTestTestfile.cmake
+cmake_install.cmake
+compile_commands.json
+DartConfiguration.tcl
+install_manifest.txt
+Testing/
+
+# Repositories downloaded by CI integration scripts
+libzmq/
+czmq/
+malamute/
+fty-proto/
+cxxtools/
+
+# Travis build area
+tmp/
+
+# Valgrind files
+callgrind*
+vgcore*
+
+# Vagrant files
+.vagrant
+
+# CLion / PyCharm
+.idea
+
+# GYP files
+project.Makefile
+*.target.mk
+out/
+
 # qt-android build results
 builds/qt-android/prefix
+
+# Android build results
+builds/android/prefix
 
 # Android - generated directories
 src/app/bin/
@@ -80,8 +128,26 @@ builds/android/e2fsprogs
 builds/android/zyre
 src/app/jni/output
 
+# Python build directory
+build/
+
+# MSVC build directories
+obj/
+bin/
+*.tlog
+
+# Qt
+*pro.user
+moc_*
+build-*
+bindings/qt/selftest/selftest
+
 # Temporary files
 *.swp
+*.bak
+.test*
+
+# editor backups
 *~
 
 # Archives	
