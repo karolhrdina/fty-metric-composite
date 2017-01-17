@@ -48,12 +48,12 @@ addons:
     packages:
     - asciidoc
     - xmlto
-    - libzmq3-dev
-    - libczmq-dev
-    - libmlm-dev
+#    - libzmq3-dev
+#    - libczmq-dev
+#    - libmlm-dev
     - liblua5.1-0-dev
-    - libfty-proto-dev
-    - cxxtools-dev
+#    - libfty-proto-dev
+#    - cxxtools-dev
 
 before_install:
 - if [ $TRAVIS_OS_NAME == "osx" ] ; then brew update; brew install binutils valgrind ; fi
