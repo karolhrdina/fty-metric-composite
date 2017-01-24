@@ -1,7 +1,7 @@
 #
 #    fty-metric-composite - Agent that computes new metrics from bunch of other metrics
 #
-#    Copyright (C) 2014 - 2015 Eaton                                        
+#    Copyright (C) 2014 - 2017 Eaton                                        
 #                                                                           
 #    This program is free software; you can redistribute it and/or modify   
 #    it under the terms of the GNU General Public License as published by   
@@ -122,17 +122,17 @@ find %{buildroot} -name '*.la' | xargs rm -f
 %{_bindir}/fty-metric-composite-configurator
 %{_mandir}/man1/fty-metric-composite-configurator*
 %config(noreplace) %{_sysconfdir}/fty-metric-composite/fty-metric-composite.cfg
-/usr/lib/systemd/system/fty-metric-composite{,@*}.{service,*}
+/usr/lib/systemd/system/fty-metric-composite@.service
 %config(noreplace) %{_sysconfdir}/fty-metric-composite/fty-metric-composite-configurator.cfg
-/usr/lib/systemd/system/fty-metric-composite-configurator{,@*}.{service,*}
+/usr/lib/systemd/system/fty-metric-composite-configurator.service
 %dir %{_sysconfdir}/fty-metric-composite
 %if 0%{?suse_version} > 1315
 %post
-%systemd_post fty-metric-composite{,@*}.{service,*} fty-metric-composite-configurator{,@*}.{service,*}
+%systemd_post fty-metric-composite@.service fty-metric-composite-configurator.service
 %preun
-%systemd_preun fty-metric-composite{,@*}.{service,*} fty-metric-composite-configurator{,@*}.{service,*}
+%systemd_preun fty-metric-composite@.service fty-metric-composite-configurator.service
 %postun
-%systemd_postun_with_restart fty-metric-composite{,@*}.{service,*} fty-metric-composite-configurator{,@*}.{service,*}
+%systemd_postun_with_restart fty-metric-composite@.service fty-metric-composite-configurator.service
 %endif
 
 %changelog

@@ -16,7 +16,6 @@ save.xml
 
 # Shared objects (inc. Windows DLLs)
 *.dll
-*.so
 *.so.*
 *.dylib
 *.lo
@@ -30,12 +29,6 @@ src/fty_metric_composite_selftest
 *.out
 *.app
 core
-generate.sh
-
-# Service units
-src/composite-metrics-configurator.cfg
-src/composite-metrics.cfg
-src/fty-metric-composite@.service
 
  # Distcheck workspace and archives
 fty-metric-composite-1.0.0/
