@@ -42,7 +42,7 @@
     <class name = "fty_metric_composite_server">Composite metrics server</class>
     <class name = "fty_metric_composite_configurator_server">Composite metrics server configurator</class>
 
-    <main name = "fty-metric-composite" service = "1">Metrics calculator</main>
+    <main name = "fty-metric-composite" service = "2">Metrics calculator</main>
     <main name = "fty-metric-composite-configurator" service = "1">Metrics calculator configurator</main>
 
 </project>

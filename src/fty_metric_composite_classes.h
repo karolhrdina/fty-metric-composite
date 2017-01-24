@@ -32,6 +32,34 @@
 //  External API
 #include "../include/fty_metric_composite.h"
 
+//  Extra headers
+
+//  Opaque class structures to allow forward references
+#ifndef ACTOR_COMMANDS_T_DEFINED
+typedef struct _actor_commands_t actor_commands_t;
+#define ACTOR_COMMANDS_T_DEFINED
+#endif
+#ifndef LOGGER_T_DEFINED
+typedef struct _logger_t logger_t;
+#define LOGGER_T_DEFINED
+#endif
+#ifndef SUBPROCESS_T_DEFINED
+typedef struct _subprocess_t subprocess_t;
+#define SUBPROCESS_T_DEFINED
+#endif
+#ifndef DATA_T_DEFINED
+typedef struct _data_t data_t;
+#define DATA_T_DEFINED
+#endif
+#ifndef PROTO_METRIC_UNAVAILABLE_T_DEFINED
+typedef struct _proto_metric_unavailable_t proto_metric_unavailable_t;
+#define PROTO_METRIC_UNAVAILABLE_T_DEFINED
+#endif
+#ifndef C_METRIC_CONF_T_DEFINED
+typedef struct _c_metric_conf_t c_metric_conf_t;
+#define C_METRIC_CONF_T_DEFINED
+#endif
+
 //  Internal API
 #include "actor_commands.h"
 #include "logger.h"
