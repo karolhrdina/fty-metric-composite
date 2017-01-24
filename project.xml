@@ -27,7 +27,7 @@
 
     <use project = "cxxtools"
         header = "cxxtools/allocator.h"
-        repository = "https://github.com/42ity/cxxtools" 
+        repository = "https://github.com/42ity/cxxtools"
         release = "42ity"
         test = "cxxtools::Utf8Codec::Utf8Codec"
         />

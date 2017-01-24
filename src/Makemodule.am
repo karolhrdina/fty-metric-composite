@@ -73,7 +73,8 @@ bin_PROGRAMS += src/fty-metric-composite
 src_fty_metric_composite_CPPFLAGS = ${AM_CPPFLAGS}
 src_fty_metric_composite_LDADD = ${program_libs}
 src_fty_metric_composite_SOURCES = src/fty_metric_composite.cc
-src_fty_metric_composite_config_DATA = src/fty-metric-composite.cfg
+src_fty_metric_composite_config_DATA =
+src_fty_metric_composite_config_DATA += src/fty-metric-composite.cfg
 src_fty_metric_composite_configdir = $(sysconfdir)/fty-metric-composite
 if WITH_SYSTEMD_UNITS
 systemdsystemunit_DATA += src/fty-metric-composite@.service
@@ -85,7 +86,8 @@ bin_PROGRAMS += src/fty-metric-composite-configurator
 src_fty_metric_composite_configurator_CPPFLAGS = ${AM_CPPFLAGS}
 src_fty_metric_composite_configurator_LDADD = ${program_libs}
 src_fty_metric_composite_configurator_SOURCES = src/fty_metric_composite_configurator.cc
-src_fty_metric_composite_configurator_config_DATA = src/fty-metric-composite-configurator.cfg
+src_fty_metric_composite_configurator_config_DATA =
+src_fty_metric_composite_configurator_config_DATA += src/fty-metric-composite-configurator.cfg
 src_fty_metric_composite_configurator_configdir = $(sysconfdir)/fty-metric-composite
 if WITH_SYSTEMD_UNITS
 systemdsystemunit_DATA += src/fty-metric-composite-configurator.service
