@@ -82,7 +82,7 @@ s_remove_and_stop (const char *path_to_dir)
         if (std::regex_match (zfile_filename (item, path_to_dir), file_rex)) {
             std::string filename = zfile_filename (item, path_to_dir);
             filename.erase (filename.size () - 4);
-            std::string service = "composite-metrics@";
+            std::string service = "fty-metric-composite@";
             service += filename;
             s_bits_systemctl ("stop", service.c_str ());
             s_bits_systemctl ("disable", service.c_str ());
@@ -239,7 +239,7 @@ s_generate_and_start (const char *path_to_dir, const char *sensor_function, cons
     fullpath += filename;
     fullpath += ".cfg";
 
-    std::string service = "composite-metrics";
+    std::string service = "fty-metric-composite";
     service += "@";
     service += filename;
 
@@ -282,7 +282,7 @@ s_generate_and_start (const char *path_to_dir, const char *sensor_function, cons
     fullpath += filename;
     fullpath += ".cfg";
 
-    service = "composite-metrics";
+    service = "fty-metric-composite";
     service += "@";
     service += filename;
 
