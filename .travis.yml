@@ -49,10 +49,10 @@ addons:
     packages:
     - asciidoc
     - xmlto
+    - liblua5.1-0-dev
 #    - libzmq3-dev
 #    - libczmq-dev
 #    - libmlm-dev
-    - liblua5.1-0-dev
 #    - libfty-proto-dev
 #    - cxxtools-dev
 
