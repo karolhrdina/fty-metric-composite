@@ -240,7 +240,7 @@ fty_metric_composite_server (zsock_t *pipe, void* args) {
             fty_proto_t *n_met = fty_proto_new(FTY_PROTO_METRIC);
             zsys_debug ("Creating new bios proto message");
             char *buff = strdup(lua_tostring(L, -3));
-            fty_proto_set_element_src(n_met, "%s", strrchr(buff, '@') + 1);
+            fty_proto_set_name (n_met, "%s", strrchr(buff, '@') + 1);
             (*strrchr(buff, '@')) = 0;
             fty_proto_set_type(n_met, "%s", buff);
             fty_proto_set_value(n_met, "%.2f", lua_tonumber(L, -2));
@@ -308,7 +308,7 @@ fty_metric_composite_server_test (bool verbose)
     // send one value
     zmsg_t *msg_in;
     msg_in = fty_proto_encode_metric(
-            NULL, "temperature", "TH1", "40", "C", ::time (NULL));
+            NULL, ::time (NULL), 60, "temperature", "TH1", "40", "C");
     assert (msg_in);
     mlm_client_send (producer, "temperature@TH1", &msg_in);
 
@@ -324,7 +324,7 @@ fty_metric_composite_server_test (bool verbose)
 
     // send another value
     msg_in = fty_proto_encode_metric(
-            NULL, "temperature", "TH2", "100", "C", ::time (NULL));
+            NULL, ::time (NULL), 60, "temperature", "TH2", "100", "C");
     assert (msg_in);
     mlm_client_send (producer, "temperature@TH2", &msg_in);
 
@@ -337,7 +337,7 @@ fty_metric_composite_server_test (bool verbose)
 
     // send value for TH1 again
     msg_in = fty_proto_encode_metric(
-            NULL, "temperature", "TH1", "70.00", "C", ::time (NULL));
+            NULL, ::time (NULL), 60, "temperature", "TH1", "70.00", "C");
     assert (msg_in);
     mlm_client_send (producer, "temperature@TH1", &msg_in);
 
