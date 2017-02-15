@@ -188,7 +188,7 @@ fty_metric_composite_server (zsock_t *pipe, void* args) {
         value val;
         val.value = atof(fty_proto_value(yn));
         uint32_t ttl = fty_proto_ttl(yn);
-        uint64_t timestamp = fty_proto_aux_number (yn, "time", ::time(NULL));
+        uint64_t timestamp = fty_proto_time (yn);
         val.valid_till = timestamp + ttl;
         if (verbose)
             zsys_debug ("%s: Got message '%s' with value %lf", name, topic.c_str(), val.value);
