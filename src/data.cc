@@ -30,6 +30,7 @@
 
 #include "fty_metric_composite_classes.h"
 #include <set>
+#include <set>
 #include <string>
 
 //  Structure of our class
@@ -40,6 +41,7 @@ struct _data_t {
     zhashx_t *last_configuration; // asset_name -> list of sensors (each sensor is represented as message). Doesn't own messages
     bool is_reconfig_needed; // indicates, if recently added asset can change configuration
     std::set<std::string> produced_metrics; // list of metrics, that are now produced by composite_metric
+    std::map <std::string, std::string> devmap;
 };
 
 //  --------------------------------------------------------------------------
@@ -64,6 +66,28 @@ data_new (void)
             data_destroy (&self);
         }
     }
+
+    // copy and paste from fty-sensor-env
+    // maps symbolic name to real device name
+    self->devmap = {
+        {"/dev/ttySTH1", "/dev/ttyS9"},
+        {"/dev/ttySTH2", "/dev/ttyS10"},
+        {"/dev/ttySTH3", "/dev/ttyS11"},
+        {"/dev/ttySTH4", "/dev/ttyS12"}
+    };
+
+    for (auto &it: self->devmap) {
+        char *patha = realpath (it.first.c_str (), NULL);
+        if (!patha) {
+            zsys_warning ("Can't get realpath of %s, using %s: %s", it.first.c_str (), it.second.c_str (), strerror (errno));
+            zstr_free (&patha);
+            continue;
+        }
+        std::string npath {patha};
+        self->devmap [it.first] = npath;
+        zstr_free (&patha);
+    }
+
     return self;
 }
 
@@ -248,12 +272,23 @@ data_get_assigned_sensors (
 //  Writes to log detailed information "what is wrong"
 
 static void
-s_check_sensor_correctness (fty_proto_t *sensor)
+s_check_sensor_correctness (data_t *self, fty_proto_t *sensor)
 {
+    assert (self);
     assert (sensor);
     const char *logical_asset = fty_proto_ext_string (sensor, "logical_asset", NULL);
     const char *port = fty_proto_ext_string (sensor, "port", NULL);
     const char *parent_name = fty_proto_aux_string (sensor, "parent_name.1", NULL);
+
+    // case #1: handle TH1-TH4
+    if (port [0] == 'T' && port [1] == 'H' && \
+        (port [2] >= 49 && port [2] <= 52)) {
+        std::string key = "/dev/ttyS";
+        key.append (port);
+        port = self->devmap [key].c_str ();
+    }
+    // case #2: handle 9-12 (13-16) for logical_asset == RackController
+    // TODO
 
     if (!logical_asset) {
         log_error (
@@ -371,7 +406,7 @@ data_asset_store (data_t *self, fty_proto_t **message_p)
         if ( streq (subtype, "sensor") ) {
             // lets check, that sensor has all necessary information
             // So, we have "device" and it is "sensor"!
-            s_check_sensor_correctness (message);
+            s_check_sensor_correctness (self, message);
             // store it in any case, because we cannot ignore message on UPDATE operation,
             // and in order to be consistent do not ignore it ere on CREATE operation
             self->is_reconfig_needed = true;
@@ -405,7 +440,7 @@ data_asset_store (data_t *self, fty_proto_t **message_p)
         if ( streq (subtype, "sensor") ) {
             // So, we have "device" and it is "sensor"!
             // lets check, that sensor has all necessary information
-            s_check_sensor_correctness (message);
+            s_check_sensor_correctness (self, message);
             // store it in any case, because we cannot ignore message on UPDATE operation,
             // Because if we ignore this message -> everything would be configured
             // with old information which is already obsolete
