@@ -284,7 +284,7 @@ s_check_sensor_correctness (data_t *self, fty_proto_t *sensor)
         log_error (
                 "Sensor='%s':Attribute '%s' is missing from '%s' field in the message.",
                 fty_proto_name (sensor), "port", "ext");
-        return;
+		return;
     }
     // case #1: handle TH1-TH4
     if (port [0] == 'T' && port [1] == 'H' && \
@@ -695,7 +695,8 @@ data_destroy (data_t **self_p)
         zhashx_destroy (&self->last_configuration);
         self->produced_metrics.clear();
         //  Free object itself
-        free (self);
+        self->devmap.clear ();
+		free (self);
         *self_p = NULL;
     }
 }
