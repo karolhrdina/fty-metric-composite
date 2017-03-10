@@ -16,7 +16,7 @@
 
     <use project = "czmq" release = "v3.0.2" test = "zmsg_test" />
     <use project = "malamute" test = "mlm_server_test" />
-    <use project = "lua-5.1" />
+    <use project = "lua-5.1" header = "lua.hpp" />
 
     <use project = "fty-proto" libname = "libfty_proto" prefix="fty_proto"
         min_major = "1" min_minor = "0" min_patch = "0"

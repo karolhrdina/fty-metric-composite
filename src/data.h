@@ -36,6 +36,12 @@ typedef struct _data_t data_t;
 FTY_METRIC_COMPOSITE_EXPORT data_t *
     data_new (void);
 
+FTY_METRIC_COMPOSITE_EXPORT void
+data_set_ipc (data_t *self, const std::string& name);
+
+FTY_METRIC_COMPOSITE_EXPORT const char*
+data_get_ipc (data_t *self);
+
 //  Store asset, takes ownership of the message
 //  Return:
 //      true - if metric was stores
