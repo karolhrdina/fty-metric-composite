@@ -42,6 +42,7 @@ struct _data_t {
     bool is_reconfig_needed; // indicates, if recently added asset can change configuration
     std::set<std::string> produced_metrics; // list of metrics, that are now produced by composite_metric
     std::map <std::string, std::string> devmap;
+    std::string ipc_name;
 };
 
 //  --------------------------------------------------------------------------
@@ -90,6 +91,17 @@ data_new (void)
 
     return self;
 }
+
+void
+data_set_ipc (data_t *self, const std::string& name) {
+    self->ipc_name = name;
+}
+
+const std::string
+data_get_ipc (data_t *self) {
+    return self->ipc_name;
+}
+
 
 //  --------------------------------------------------------------------------
 //  Get a list of sensors assigned to the specified asset, if for this asset
@@ -610,6 +622,10 @@ data_save (data_t *self, const char * filename)
         zconfig_t *reconfig = zconfig_new ("is_reconfig_needed", root);
         assert (reconfig); // make compiler happy!!
     }
+    zconfig_t *ipc_name = zconfig_new ("ipc_name", root);
+    assert (ipc_name);
+    zconfig_put (ipc_name, "name", data_get_ipc (self).c_str ());
+
 
     int r = zconfig_save (root, filename);
     zconfig_destroy (&root);
@@ -671,6 +687,13 @@ data_load (const char *filename)
         }
         if ( strncmp (sub_key, "is_reconfig_needed", 18) == 0 ) {
             self->is_reconfig_needed = true;
+            continue;
+        }
+        if ( strncmp (sub_key, "ipc_name", 8) == 0 ) {
+            zconfig_t *name = zconfig_locate (sub_config, "name");
+            if (!name)
+                continue;
+            data_set_ipc (self, zconfig_value (name));
             continue;
         }
         // if we are here, then unexpected config subtree found
