@@ -32,7 +32,7 @@
 //  External dependencies
 #include <czmq.h>
 #include <malamute.h>
-#include <lua.h>
+#include <lua.hpp>
 #include <ftyproto.h>
 #include <cxxtools/allocator.h>
 
