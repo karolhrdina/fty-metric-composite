@@ -42,7 +42,7 @@ struct _data_t {
     bool is_reconfig_needed; // indicates, if recently added asset can change configuration
     std::set<std::string> produced_metrics; // list of metrics, that are now produced by composite_metric
     std::map <std::string, std::string> devmap;
-    std::string ipc_name;
+    char* ipc_name;
 };
 
 //  --------------------------------------------------------------------------
@@ -94,12 +94,13 @@ data_new (void)
 
 void
 data_set_ipc (data_t *self, const std::string& name) {
-    self->ipc_name = name;
+    zstr_free (&self->ipc_name);
+    self->ipc_name = strdup (name.c_str ());
 }
 
-const std::string
+const char*
 data_get_ipc (data_t *self) {
-    return self->ipc_name;
+    return (const char*) self->ipc_name;
 }
 
 
@@ -298,15 +299,21 @@ s_check_sensor_correctness (data_t *self, fty_proto_t *sensor)
                 fty_proto_name (sensor), "port", "ext");
 		return;
     }
+
     // case #1: handle TH1-TH4
     if (port [0] == 'T' && port [1] == 'H' && \
-        (port [2] >= 49 && port [2] <= 52)) {
+            (port [2] >= 49 && port [2] <= 52)) {
         std::string key = "/dev/ttyS";
         key.append (port);
         port = self->devmap [key].c_str ();
     }
-    // case #2: handle 9-12 (13-16) for logical_asset == RackController
-    // TODO
+    else
+        // case #2: handle 9-12 (13-16) for logical_asset == RackController
+        if (data_get_ipc (self) && streq (parent_name, data_get_ipc (self))) {
+            std::string foo = "/dev/ttyS";
+            foo.append (port);
+            port = foo.c_str ();
+        }
 
     if (!logical_asset) {
         log_error (
@@ -622,10 +629,10 @@ data_save (data_t *self, const char * filename)
         zconfig_t *reconfig = zconfig_new ("is_reconfig_needed", root);
         assert (reconfig); // make compiler happy!!
     }
-    zconfig_t *ipc_name = zconfig_new ("ipc_name", root);
-    assert (ipc_name);
-    zconfig_put (ipc_name, "name", data_get_ipc (self).c_str ());
-
+    if (data_get_ipc (self)) {
+        zconfig_t *ipc_name = zconfig_new ("ipc_name", root);
+        zconfig_set_value (ipc_name, "%s", data_get_ipc (self));
+    }
 
     int r = zconfig_save (root, filename);
     zconfig_destroy (&root);
@@ -690,10 +697,7 @@ data_load (const char *filename)
             continue;
         }
         if ( strncmp (sub_key, "ipc_name", 8) == 0 ) {
-            zconfig_t *name = zconfig_locate (sub_config, "name");
-            if (!name)
-                continue;
-            data_set_ipc (self, zconfig_value (name));
+            data_set_ipc (self, zconfig_value (sub_config));
             continue;
         }
         // if we are here, then unexpected config subtree found
@@ -717,6 +721,7 @@ data_destroy (data_t **self_p)
         zhashx_destroy (&self->all_assets);
         zhashx_destroy (&self->last_configuration);
         self->produced_metrics.clear();
+        zstr_free (&self->ipc_name);
         //  Free object itself
         self->devmap.clear ();
 		free (self);
@@ -783,10 +788,22 @@ test_zlistx_compare (zlistx_t *expected, zlistx_t **received_p, bool verbose = f
 
 static void
 data_compare (data_t *source, data_t *target, bool verbose) {
+
     if ( source == NULL )
         assert ( target == NULL );
     else {
         assert ( target != NULL );
+
+        zsys_debug ("data_get_ipc (source)=%s <%p>", data_get_ipc (source), (void*) data_get_ipc (source));
+        zsys_debug ("data_get_ipc (target)=%s <%p>", data_get_ipc (target), (void*) data_get_ipc (target));
+
+        if (data_get_ipc (source) != NULL) {
+            assert (data_get_ipc (target));
+            assert (streq (data_get_ipc (source), data_get_ipc (target)));
+        }
+        else    // XXX FIXME TODO: why is there "(null)" sometime
+            assert (data_get_ipc (target) == NULL);
+
         // test all_assets
         assert ( source-> all_assets != NULL ); // by design, it should be not NULL!
         assert ( target-> all_assets != NULL ); // by design, it should be not NULL!
@@ -846,9 +863,9 @@ test4 (bool verbose)
     data_t *self_load = NULL;
     fty_proto_t *asset = NULL;
     
-    // empty
+    // just ipc_name
     self = data_new ();
-    
+    data_set_ipc (self, "IPC");
     data_save (self, "state_file");
 
     self_load = data_load ("state_file");
@@ -2831,6 +2848,7 @@ data_test (bool verbose)
     fty_proto_ext_insert (asset, "calibration_offset_h", "%s", "-25");
     fty_proto_ext_insert (asset, "sensor_function", "%s", "ambient");
     fty_proto_ext_insert (asset, "logical_asset", "%s", "TEST1_ROW03");
+
     data_asset_store (self, &asset);
     assert (data_is_reconfig_needed (self) == true);
     data_reassign_sensors (self, true);
