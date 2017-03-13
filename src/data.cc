@@ -299,34 +299,42 @@ s_check_sensor_correctness (data_t *self, fty_proto_t *sensor)
                 fty_proto_name (sensor), "port", "ext");
 		return;
     }
-
-    // case #1: handle TH1-TH4
-    if (port [0] == 'T' && port [1] == 'H' && \
-            (port [2] >= 49 && port [2] <= 52)) {
-        std::string key = "/dev/ttyS";
-        key.append (port);
-        port = self->devmap [key].c_str ();
-    }
-    else
-        // case #2: handle 9-12 (13-16) for logical_asset == RackController
-        if (data_get_ipc (self) && streq (parent_name, data_get_ipc (self))) {
-            std::string foo = "/dev/ttyS";
-            foo.append (port);
-            port = foo.c_str ();
-        }
-
-    if (!logical_asset) {
-        log_error (
-                "Sensor='%s':Attribute '%s' is missing from '%s' field in the message.",
-                fty_proto_name (sensor), "logical_asset", "ext"); 
-        return;
-    }
     if (!parent_name) {
         log_error (
                 "Sensor='%s':Attribute '%s' is missing from '%s' field in the message.",
                 fty_proto_name (sensor), "parent_name.1", "aux");
         return;
     }
+    
+    if (!logical_asset) {
+        log_error (
+                "Sensor='%s':Attribute '%s' is missing from '%s' field in the message.",
+                fty_proto_name (sensor), "logical_asset", "ext"); 
+        return;
+    }
+
+    // BIOS-3136: for sensors when parent_name is IPC / rack controller subtybe ...
+    if (data_get_ipc (self) && streq (parent_name, data_get_ipc (self))) {
+        // ... if port is TH1-TH4 ...
+        if (port [0] == 'T' && port [1] == 'H' && \
+                (port [2] >= 49 && port [2] <= 52)) {
+            std::string key = "/dev/ttyS";
+            key.append (port);
+            port = self->devmap [key].c_str ();
+            // ... port is /dev/ttySX - according devmap
+            fty_proto_ext_insert (sensor, "port", "%s", port);
+        }
+        else
+        // ... or port is a number ...
+        if (isdigit (port [0])) {
+            // ... then use /dev/ttyS$port
+            std::string foo = "/dev/ttyS";
+            foo.append (port);
+            port = foo.c_str ();
+            fty_proto_ext_insert (sensor, "port", "%s", port);
+        }
+    }
+
 }
 
 static bool
@@ -408,11 +416,19 @@ data_asset_store (data_t *self, fty_proto_t **message_p)
         return false;
     fty_proto_t *message = *message_p;
 
+    const char *name = fty_proto_name (message);
     const char *operation = fty_proto_operation (message);
     log_debug ("Process message: op='%s', asset_name='%s'", operation, fty_proto_name (message));
     const char *type = fty_proto_aux_string (message, "type", "");
 
     const char *subtype = fty_proto_aux_string (message, "subtype", "");
+
+    if (streq (subtype, "rack controller")) {
+        if (!data_get_ipc (self) || !streq (data_get_ipc (self), name))
+            self->is_reconfig_needed = true;
+        data_set_ipc (self, name);
+    }
+
     if (streq (operation, FTY_PROTO_ASSET_OP_CREATE) ) {
         if ( streq (type, "datacenter") || 
              streq (type, "room") || 
