@@ -436,15 +436,15 @@ AS_IF([test x"${search_lua}" = xyes], [
         lua_5_1_synthetic_libs="-llua"
 
         if test -n "${with_lua}" && test x"${with_lua}" != xyes && test x"${with_lua}" != xno; then
-            if test -r "${with_lua}/include/lua.h"; then
+            if test -r "${with_lua}/include/lua.hpp"; then
                 lua_5_1_synthetic_cflags="-I${with_lua}/include"
                 lua_5_1_synthetic_libs="-L${with_lua}/lib -llua"
             else
-            AC_MSG_ERROR([Header file ${with_lua}/include/lua.h was not found. Please check lua prefix])
+            AC_MSG_ERROR([Header file ${with_lua}/include/lua.hpp was not found. Please check lua prefix])
             fi
         else
-            AC_CHECK_HEADER([lua.h], [],
-            AC_MSG_ERROR([Header file lua.h was not found in default search paths])
+            AC_CHECK_HEADER([lua.hpp], [],
+            AC_MSG_ERROR([Header file lua.hpp was not found in default search paths])
                 )
         fi
 
