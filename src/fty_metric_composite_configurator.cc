@@ -90,6 +90,11 @@ int main (int argc, char *argv [])
     char *state_file = NULL;
     char *output_dir = NULL;
 
+// Some systems define struct option with non-"const" "char *"
+#if defined(__GNUC__) || defined(__GNUG__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wwrite-strings"
+#endif
     static const char *short_options = "hl:s:";
     static struct option long_options[] =
     {
@@ -99,6 +104,10 @@ int main (int argc, char *argv [])
             {"output-dir",      required_argument,  0,  'o'},
             {0,                 0,                  0,  0}
     };
+#if defined(__GNUC__) || defined(__GNUG__)
+#pragma GCC diagnostic pop
+#endif
+
     while (true) {
 
         int option_index = 0;
