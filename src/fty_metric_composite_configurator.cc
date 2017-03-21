@@ -90,15 +90,15 @@ int main (int argc, char *argv [])
     char *state_file = NULL;
     char *output_dir = NULL;
 
-    while (true) {
-        static struct option long_options[] =
-        {
+    static struct option long_options[] =
+    {
             {"help",            no_argument,        0,  1},
             {"log-level",       required_argument,  0,  'l'},
             {"state-file",      required_argument,  0,  's'},
             {"output-dir",      required_argument,  0,  'o'},
             {0,                 0,                  0,  0}
-        };
+    };
+    while (true) {
 
         int option_index = 0;
         int c = getopt_long (argc, argv, "hl:s:", long_options, &option_index);
