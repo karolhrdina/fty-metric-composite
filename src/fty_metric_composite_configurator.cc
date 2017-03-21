@@ -90,6 +90,7 @@ int main (int argc, char *argv [])
     char *state_file = NULL;
     char *output_dir = NULL;
 
+    static const char *short_options = "hl:s:";
     static struct option long_options[] =
     {
             {"help",            no_argument,        0,  1},
@@ -101,7 +102,7 @@ int main (int argc, char *argv [])
     while (true) {
 
         int option_index = 0;
-        int c = getopt_long (argc, argv, "hl:s:", long_options, &option_index);
+        int c = getopt_long (argc, argv, short_options, long_options, &option_index);
         if (c == -1)
             break;
         switch (c) {
