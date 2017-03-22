@@ -55,13 +55,19 @@ main (int argc, char** argv) {
 
     char *tmp_arg = strdup(argv[1]);
     char *name;
-    if(asprintf(&name, "fty-metric-composite-%s", basename(tmp_arg)) < 0) {
+    char *tmp_basename = tmp_arg;
+    for (int tmp_i = 0; tmp_arg[tmp_i] != '\0'; tmp_i++) {
+        if (tmp_arg[tmp_i] == '/') { tmp_basename = tmp_arg + tmp_i + 1; }
+    }
+    if(asprintf(&name, "fty-metric-composite-%s", tmp_basename) < 0) {
         zsys_error("Can't allocate name of agent\n");
         exit(1);
     }
     zactor_t *cm_server = zactor_new (fty_metric_composite_server, (void*) name);
     free(name);
     free(tmp_arg);
+    tmp_basename = NULL;
+
     zstr_sendx (cm_server, "CONNECT", "ipc://@/malamute", NULL);
     zclock_sleep (500);  // to settle down the things
     if(strcmp(getenv("BIOS_LOG_LEVEL"), "LOG_DEBUG") == 0)
