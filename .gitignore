@@ -65,6 +65,7 @@ src/.dirstamp
 # CMake
 CMakeLists.txt
 *.cmake
+builds/cmake/
 
 # CMake cache
 CMakeCache.txt
