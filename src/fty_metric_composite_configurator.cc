@@ -34,8 +34,8 @@
 
 static const char *AGENT_NAME = "fty-metric-composite-configurator";
 static const char *ENDPOINT = "ipc://@/malamute";
-static const char *DIRECTORY = "/var/lib/bios/composite-metrics";
-static const char *STATE_FILE = "/var/lib/bios/composite-metrics/configurator_state_file";
+static const char *DIRECTORY = "/var/lib/fty/fty-metric-composite";
+static const char *STATE_FILE = "/var/lib/fty/fty-metric-composite/configurator_state_file";
 
 #define DEFAULT_LOG_LEVEL LOG_WARNING
 

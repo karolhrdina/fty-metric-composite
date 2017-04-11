@@ -8,11 +8,18 @@ PartOf=bios.target
 [Service]
 Type=simple
 User=bios
-EnvironmentFile=-/usr/share/bios/etc/default/bios
-EnvironmentFile=-/usr/share/bios/etc/default/fty__%n.conf
-EnvironmentFile=-/etc/default/bios
-EnvironmentFile=-/etc/default/fty__fty-metric-composite__%i.conf
-ExecStart=@prefix@/bin/fty-metric-composite /var/lib/bios/composite-metrics/%i.cfg
+Restart=always
+EnvironmentFile=-@prefix@/share/bios/etc/default/bios
+EnvironmentFile=-@prefix@/share/bios/etc/default/bios__%n.conf
+EnvironmentFile=-@prefix@/share/fty/etc/default/fty
+EnvironmentFile=-@prefix@/share/fty/etc/default/fty__%n.conf
+EnvironmentFile=-@sysconfdir@/default/bios
+EnvironmentFile=-@sysconfdir@/default/bios__%n.conf
+EnvironmentFile=-@sysconfdir@/default/fty
+EnvironmentFile=-@sysconfdir@/default/fty__%n.conf
+EnvironmentFile=-@sysconfdir@/default/fty__fty-metric-composite__%i.conf
+Environment="prefix=@prefix@"
+ExecStart=@prefix@/bin/fty-metric-composite /var/lib/fty/fty-metric-composite/%i.cfg
 Restart=always
 
 [Install]
