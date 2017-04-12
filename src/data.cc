@@ -154,17 +154,26 @@ data_reassign_sensors (data_t *self, bool is_propagation_needed)
         // if it is sensor, do CONFIGURATION
 
         // first of all, take its logical asset
-        const char *logical_asset_name = fty_proto_ext_string (one_sensor, "logical_asset", NULL);
-        if ( logical_asset_name == NULL ) {
+        const char *logical_asset_ext_name = fty_proto_ext_string (one_sensor, "logical_asset", NULL);
+        if (logical_asset_ext_name == NULL) {
             log_warning ("Sensor '%s' has no logical asset assigned -> skip it", one_sensor_name);
             one_sensor_name = (char *) zlistx_next (asset_names);
             continue;
         }
 
-        // find detailed information about logical asset
-        fty_proto_t *logical_asset = (fty_proto_t *) zhashx_lookup (self->all_assets, logical_asset_name);
-        if ( logical_asset == NULL ) {
-            log_warning ("Inconsistecy (yet): detailes about logical asset '%s' are not known -> skip sensor '%s'", logical_asset_name, one_sensor_name);
+        fty_proto_t *logical_asset = NULL;
+        fty_proto_t *item = (fty_proto_t *) zhashx_first (self->all_assets);
+        while (item) {
+            const char *ext_name = fty_proto_ext_string (item, "name", "");
+            if (streq (logical_asset_ext_name, ext_name)) {
+                logical_asset = item;
+                break;
+            }
+            item = (fty_proto_t *) zhashx_next (self->all_assets);
+        }
+
+        if (logical_asset == NULL) {
+            log_warning ("Inconsistecy (yet): detailes about logical asset (ext.name) '%s' are not known -> skip sensor '%s'", logical_asset_ext_name, one_sensor_name);
             // Detailed information about logical asset was not found
             // It can happen if:
             //  * reconfiguration started before detailed "logical_asset" message arrived
@@ -194,7 +203,7 @@ data_reassign_sensors (data_t *self, bool is_propagation_needed)
         // So, now let us put our sensor to the right place
 
         // Find already assigned sensors
-        zlistx_t *already_assigned_sensors = s_get_assigned_sensors (self, logical_asset_name);
+        zlistx_t *already_assigned_sensors = s_get_assigned_sensors (self, fty_proto_name (logical_asset));
         // add sensor to the list
         zlistx_add_end (already_assigned_sensors, (void *) one_sensor);
 
